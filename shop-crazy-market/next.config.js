@@ -18,10 +18,6 @@ if (process.env.DATABASE_URL) {
 
 const nextConfig = {
   reactStrictMode: true,
-  // Skip static generation for admin routes
-  experimental: {
-    dynamicIO: true,
-  },
 }
 
 module.exports = nextConfig
