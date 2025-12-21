@@ -1,22 +1,29 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { Prisma } from "@prisma/client";
+
+type ShopWithOwner = Prisma.ShopGetPayload<{
+  include: {
+    owner: {
+      select: {
+        username: true;
+        email: true;
+      };
+    };
+    _count: {
+      select: {
+        products: true;
+      };
+    };
+  };
+}>;
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
 export default async function AdminShops() {
-  let shops: Array<{
-    id: string;
-    name: string;
-    owner: {
-      username: string | null;
-      email: string;
-    };
-    _count: {
-      products: number;
-    };
-  }> = [];
+  let shops: ShopWithOwner[] = [];
   try {
     shops = await prisma.shop.findMany({
     include: {

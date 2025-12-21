@@ -1,21 +1,23 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { Prisma } from "@prisma/client";
+
+type ProductWithShop = Prisma.ProductGetPayload<{
+  include: {
+    shop: {
+      select: {
+        name: true;
+      };
+    };
+  };
+}>;
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
 export default async function AdminProducts() {
-  let products: Array<{
-    id: string;
-    title: string;
-    price: number;
-    quantity: number;
-    zone: string;
-    shop: {
-      name: string;
-    };
-  }> = [];
+  let products: ProductWithShop[] = [];
   try {
     products = await prisma.product.findMany({
     include: {

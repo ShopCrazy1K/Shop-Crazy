@@ -1,25 +1,32 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+
+type OrderWithRelations = Prisma.OrderGetPayload<{
+  include: {
+    user: {
+      select: {
+        username: true;
+        email: true;
+      };
+    };
+    items: {
+      include: {
+        product: {
+          select: {
+            title: true;
+          };
+        };
+      };
+    };
+  };
+}>;
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
 export default async function AdminOrders() {
-  let orders: Array<{
-    id: string;
-    total: number;
-    status: string;
-    createdAt: Date;
-    user: {
-      username: string | null;
-      email: string;
-    };
-    items: Array<{
-      product: {
-        title: string;
-      };
-    }>;
-  }> = [];
+  let orders: OrderWithRelations[] = [];
   try {
     orders = await prisma.order.findMany({
     include: {
