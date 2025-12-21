@@ -5,7 +5,7 @@
     "dev": "next dev",
     "build": "node scripts/setup-env.js && prisma generate && next build",
     "start": "next start",
-    "postinstall": "node scripts/setup-env.js && prisma generate",
+    "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",

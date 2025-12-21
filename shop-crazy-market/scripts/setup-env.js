@@ -6,8 +6,8 @@ const path = require('path');
 
 function fixDatabaseUrl() {
   if (!process.env.DATABASE_URL) {
-    console.log('⚠️  DATABASE_URL not set');
-    return;
+    console.log('⚠️  DATABASE_URL not set - skipping fix');
+    return false;
   }
 
   const url = process.env.DATABASE_URL;
@@ -31,14 +31,23 @@ function fixDatabaseUrl() {
 
       console.log('✅ Fixed DATABASE_URL encoding (encoded # as %23)');
       console.log('   Written to .env.local');
+      return true;
     } else {
       // Still write to .env.local even if already correct
       const envPath = path.join(process.cwd(), '.env.local');
       fs.writeFileSync(envPath, `DATABASE_URL="${url}"\n`, 'utf8');
       console.log('✅ DATABASE_URL encoding is correct');
+      return true;
     }
   }
+  return false;
 }
 
-fixDatabaseUrl();
+// Run fix, but don't exit on error (for postinstall)
+try {
+  fixDatabaseUrl();
+} catch (error) {
+  console.error('Error fixing DATABASE_URL:', error.message);
+  // Don't exit - let the build continue
+}
 
