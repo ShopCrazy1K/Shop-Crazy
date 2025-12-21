@@ -5,7 +5,21 @@ export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
 export default async function AdminOrders() {
-  let orders = [];
+  let orders: Array<{
+    id: string;
+    total: number;
+    status: string;
+    createdAt: Date;
+    user: {
+      username: string | null;
+      email: string;
+    };
+    items: Array<{
+      product: {
+        title: string;
+      };
+    }>;
+  }> = [];
   try {
     orders = await prisma.order.findMany({
     include: {

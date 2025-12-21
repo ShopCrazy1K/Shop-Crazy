@@ -6,7 +6,17 @@ export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
 export default async function AdminShops() {
-  let shops = [];
+  let shops: Array<{
+    id: string;
+    name: string;
+    owner: {
+      username: string | null;
+      email: string;
+    };
+    _count: {
+      products: number;
+    };
+  }> = [];
   try {
     shops = await prisma.shop.findMany({
     include: {
