@@ -2,9 +2,13 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 export default async function AdminProducts() {
-  const products = await prisma.product.findMany({
+  let products = [];
+  try {
+    products = await prisma.product.findMany({
     include: {
       shop: {
         select: {
@@ -17,6 +21,10 @@ export default async function AdminProducts() {
     },
     take: 100, // Limit to 100 most recent
   });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    // Continue with empty array if database is unavailable
+  }
 
   return (
     <div>

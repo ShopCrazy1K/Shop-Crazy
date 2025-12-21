@@ -1,9 +1,13 @@
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 export default async function AdminOrders() {
-  const orders = await prisma.order.findMany({
+  let orders = [];
+  try {
+    orders = await prisma.order.findMany({
     include: {
       user: {
         select: {
@@ -26,6 +30,10 @@ export default async function AdminOrders() {
     },
     take: 100, // Limit to 100 most recent
   });
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    // Continue with empty array if database is unavailable
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {

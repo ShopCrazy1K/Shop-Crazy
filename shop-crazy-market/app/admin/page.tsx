@@ -1,13 +1,27 @@
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 export default async function AdminDashboard() {
-  // Fetch stats from database
-  const [userCount, shopCount, productCount, orderCount] = await Promise.all([
-    prisma.user.count(),
-    prisma.shop.count(),
-    prisma.product.count(),
-    prisma.order.count(),
-  ]);
+  // Fetch stats from database with error handling
+  let userCount = 0;
+  let shopCount = 0;
+  let productCount = 0;
+  let orderCount = 0;
+
+  try {
+    [userCount, shopCount, productCount, orderCount] = await Promise.all([
+      prisma.user.count().catch(() => 0),
+      prisma.shop.count().catch(() => 0),
+      prisma.product.count().catch(() => 0),
+      prisma.order.count().catch(() => 0),
+    ]);
+  } catch (error) {
+    console.error('Error fetching admin stats:', error);
+    // Continue with zero values if database is unavailable
+  }
 
   const stats = [
     { label: "Users", value: userCount },
