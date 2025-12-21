@@ -3,9 +3,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node -e \"const fs=require('fs');const u=process.env.DATABASE_URL;if(u&&u.match(/postgresql:\\/\\/[^:]+:([^@]+)@/)&&u.includes('#')&&!u.includes('%23')){const f=u.replace(/(postgresql:\\/\\/[^:]+:)([^@]+)(@.+)/,(_,p,pass,s)=>p+pass.replace(/#/g,'%23')+s);fs.writeFileSync('.env.local','DATABASE_URL='+JSON.stringify(f)+'\\n');console.log('Fixed DATABASE_URL');}\" && prisma generate && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
-    "postinstall": "prisma generate",
+    "postinstall": "node scripts/setup-env.js && prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
