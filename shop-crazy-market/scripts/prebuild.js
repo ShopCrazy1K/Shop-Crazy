@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // Pre-build script to fix DATABASE_URL encoding
-// This runs before Prisma generate
+// This runs before Prisma generate (via npm prebuild hook)
+
+const fs = require('fs');
+const path = require('path');
 
 if (process.env.DATABASE_URL) {
   const url = process.env.DATABASE_URL;
@@ -17,31 +20,21 @@ if (process.env.DATABASE_URL) {
       const encodedPassword = password.replace(/#/g, '%23');
       const fixedUrl = `${prefix}${encodedPassword}${suffix}`;
       
-      // Update process.env
+      // Update process.env for this process
       process.env.DATABASE_URL = fixedUrl;
       
+      // Also write to .env.local so Prisma can read it
+      const envPath = path.join(process.cwd(), '.env.local');
+      const envContent = `DATABASE_URL="${fixedUrl}"\n`;
+      fs.writeFileSync(envPath, envContent, 'utf8');
+      
       console.log('✅ Fixed DATABASE_URL encoding (encoded # as %23)');
+      console.log('   Written to .env.local for Prisma');
+    } else {
+      console.log('✅ DATABASE_URL encoding is correct');
     }
   }
-}
-
-// Execute the command with the fixed environment
-const { execSync } = require('child_process');
-const args = process.argv.slice(2);
-
-if (args.length === 0) {
-  console.error('No command provided');
-  process.exit(1);
-}
-
-const command = args.join(' ');
-try {
-  execSync(command, {
-    stdio: 'inherit',
-    env: process.env,
-    shell: true,
-  });
-} catch (error) {
-  process.exit(error.status || 1);
+} else {
+  console.log('⚠️  DATABASE_URL not set');
 }
 
