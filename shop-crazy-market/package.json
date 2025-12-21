@@ -3,8 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/prebuild.js",
-    "build": "prisma generate && next build",
+    "build": "node scripts/fix-env.js && prisma generate && next build",
     "start": "next start",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
