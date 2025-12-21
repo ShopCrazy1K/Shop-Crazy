@@ -1,0 +1,400 @@
+"use client";
+
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import Logo from "@/components/Logo";
+import SearchBar from "@/components/SearchBar";
+
+// Helper function to safely parse images
+function parseImages(images: string | string[] | null | undefined): string[] {
+  if (!images) return [];
+  if (Array.isArray(images)) return images;
+  if (typeof images === 'string') {
+    // Check if it's a JSON string
+    if (images.trim().startsWith('[') || images.trim().startsWith('{')) {
+      try {
+        return JSON.parse(images);
+      } catch {
+        // If parsing fails, treat as single image path
+        return [images];
+      }
+    }
+    // If it's a plain string path, return as array
+    return [images];
+  }
+  return [];
+}
+
+export default function ProfilePage() {
+  const { user, logout, loading } = useAuth();
+  const router = useRouter();
+  const [stats, setStats] = useState({
+    orders: 0,
+    favorites: 0,
+    listings: 0,
+    messages: 0,
+  });
+  const [myListings, setMyListings] = useState<any[]>([]);
+  const [loadingListings, setLoadingListings] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+      return;
+    }
+
+    if (user) {
+      fetchStats();
+      fetchMyListings();
+    }
+  }, [user, loading, router]);
+
+  async function fetchStats() {
+    try {
+      // Fetch orders count
+      const ordersRes = await fetch(`/api/orders?userId=${user?.id}`);
+      if (ordersRes.ok) {
+        const orders = await ordersRes.json();
+        setStats((prev) => ({ ...prev, orders: orders.length }));
+      }
+
+      // Fetch favorites count
+      const favsRes = await fetch(`/api/favorites?userId=${user?.id}`);
+      if (favsRes.ok) {
+        const favorites = await favsRes.json();
+        setStats((prev) => ({ ...prev, favorites: favorites.length }));
+      }
+
+      // Fetch listings count
+      const listingsRes = await fetch(`/api/products/my-listings?userId=${user?.id}`);
+      if (listingsRes.ok) {
+        const data = await listingsRes.json();
+        setStats((prev) => ({ ...prev, listings: data.count || 0 }));
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  }
+
+  async function fetchMyListings() {
+    if (!user) return;
+    setLoadingListings(true);
+    try {
+      const response = await fetch(`/api/products/my-listings?userId=${user?.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMyListings(data.products || []);
+      }
+    } catch (error) {
+      console.error("Error fetching listings:", error);
+    } finally {
+      setLoadingListings(false);
+    }
+  }
+
+  async function handleDeleteProduct(productId: string) {
+    if (!user) return;
+    
+    if (!confirm("Are you sure you want to delete this listing? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/products/${productId}?userId=${user?.id}`, {
+        method: "DELETE",
+        headers: {
+          "x-user-id": user?.id || "",
+        },
+      });
+
+      if (response.ok) {
+        // Remove the product from the list
+        setMyListings((prev) => prev.filter((p) => p.id !== productId));
+        // Update the listings count
+        setStats((prev) => ({ ...prev, listings: prev.listings - 1 }));
+        alert("Listing deleted successfully!");
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to delete listing");
+      }
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      alert("An error occurred while deleting the listing");
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="p-6">
+        <div className="text-center text-gray-500 py-10">Loading...</div>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <main className="p-3 sm:p-4 space-y-4 sm:space-y-6 md:space-y-8 pb-24">
+      {/* Logo Section */}
+      <section className="flex justify-center mb-2 sm:mb-4">
+        <Logo className="w-full max-w-2xl sm:max-w-3xl" />
+      </section>
+
+      {/* Search Bar */}
+      <section className="max-w-2xl mx-auto px-2 sm:px-0">
+        <SearchBar />
+      </section>
+
+      {/* Stats Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+        <StatCard number={stats.orders} label="Orders" emoji="📦" href="/orders" />
+        <StatCard number={stats.favorites} label="Favorites" emoji="❤️" href="/favorites" />
+        <StatCard number={stats.listings} label="Listings" emoji="📝" href="#my-listings" />
+        <StatCard number={stats.messages} label="Messages" emoji="💬" href="/messages" />
+      </div>
+
+      {/* User Info Card */}
+      <section className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0">
+        <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-center">Account Information</h2>
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg sm:rounded-xl">
+            <div className="flex-1 min-w-0 pr-2">
+              <p className="text-gray-500 text-xs sm:text-sm">Email</p>
+              <p className="font-semibold text-sm sm:text-lg truncate">{user.email}</p>
+            </div>
+            <span className="text-xl sm:text-2xl flex-shrink-0">📧</span>
+          </div>
+
+          {user.username && (
+            <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg sm:rounded-xl">
+              <div className="flex-1 min-w-0 pr-2">
+                <p className="text-gray-500 text-xs sm:text-sm">Username</p>
+                <p className="font-semibold text-sm sm:text-lg truncate">{user.username}</p>
+              </div>
+              <span className="text-xl sm:text-2xl flex-shrink-0">👤</span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg sm:rounded-xl">
+            <div className="flex-1 min-w-0 pr-2">
+              <p className="text-gray-500 text-xs sm:text-sm">Account Type</p>
+              <p className="font-semibold text-sm sm:text-lg capitalize">{user.role.toLowerCase()}</p>
+            </div>
+            <span className="text-xl sm:text-2xl flex-shrink-0">
+              {user.role === "ADMIN" ? "👑" : "⭐"}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Links */}
+      <section className="grid grid-cols-2 gap-2 sm:gap-3">
+        <QuickLinkCard 
+          title="📦 Orders" 
+          description="Track purchases"
+          href="/orders"
+          color="bg-green-500"
+        />
+        <QuickLinkCard 
+          title="❤️ Favorites" 
+          description="Saved items"
+          href="/favorites"
+          color="bg-pink-500"
+        />
+        <QuickLinkCard 
+          title="🏪 My Shop" 
+          description="Seller dashboard"
+          href="/seller/dashboard"
+          color="bg-purple-500"
+        />
+        <QuickLinkCard 
+          title="💬 Messages" 
+          description="Chat with sellers"
+          href="/messages"
+          color="bg-blue-500"
+        />
+      </section>
+
+      {/* My Listings Section */}
+      <section id="my-listings" className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0">
+        <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-center">My Listings</h2>
+        {loadingListings ? (
+          <div className="text-center py-4 text-gray-500">Loading listings...</div>
+        ) : myListings.length === 0 ? (
+          <div className="text-center py-6 space-y-3">
+            <p className="text-gray-500">You haven't created any listings yet.</p>
+            <Link
+              href="/sell"
+              className="inline-block bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+            >
+              Create Your First Listing
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+            {myListings.map((product) => {
+              const productImages = parseImages(product.images);
+              return (
+                <div
+                  key={product.id}
+                  className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-3 border-2 border-transparent hover:border-purple-300 relative group"
+                >
+                  <Link
+                    href={`/product/${product.id}`}
+                    className="block hover:scale-105 transition-transform"
+                  >
+                    {productImages && productImages.length > 0 ? (
+                      <div className="relative w-full aspect-square mb-2 rounded-lg overflow-hidden bg-gray-100">
+                        <Image
+                          src={productImages[0]}
+                          alt={product.title}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full aspect-square mb-2 rounded-lg bg-gray-200 flex items-center justify-center text-4xl">
+                        📦
+                      </div>
+                    )}
+                    <div className="font-bold text-xs sm:text-sm mb-1 line-clamp-2">{product.title}</div>
+                    <div className="text-purple-600 font-semibold text-xs sm:text-sm">
+                      ${(product.price / 100).toFixed(2)}
+                    </div>
+                    {product.hidden && (
+                      <div className="text-xs text-red-500 mt-1">⚠️ Hidden</div>
+                    )}
+                  </Link>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDeleteProduct(product.id);
+                    }}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                    title="Delete listing"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Seller Links */}
+      {user.role === "ADMIN" || (
+        <section className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0">
+          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-center">Seller Tools</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+            <Link
+              href="/seller/dashboard"
+              className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:scale-105 transition-transform cursor-pointer border-2 border-transparent hover:border-purple-300 active:scale-95"
+            >
+              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2 text-center">📊</div>
+              <div className="font-bold text-sm sm:text-base text-center mb-1">Seller Dashboard</div>
+              <div className="text-xs text-gray-600 text-center">View sales & fees</div>
+            </Link>
+            <Link
+              href="/seller/platforms"
+              className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:scale-105 transition-transform cursor-pointer border-2 border-transparent hover:border-blue-300 active:scale-95"
+            >
+              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2 text-center">🔗</div>
+              <div className="font-bold text-sm sm:text-base text-center mb-1">Platforms</div>
+              <div className="text-xs text-gray-600 text-center">Connect stores</div>
+            </Link>
+            <Link
+              href="/seller/strikes"
+              className="bg-gradient-to-br from-red-100 to-orange-100 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:scale-105 transition-transform cursor-pointer border-2 border-transparent hover:border-red-300 active:scale-95"
+            >
+              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2 text-center">⚠️</div>
+              <div className="font-bold text-sm sm:text-base text-center mb-1">Strikes</div>
+              <div className="text-xs text-gray-600 text-center">View strikes</div>
+            </Link>
+            <Link
+              href="/sell"
+              className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:scale-105 transition-transform cursor-pointer border-2 border-transparent hover:border-green-300 active:scale-95"
+            >
+              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2 text-center">➕</div>
+              <div className="font-bold text-sm sm:text-base text-center mb-1">Create Listing</div>
+              <div className="text-xs text-gray-600 text-center">List new product</div>
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Logout Button */}
+      <button
+        onClick={() => {
+          logout();
+          router.push("/");
+        }}
+        className="w-full bg-red-600 text-white py-3 sm:py-4 rounded-xl font-bold hover:bg-red-700 active:bg-red-800 transition-all shadow-lg min-h-[44px] touch-manipulation"
+      >
+        🚪 Logout
+      </button>
+    </main>
+  );
+}
+
+function StatCard({ number, label, emoji, href }: { number: number; label: string; emoji: string; href?: string }) {
+  const content = (
+    <div className="bg-white/90 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-4 text-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
+      <div className="text-2xl sm:text-3xl mb-0.5 sm:mb-1">{emoji}</div>
+      <div className="text-xl sm:text-2xl font-bold text-purple-600">{number}</div>
+      <div className="text-xs text-gray-600 font-semibold">{label}</div>
+    </div>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className="block">
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
+}
+
+function QuickLinkCard({ 
+  title, 
+  description, 
+  href, 
+  color 
+}: { 
+  title: string; 
+  description: string;
+  href: string; 
+  color: string;
+}) {
+  return (
+    <Link href={href} className="min-h-[80px] sm:min-h-[100px] flex items-center">
+      <div className={`${color} rounded-lg sm:rounded-xl p-3 sm:p-4 text-white shadow-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer w-full min-h-[80px] sm:min-h-[100px] flex flex-col justify-center`}>
+        <div className="text-xl sm:text-2xl mb-0.5 sm:mb-1">{title.split(' ')[0]}</div>
+        <div className="font-bold text-xs sm:text-sm mb-0.5 sm:mb-1">{title.split(' ').slice(1).join(' ')}</div>
+        <div className="text-xs opacity-90 leading-tight">{description}</div>
+      </div>
+    </Link>
+  );
+}
