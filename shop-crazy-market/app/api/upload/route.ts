@@ -6,6 +6,8 @@ import { NextResponse } from "next/server";
  * Handle file uploads - uses data URLs for now (works without cloud storage)
  * 
  * For production, configure cloud storage (Supabase Storage, Vercel Blob, Cloudinary, etc.)
+ * 
+ * Updated: Uses data URLs instead of filesystem (Vercel-compatible)
  */
 export const dynamic = 'force-dynamic';
 
