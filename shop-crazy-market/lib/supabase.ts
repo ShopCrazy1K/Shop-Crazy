@@ -1,28 +1,25 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://hbufjpxdzmygjnbfsniu.supabase.co'
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_KEY
+// Server-side Supabase client (uses service role key for admin operations)
+export function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseKey) {
-  throw new Error('Missing Supabase key. Please set NEXT_PUBLIC_SUPABASE_ANON_KEY or SUPABASE_KEY environment variable.')
-}
-
-export const supabase = createClient(supabaseUrl, supabaseKey)
-
-// For server-side usage (if needed)
-export function createServerClient() {
-  const serverUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://hbufjpxdzmygjnbfsniu.supabase.co'
-  const serverKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
-
-  if (!serverKey) {
-    throw new Error('Missing Supabase server key. Please set SUPABASE_SERVICE_ROLE_KEY or SUPABASE_KEY environment variable.')
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase environment variables');
   }
 
-  return createClient(serverUrl, serverKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  })
+  return createClient(supabaseUrl, supabaseServiceKey);
 }
 
+// Client-side Supabase client (uses anon key)
+export function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
