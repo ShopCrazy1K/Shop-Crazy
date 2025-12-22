@@ -8,8 +8,10 @@ import { NextResponse } from "next/server";
  * For production, configure cloud storage (Supabase Storage, Vercel Blob, Cloudinary, etc.)
  * 
  * Updated: Uses data URLs instead of filesystem (Vercel-compatible)
+ * Deployed: $(date) - Ready for production
  */
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
