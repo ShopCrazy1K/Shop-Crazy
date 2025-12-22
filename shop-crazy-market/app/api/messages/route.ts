@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/messages - Get all conversations for the current user
 export async function GET(request: Request) {
   try {
