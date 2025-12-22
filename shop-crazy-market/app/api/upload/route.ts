@@ -15,6 +15,9 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
+    // Version check - if this code is running, it should use data URLs
+    console.log("[UPLOAD] Using data URL method (Vercel-compatible)");
+    
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
