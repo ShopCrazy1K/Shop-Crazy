@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase";
 
 /**
  * POST /api/upload
  * 
- * Handle file uploads using Supabase Storage
+ * Handle file uploads - uses data URLs for now (works without cloud storage)
+ * 
+ * For production, configure cloud storage (Supabase Storage, Vercel Blob, Cloudinary, etc.)
  */
 export const dynamic = 'force-dynamic';
 
@@ -31,145 +32,35 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if Supabase is configured
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      // Fallback to data URL for small images if Supabase not configured
-      if (isImage && file.size < 2 * 1024 * 1024) {
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const base64 = buffer.toString('base64');
-        const dataUrl = `data:${file.type};base64,${base64}`;
-        
-        return NextResponse.json({
-          success: true,
-          url: dataUrl,
-          filename: file.name,
-          size: file.size,
-          warning: "Using data URL - configure Supabase Storage for better performance",
-        });
-      }
-
+    // For now, use data URLs (works without cloud storage setup)
+    // This works for small to medium files
+    const maxDataUrlSize = 10 * 1024 * 1024; // 10MB max for data URLs
+    
+    if (file.size > maxDataUrlSize) {
       return NextResponse.json(
         { 
-          error: "Supabase Storage not configured. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.",
-          suggestion: "See UPLOAD_STORAGE_SETUP.md for setup instructions."
+          error: "File too large for data URL. Please configure cloud storage (Supabase Storage, Vercel Blob, or Cloudinary).",
+          maxSize: "10MB for data URLs",
+          suggestion: "See UPLOAD_STORAGE_SETUP.md for cloud storage setup."
         },
-        { status: 500 }
+        { status: 400 }
       );
     }
 
-    // Upload to Supabase Storage
-    try {
-      const supabase = getSupabaseAdmin();
-      
-      // Determine bucket based on file type
-      const bucket = isImage ? 'product-images' : 'digital-files';
-      
-      // Generate unique filename
-      const timestamp = Date.now();
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-      const filename = `${timestamp}_${sanitizedName}`;
-      const filePath = `${bucket}/${filename}`;
-
-      // Convert file to buffer
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      // Upload to Supabase Storage
-      const { data, error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, buffer, {
-          contentType: file.type,
-          upsert: false, // Don't overwrite existing files
-        });
-
-      if (uploadError) {
-        // If bucket doesn't exist, try 'uploads' bucket as fallback
-        if (uploadError.message.includes('not found')) {
-          const { data: fallbackData, error: fallbackError } = await supabase.storage
-            .from('uploads')
-            .upload(`uploads/${filename}`, buffer, {
-              contentType: file.type,
-              upsert: false,
-            });
-
-          if (fallbackError) {
-            console.error("Supabase upload error:", fallbackError);
-            return NextResponse.json(
-              { 
-                error: `Failed to upload file: ${fallbackError.message}`,
-                suggestion: "Make sure the storage bucket exists in Supabase. See UPLOAD_STORAGE_SETUP.md"
-              },
-              { status: 500 }
-            );
-          }
-
-          // Get public URL
-          const { data: urlData } = supabase.storage
-            .from('uploads')
-            .getPublicUrl(`uploads/${filename}`);
-
-          return NextResponse.json({
-            success: true,
-            url: urlData.publicUrl,
-            filename: file.name,
-            size: file.size,
-            path: `uploads/${filename}`,
-          });
-        }
-
-        console.error("Supabase upload error:", uploadError);
-        return NextResponse.json(
-          { 
-            error: `Failed to upload file: ${uploadError.message}`,
-            suggestion: "Make sure the storage bucket exists in Supabase. See UPLOAD_STORAGE_SETUP.md"
-          },
-          { status: 500 }
-        );
-      }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-
-      return NextResponse.json({
-        success: true,
-        url: urlData.publicUrl,
-        filename: file.name,
-        size: file.size,
-        path: filePath,
-      });
-    } catch (storageError: any) {
-      console.error("Storage error:", storageError);
-      
-      // Fallback to data URL for small images
-      if (isImage && file.size < 2 * 1024 * 1024) {
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const base64 = buffer.toString('base64');
-        const dataUrl = `data:${file.type};base64,${base64}`;
-        
-        return NextResponse.json({
-          success: true,
-          url: dataUrl,
-          filename: file.name,
-          size: file.size,
-          warning: "Using data URL fallback - Supabase Storage error occurred",
-        });
-      }
-
-      return NextResponse.json(
-        { 
-          error: `Storage error: ${storageError.message}`,
-          suggestion: "Check Supabase Storage configuration. See UPLOAD_STORAGE_SETUP.md"
-        },
-        { status: 500 }
-      );
-    }
+    // Convert to base64 data URL
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const base64 = buffer.toString('base64');
+    const dataUrl = `data:${file.type};base64,${base64}`;
+    
+    return NextResponse.json({
+      success: true,
+      url: dataUrl,
+      filename: file.name,
+      size: file.size,
+      type: file.type,
+      note: "Using data URL. Configure cloud storage for better performance.",
+    });
   } catch (error: any) {
     console.error("File upload error:", error);
     return NextResponse.json(

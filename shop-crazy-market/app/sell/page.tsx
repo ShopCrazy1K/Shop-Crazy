@@ -554,10 +554,20 @@ export default function SellPage() {
 
                     if (uploadResponse.ok) {
                       const uploadData = await uploadResponse.json();
-                      uploadedUrls.push(uploadData.url);
+                      if (uploadData.url) {
+                        uploadedUrls.push(uploadData.url);
+                      } else {
+                        console.error("Upload response missing URL:", uploadData);
+                        alert(`Failed to upload ${file.name}: Invalid response`);
+                      }
+                    } else {
+                      const errorData = await uploadResponse.json().catch(() => ({ error: "Unknown error" }));
+                      console.error("Upload error:", errorData);
+                      alert(`Failed to upload ${file.name}: ${errorData.error || "Unknown error"}`);
                     }
-                  } catch (error) {
+                  } catch (error: any) {
                     console.error("Error uploading image:", error);
+                    alert(`Failed to upload ${file.name}: ${error.message || "Network error"}`);
                   }
                 }
 
