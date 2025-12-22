@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { sendStrikeNotification } from "@/lib/email";
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   try {
