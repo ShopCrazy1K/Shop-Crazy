@@ -1,10 +1,18 @@
-import React, { useState, useMemo } from 'react';
-import { useChat } from '../contexts/ChatContext';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from 'react';
+
+interface ChatRoom {
+  id: string;
+  name: string;
+  description: string;
+  type: 'public' | 'private' | 'alumni';
+  category: string;
+  memberCount: number;
+  isActive: boolean;
+  lastMessage?: string;
+  lastMessageTime?: Date;
+}
 
 const ChatRooms: React.FC = () => {
-  const { rooms, activeRoom, joinRoom, leaveRoom, isConnected } = useChat();
-  const { user } = useAuth();
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -16,433 +24,333 @@ const ChatRooms: React.FC = () => {
     category: 'General',
   });
 
+  // Mock data for chat rooms
+  const mockRooms: ChatRoom[] = [
+    {
+      id: '1',
+      name: 'General Chat',
+      description: 'Open discussion for everyone',
+      type: 'public',
+      category: 'General',
+      memberCount: 156,
+      isActive: true,
+      lastMessage: 'Anyone up for a game night?',
+      lastMessageTime: new Date(Date.now() - 1000 * 60 * 5)
+    },
+    {
+      id: '2',
+      name: 'Tech Enthusiasts',
+      description: 'Discuss latest technology trends',
+      type: 'public',
+      category: 'Technology',
+      memberCount: 89,
+      isActive: true,
+      lastMessage: 'Check out this new AI tool!',
+      lastMessageTime: new Date(Date.now() - 1000 * 60 * 15)
+    },
+    {
+      id: '3',
+      name: 'Alumni Network',
+      description: 'Exclusive for verified alumni',
+      type: 'alumni',
+      category: 'Alumni',
+      memberCount: 234,
+      isActive: true,
+      lastMessage: 'Great to reconnect with everyone!',
+      lastMessageTime: new Date(Date.now() - 1000 * 60 * 30)
+    },
+    {
+      id: '4',
+      name: 'Study Group',
+      description: 'Collaborative learning space',
+      type: 'private',
+      category: 'Education',
+      memberCount: 12,
+      isActive: false,
+      lastMessage: 'Meeting tomorrow at 3 PM',
+      lastMessageTime: new Date(Date.now() - 1000 * 60 * 60 * 2)
+    }
+  ];
+
   // Get unique categories from rooms
-  const categories = useMemo(() => {
-    const cats = ['All', ...Array.from(new Set(rooms.map(room => room.category)))];
-    return cats.sort();
-  }, [rooms]);
+  const categories = ['All', ...Array.from(new Set(mockRooms.map(room => room.category)))];
 
-  // Filter rooms based on selected category and search query
-  const filteredRooms = useMemo(() => {
-    let filtered = rooms;
-    
-    if (selectedCategory !== 'All') {
-      filtered = filtered.filter(room => room.category === selectedCategory);
-    }
-    
-    if (searchQuery) {
-      filtered = filtered.filter(room => 
-        room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        room.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    return filtered;
-  }, [rooms, selectedCategory, searchQuery]);
+  // Filter rooms based on search and category
+  const filteredRooms = mockRooms.filter(room => {
+    const matchesSearch = room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         room.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'All' || room.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
-  const handleJoinRoom = (roomId: string) => {
-    console.log('Joining room:', roomId); // Debug log
-    
-    if (activeRoom?.id === roomId) {
-      console.log('Leaving room:', roomId); // Debug log
-      leaveRoom(roomId);
-      setSelectedRoom(null);
-    } else {
-      console.log('Joining new room:', roomId); // Debug log
-      joinRoom(roomId);
-      setSelectedRoom(roomId);
-      
-      // Show success message
-      console.log(`Successfully joined room: ${roomId}`);
-      
-      // Add visual feedback
-      alert(`Successfully joined ${rooms.find(r => r.id === roomId)?.name}!`);
-    }
-  };
-
-  const handleCreateRoom = () => {
-    // This would integrate with the chat context
+  const handleCreateRoom = (e: React.FormEvent) => {
+    e.preventDefault();
+    // In a real app, this would create a new room
+    console.log('Creating room:', newRoomData);
     setShowCreateRoom(false);
     setNewRoomData({ name: '', description: '', type: 'public', category: 'General' });
   };
 
-  const getRoomIcon = (type: string) => {
-    switch (type) {
-      case 'alumni':
-        return '🎓';
-      case 'private':
-        return '🔒';
-      default:
-        return '💬';
-    }
+  const handleJoinRoom = (roomId: string) => {
+    setSelectedRoom(roomId);
+    // In a real app, this would join the room
+    console.log('Joining room:', roomId);
+  };
+
+  const formatLastMessageTime = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return date.toLocaleDateString();
   };
 
   const getRoomTypeColor = (type: string) => {
     switch (type) {
-      case 'alumni':
-        return 'bg-purple-500/20 text-purple-400 border-purple-500/50';
-      case 'private':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
-      default:
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
+      case 'public': return 'bg-green-100 text-green-800';
+      case 'private': return 'bg-yellow-100 text-yellow-800';
+      case 'alumni': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getCategoryIcon = (category: string) => {
-    const categoryIcons: { [key: string]: string } = {
-      'General': '🌟',
-      'Sports': '🏆',
-      'Music': '🎵',
-      'Gaming': '🎮',
-      'Entertainment': '🎬',
-      'Lifestyle': '🍕',
-      'Technology': '💻',
-      'Business': '💰',
-      'Education': '📚',
-      'Hobbies': '🏠',
-      'Trending': '🔥',
-      'Special': '👑',
-    };
-    return categoryIcons[category] || '💬';
-  };
+  if (selectedRoom) {
+    const room = mockRooms.find(r => r.id === selectedRoom);
+    if (!room) return null;
 
-  const getCategoryColor = (category: string) => {
-    const categoryColors: { [key: string]: string } = {
-      'General': 'bg-blue-500/20 text-blue-400 border-blue-500/50',
-      'Sports': 'bg-green-500/20 text-green-400 border-green-500/50',
-      'Music': 'bg-purple-500/20 text-purple-400 border-purple-500/50',
-      'Gaming': 'bg-orange-500/20 text-orange-400 border-orange-500/50',
-      'Entertainment': 'bg-pink-500/20 text-pink-400 border-pink-500/50',
-      'Lifestyle': 'bg-teal-500/20 text-teal-400 border-teal-500/50',
-      'Technology': 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50',
-      'Business': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50',
-      'Education': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50',
-      'Hobbies': 'bg-amber-500/20 text-amber-400 border-amber-500/50',
-      'Trending': 'bg-red-500/20 text-red-400 border-red-500/50',
-      'Special': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
-    };
-    return categoryColors[category] || 'bg-gray-500/20 text-gray-400 border-gray-500/50';
-  };
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Room Header */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => setSelectedRoom(null)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ← Back to Rooms
+                </button>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">{room.name}</h1>
+                  <p className="text-gray-600">{room.description}</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoomTypeColor(room.type)}`}>
+                  {room.type.charAt(0).toUpperCase() + room.type.slice(1)}
+                </span>
+                <span className="text-gray-500">{room.memberCount} members</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Chat Area */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6">
+              <div className="bg-gray-50 rounded-lg p-4 h-96 overflow-y-auto mb-4">
+                <div className="text-center text-gray-500 py-8">
+                  <p>Welcome to {room.name}!</p>
+                  <p className="text-sm">Start chatting with other members.</p>
+                </div>
+              </div>
+              
+              <form className="flex space-x-2">
+                <input
+                  type="text"
+                  placeholder="Type your message..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  type="submit"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium"
+                >
+                  Send
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">
-            Chat Rooms
-          </h1>
-          <p className="text-xl text-white/60 max-w-3xl mx-auto">
-            Join conversations, connect with friends, and be part of amazing communities across {categories.length - 1} different categories
-          </p>
-          <div className="flex items-center justify-center space-x-4 mt-6">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="text-white/60 text-sm">
-                {isConnected ? 'Connected' : 'Connecting...'}
-              </span>
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                💬 Chat Rooms
+              </h1>
+              <p className="text-lg text-gray-600">
+                Join conversations and connect with others
+              </p>
             </div>
             <button
               onClick={() => setShowCreateRoom(true)}
-              className="btn-primary"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
             >
-              Create New Room
+              Create Room
             </button>
           </div>
         </div>
 
-        {/* Search and Filter Bar */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search Bar */}
+        {/* Search and Filters */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search chat rooms..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full input-field pl-10"
-                />
-                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60">
-                  🔍
-                </div>
-              </div>
+              <input
+                type="text"
+                placeholder="Search chat rooms..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
             </div>
-
-            {/* Category Filter */}
-            <div className="sm:w-48">
+            <div className="flex gap-3">
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full input-field"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 {categories.map(category => (
-                  <option key={category} value={category}>
-                    {category} ({category === 'All' ? rooms.length : rooms.filter(r => r.category === category).length})
-                  </option>
+                  <option key={category} value={category}>{category}</option>
                 ))}
               </select>
             </div>
           </div>
         </div>
 
-        {/* Category Tabs */}
-        <div className="mb-8">
-          <div className="flex flex-wrap gap-2 justify-center">
-            {categories.map(category => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                  selectedCategory === category
-                    ? 'bg-purple-500 text-white shadow-lg'
-                    : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
-                }`}
-              >
-                <span className="mr-2">{getCategoryIcon(category)}</span>
-                {category}
-                {category !== 'All' && (
-                  <span className="ml-2 bg-white/20 px-2 py-1 rounded-full text-xs">
-                    {rooms.filter(r => r.category === category).length}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Create Room Modal */}
-        {showCreateRoom && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="card max-w-md w-full mx-4">
-              <h3 className="text-xl font-semibold text-white mb-6">Create New Chat Room</h3>
-              <form onSubmit={(e) => { e.preventDefault(); handleCreateRoom(); }}>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Room Name
-                    </label>
-                    <input
-                      type="text"
-                      value={newRoomData.name}
-                      onChange={(e) => setNewRoomData({ ...newRoomData, name: e.target.value })}
-                      className="input-field"
-                      placeholder="Enter room name"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={newRoomData.description}
-                      onChange={(e) => setNewRoomData({ ...newRoomData, description: e.target.value })}
-                      className="input-field"
-                      rows={3}
-                      placeholder="Describe what this room is about"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Category
-                    </label>
-                    <select
-                      value={newRoomData.category}
-                      onChange={(e) => setNewRoomData({ ...newRoomData, category: e.target.value })}
-                      className="input-field"
-                    >
-                      {categories.filter(cat => cat !== 'All').map(category => (
-                        <option key={category} value={category}>{category}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Room Type
-                    </label>
-                    <select
-                      value={newRoomData.type}
-                      onChange={(e) => setNewRoomData({ ...newRoomData, type: e.target.value as any })}
-                      className="input-field"
-                    >
-                      <option value="public">Public</option>
-                      <option value="private">Private</option>
-                      <option value="alumni">Alumni</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="flex space-x-3 mt-6">
-                  <button
-                    type="submit"
-                    className="btn-primary flex-1"
-                  >
-                    Create Room
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateRoom(false)}
-                    className="btn-secondary flex-1"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Rooms Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Chat Rooms Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRooms.map((room) => (
-            <div
-              key={room.id}
-              className={`card cursor-pointer transition-all duration-200 hover:scale-105 ${
-                activeRoom?.id === room.id ? 'ring-2 ring-purple-500' : ''
-              }`}
-              onClick={() => handleJoinRoom(room.id)}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="text-4xl">{room.icon || getRoomIcon(room.type)}</div>
-                <div className="flex flex-col items-end space-y-2">
-                  <span className={`px-2 py-1 rounded-full text-xs border ${getRoomTypeColor(room.type)}`}>
+            <div key={room.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900">{room.name}</h3>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoomTypeColor(room.type)}`}>
                     {room.type.charAt(0).toUpperCase() + room.type.slice(1)}
                   </span>
-                  <span className={`px-2 py-1 rounded-full text-xs border ${getCategoryColor(room.category)}`}>
-                    {room.category}
-                  </span>
-                </div>
-              </div>
-              
-              <h3 className="text-xl font-semibold text-white mb-2">{room.name}</h3>
-              <p className="text-white/70 mb-4 text-sm leading-relaxed">{room.description}</p>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 text-sm text-white/60">
-                  <span>👥</span>
-                  <span>{room.memberCount || room.participants.length} members</span>
                 </div>
                 
+                <p className="text-gray-600 text-sm mb-4">{room.description}</p>
+                
+                <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                  <span>{room.memberCount} members</span>
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    room.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {room.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+
+                {room.lastMessage && (
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-700 mb-1">{room.lastMessage}</p>
+                    <p className="text-xs text-gray-500">{formatLastMessageTime(room.lastMessageTime!)}</p>
+                  </div>
+                )}
+
                 <button
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    activeRoom?.id === room.id
-                      ? 'bg-red-500 hover:bg-red-600 text-white'
-                      : 'bg-purple-500 hover:bg-purple-600 text-white'
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleJoinRoom(room.id);
-                  }}
+                  onClick={() => handleJoinRoom(room.id)}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-md font-medium transition-colors"
                 >
-                  {activeRoom?.id === room.id ? 'Leave' : 'Join'}
+                  Join Room
                 </button>
               </div>
             </div>
           ))}
         </div>
 
-        {/* No Results Message */}
-        {filteredRooms.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-xl font-semibold text-white mb-2">No rooms found</h3>
-            <p className="text-white/60">
-              Try adjusting your search or category filter
-            </p>
-          </div>
-        )}
-
-        {/* Active Room Info */}
-        {activeRoom && (
-          <div className="mt-8">
-            <div className="card">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-white">
-                  Currently in: {activeRoom.name}
-                </h2>
-                <button
-                  onClick={() => leaveRoom(activeRoom.id)}
-                  className="btn-secondary"
-                >
-                  Leave Room
-                </button>
-              </div>
-              <p className="text-white/70 mb-4">{activeRoom.description}</p>
-              <div className="flex items-center space-x-4 text-sm text-white/60">
-                <span>Room Type: {activeRoom.type}</span>
-                <span>•</span>
-                <span>Category: {activeRoom.category}</span>
-                <span>•</span>
-                <span>Members: {activeRoom.memberCount || activeRoom.participants.length}</span>
-                <span>•</span>
-                <span>Status: {activeRoom.isActive ? 'Active' : 'Inactive'}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Category Statistics */}
-        <div className="mt-12">
-          <div className="card">
-            <h3 className="text-xl font-semibold text-white mb-6">📊 Chat Room Statistics</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {categories.filter(cat => cat !== 'All').map(category => {
-                const roomCount = rooms.filter(r => r.category === category).length;
-                const totalMembers = rooms
-                  .filter(r => r.category === category)
-                  .reduce((sum, room) => sum + (room.memberCount || 0), 0);
+        {/* Create Room Modal */}
+        {showCreateRoom && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Create New Chat Room</h2>
+              
+              <form onSubmit={handleCreateRoom} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Room Name</label>
+                  <input
+                    type="text"
+                    value={newRoomData.name}
+                    onChange={(e) => setNewRoomData({...newRoomData, name: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
                 
-                return (
-                  <div key={category} className="text-center p-4 bg-white/5 rounded-lg">
-                    <div className="text-2xl mb-2">{getCategoryIcon(category)}</div>
-                    <h4 className="font-semibold text-white text-sm mb-1">{category}</h4>
-                    <p className="text-white/60 text-xs">{roomCount} rooms</p>
-                    <p className="text-white/40 text-xs">{totalMembers.toLocaleString()} members</p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={newRoomData.description}
+                    onChange={(e) => setNewRoomData({...newRoomData, description: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    rows={3}
+                    required
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <select
+                      value={newRoomData.type}
+                      onChange={(e) => setNewRoomData({...newRoomData, type: e.target.value as any})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="public">Public</option>
+                      <option value="private">Private</option>
+                      <option value="alumni">Alumni</option>
+                    </select>
                   </div>
-                );
-              })}
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <select
+                      value={newRoomData.category}
+                      onChange={(e) => setNewRoomData({...newRoomData, category: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="General">General</option>
+                      <option value="Technology">Technology</option>
+                      <option value="Education">Education</option>
+                      <option value="Alumni">Alumni</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateRoom(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md"
+                  >
+                    Create Room
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
-        </div>
-
-        {/* Special Features */}
-        <div className="mt-12">
-          <div className="card">
-            <h3 className="text-xl font-semibold text-white mb-4">🌟 Special Features</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="text-3xl mb-2">🎓</div>
-                <h4 className="font-semibold text-white mb-2">Alumni Room</h4>
-                <p className="text-white/70 text-sm">
-                  Exclusive access for verified alumni to reconnect and network
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl mb-2">🔒</div>
-                <h4 className="font-semibold text-white mb-2">Private Rooms</h4>
-                <p className="text-white/70 text-sm">
-                  Create private spaces for close friends and family
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl mb-2">💬</div>
-                <h4 className="font-semibold text-white mb-2">Public Rooms</h4>
-                <p className="text-white/70 text-sm">
-                  Join open discussions and meet new people
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default ChatRooms;
+// Force reload

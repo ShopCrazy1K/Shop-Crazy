@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+
 
 interface VideoCallProps {
   roomId?: string;
@@ -10,11 +10,11 @@ interface VideoCallProps {
 
 const VideoCall: React.FC<VideoCallProps> = ({ roomId: propRoomId, userName: propUserName, onLeaveRoom }) => {
   const { roomId: urlRoomId } = useParams<{ roomId: string }>();
-  const { user } = useAuth();
+  const user = null;
   const navigate = useNavigate();
   
   const roomId = propRoomId || urlRoomId || 'default-room';
-  const userName = propUserName || user?.firstName || 'Anonymous';
+  const userName = propUserName || "" || 'Anonymous';
   
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -22,37 +22,15 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomId: propRoomId, userName: pro
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{id: string, user: string, message: string, timestamp: Date}>>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [showBackgroundPicker, setShowBackgroundPicker] = useState(false);
-  const [selectedBackground, setSelectedBackground] = useState<string>('none');
-  const [customBackgroundUrl, setCustomBackgroundUrl] = useState<string>('');
-  const [uploadedImage, setUploadedImage] = useState<string>('');
-  
   const [participants, setParticipants] = useState([
-    { id: '1', name: 'You', avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}` },
+    { id: '1', name: 'You', avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}` },
     { id: '2', name: 'Sarah Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah' },
     { id: '3', name: 'Mike Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=mike' },
   ]);
 
-  // Predefined background options
-  const backgroundOptions = [
-    { id: 'none', name: 'No Background', url: '' },
-    { id: 'blur', name: 'Blur Background', url: 'blur' },
-    { id: 'office', name: 'Office', url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920&h=1080&fit=crop' },
-    { id: 'nature', name: 'Nature', url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop' },
-    { id: 'city', name: 'City', url: 'https://images.unsplash.com/photo-1449824913935-59a10b8d7250?w=1920&h=1080&fit=crop' },
-    { id: 'abstract', name: 'Abstract', url: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1920&h=1080&fit=crop' },
-    { id: 'beach', name: 'Beach', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&h=1080&fit=crop' },
-    { id: 'mountains', name: 'Mountains', url: 'https://images.unsplash.com/photo-1464822759844-d150baec0134?w=1920&h=1080&fit=crop' },
-    { id: 'custom', name: 'Custom URL', url: 'custom' },
-    { id: 'upload', name: 'Upload Image', url: 'upload' }
-  ];
-
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const screenStreamRef = useRef<MediaStream | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Initialize video stream
@@ -66,108 +44,46 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomId: propRoomId, userName: pro
 
     return () => {
       // Cleanup video streams
-      cleanupStreams();
+      if (localVideoRef.current?.srcObject) {
+        const stream = localVideoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
     };
   }, []);
-
-  const cleanupStreams = () => {
-    console.log('Cleaning up all streams...');
-    
-    // Stop local stream
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => {
-        track.stop();
-        console.log('Stopped local track:', track.kind, track.id);
-      });
-      localStreamRef.current = null;
-    }
-    
-    // Stop screen sharing stream
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach(track => {
-        track.stop();
-        console.log('Stopped screen track:', track.kind, track.id);
-      });
-      screenStreamRef.current = null;
-    }
-    
-    // Clear video elements
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = null;
-    }
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = null;
-    }
-    
-    // Force garbage collection hint
-    if (window.gc) {
-      window.gc();
-    }
-    
-    console.log('Stream cleanup completed');
-  };
 
   const initializeVideo = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          facingMode: 'user'
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
+        video: true,
+        audio: true
       });
-      
-      localStreamRef.current = stream;
       
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
-        localVideoRef.current.play().catch(console.error);
       }
-      
-      console.log('Video stream initialized successfully');
     } catch (error) {
       console.error('Error accessing camera/microphone:', error);
-      // Fallback to audio only
-      try {
-        const audioStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
-        });
-        
-        localStreamRef.current = audioStream;
-        console.log('Audio-only stream initialized as fallback');
-      } catch (audioError) {
-        console.error('Error accessing audio:', audioError);
-      }
     }
   };
 
   const toggleVideo = () => {
     setIsVideoEnabled(!isVideoEnabled);
-    if (localStreamRef.current) {
-      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+    if (localVideoRef.current?.srcObject) {
+      const stream = localVideoRef.current.srcObject as MediaStream;
+      const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.enabled = !isVideoEnabled;
-        console.log('Video track enabled:', videoTrack.enabled);
       }
     }
   };
 
   const toggleAudio = () => {
     setIsAudioEnabled(!isAudioEnabled);
-    if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+    if (localVideoRef.current?.srcObject) {
+      const stream = localVideoRef.current.srcObject as MediaStream;
+      const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !isAudioEnabled;
-        console.log('Audio track enabled:', audioTrack.enabled);
       }
     }
   };
@@ -176,121 +92,25 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomId: propRoomId, userName: pro
     if (!isScreenSharing) {
       try {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: {
-            displaySurface: 'monitor'
-          },
-          audio: false
+          video: true
         });
-        
-        screenStreamRef.current = screenStream;
         
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = screenStream;
-          localVideoRef.current.play().catch(console.error);
         }
         setIsScreenSharing(true);
-        
-        // Handle screen share stop
-        screenStream.getVideoTracks()[0].addEventListener('ended', () => {
-          toggleScreenShare();
-        });
-        
-        console.log('Screen sharing started');
       } catch (error) {
         console.error('Error sharing screen:', error);
       }
     } else {
       // Stop screen sharing and return to camera
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach(track => track.stop());
-        screenStreamRef.current = null;
+      if (localVideoRef.current?.srcObject) {
+        const stream = localVideoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
       }
-      
-      if (localStreamRef.current && localVideoRef.current) {
-        localVideoRef.current.srcObject = localStreamRef.current;
-        localVideoRef.current.play().catch(console.error);
-      }
+      initializeVideo();
       setIsScreenSharing(false);
-      console.log('Screen sharing stopped');
     }
-  };
-
-  const handleBackgroundChange = (backgroundId: string) => {
-    setSelectedBackground(backgroundId);
-    if (backgroundId === 'custom') {
-      setShowBackgroundPicker(true);
-      setUploadedImage('');
-    } else if (backgroundId === 'upload') {
-      setShowBackgroundPicker(false);
-      setCustomBackgroundUrl('');
-      // Trigger file input
-      if (fileInputRef.current) {
-        fileInputRef.current.click();
-      }
-    } else {
-      setShowBackgroundPicker(false);
-      setCustomBackgroundUrl('');
-      setUploadedImage('');
-    }
-    console.log('Background changed to:', backgroundId);
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setUploadedImage(result);
-        setSelectedBackground('upload');
-        console.log('Image uploaded successfully');
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const applyCustomBackground = () => {
-    if (customBackgroundUrl.trim()) {
-      setSelectedBackground('custom');
-      setShowBackgroundPicker(false);
-      console.log('Custom background applied:', customBackgroundUrl);
-    }
-  };
-
-  const getBackgroundStyle = () => {
-    if (selectedBackground === 'none') {
-      return {};
-    } else if (selectedBackground === 'blur') {
-      return { 
-        filter: 'blur(15px)',
-        transform: 'scale(1.1)' // Prevent blur edges
-      };
-    } else if (selectedBackground === 'custom' && customBackgroundUrl) {
-      return {
-        backgroundImage: `url(${customBackgroundUrl})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      };
-    } else if (selectedBackground === 'upload' && uploadedImage) {
-      return {
-        backgroundImage: `url(${uploadedImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      };
-    } else {
-      const background = backgroundOptions.find(bg => bg.id === selectedBackground);
-      if (background && background.url && background.url !== 'custom' && background.url !== 'upload') {
-        return {
-          backgroundImage: `url(${background.url})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        };
-      }
-    }
-    return {};
   };
 
   const sendMessage = (e: React.FormEvent) => {
@@ -316,10 +136,22 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomId: propRoomId, userName: pro
   };
 
   const leaveCall = () => {
-    console.log('Leaving call, cleaning up...');
+    // Stop all video and audio streams
+    if (localVideoRef.current?.srcObject) {
+      const stream = localVideoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => {
+        track.stop();
+        console.log('Stopped track:', track.kind);
+      });
+    }
     
-    // Clean up all streams properly
-    cleanupStreams();
+    if (remoteVideoRef.current?.srcObject) {
+      const stream = remoteVideoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => {
+        track.stop();
+        console.log('Stopped remote track:', track.kind);
+      });
+    }
     
     // Reset states
     setIsVideoEnabled(false);
@@ -340,7 +172,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomId: propRoomId, userName: pro
       <div className="bg-black/50 backdrop-blur-md border-b border-white/20 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
               <span className="text-white text-xl">📹</span>
             </div>
             <div>
@@ -360,63 +192,6 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomId: propRoomId, userName: pro
       <div className="flex-1 flex">
         {/* Video Area */}
         <div className="flex-1 flex flex-col p-4">
-          {/* Background Picker */}
-          <div className="mb-4 bg-black/30 rounded-lg p-4">
-            <div className="flex items-center space-x-4">
-              <label className="text-white text-sm font-medium">🎨 Background:</label>
-              <select
-                value={selectedBackground}
-                onChange={(e) => handleBackgroundChange(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                {backgroundOptions.map((bg) => (
-                  <option key={bg.id} value={bg.id} className="bg-gray-800 text-white">
-                    {bg.name}
-                  </option>
-                ))}
-              </select>
-              
-              {selectedBackground === 'custom' && (
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="url"
-                    value={customBackgroundUrl}
-                    onChange={(e) => setCustomBackgroundUrl(e.target.value)}
-                    placeholder="Enter image URL..."
-                    className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500 w-64"
-                  />
-                  <button
-                    onClick={applyCustomBackground}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm transition-colors"
-                  >
-                    Apply
-                  </button>
-                </div>
-              )}
-
-              {selectedBackground === 'upload' && uploadedImage && (
-                <div className="flex items-center space-x-2">
-                  <span className="text-green-400 text-sm">✅ Image uploaded!</span>
-                  <button
-                    onClick={() => setUploadedImage('')}
-                    className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs transition-colors"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Hidden file input for image upload */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-
           {/* Main Video Grid */}
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             {/* Local Video */}
@@ -427,7 +202,6 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomId: propRoomId, userName: pro
                 muted
                 playsInline
                 className="w-full h-full object-cover"
-                style={getBackgroundStyle()}
               />
               {!isVideoEnabled && (
                 <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
@@ -440,11 +214,6 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomId: propRoomId, userName: pro
               <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
                 {userName} (You)
               </div>
-              {selectedBackground !== 'none' && (
-                <div className="absolute top-2 right-2 bg-purple-600 text-white px-2 py-1 rounded text-xs">
-                  🎨 {backgroundOptions.find(bg => bg.id === selectedBackground)?.name}
-                </div>
-              )}
             </div>
 
             {/* Remote Video */}

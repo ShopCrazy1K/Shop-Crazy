@@ -1,0 +1,879 @@
+/* AuraOS - Futuristic Mobile OS Design */
+
+:root {
+  --aura-primary: #6366f1;
+  --aura-secondary: #8b5cf6;
+  --aura-accent: #06b6d4;
+  --aura-success: #10b981;
+  --aura-warning: #f59e0b;
+  --aura-error: #ef4444;
+  --aura-dark: #0f172a;
+  --aura-darker: #020617;
+  --aura-light: #f8fafc;
+  --aura-glow: 0 0 20px rgba(99, 102, 241, 0.5);
+  --aura-glow-strong: 0 0 30px rgba(99, 102, 241, 0.8);
+}
+
+/* Base Styles */
+.aura-os {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--aura-light);
+}
+
+/* Background Gradient */
+.aura-bg-gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--aura-darker) 0%, var(--aura-dark) 50%, #1e293b 100%);
+  z-index: -1;
+}
+
+/* Lock Screen */
+.aura-lock-screen {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 60px 20px 40px;
+  position: relative;
+}
+
+.aura-time-container {
+  text-align: center;
+  margin-top: 80px;
+}
+
+.aura-time {
+  font-size: 4rem;
+  font-weight: 300;
+  color: var(--aura-light);
+  text-shadow: var(--aura-glow);
+  margin-bottom: 10px;
+}
+
+.aura-date {
+  font-size: 1.2rem;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.aura-logo-container {
+  text-align: center;
+  margin: 40px 0;
+}
+
+.aura-logo-ring {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 20px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aura-logo-ring::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 8px solid transparent;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--aura-accent), var(--aura-secondary)) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  box-shadow: var(--aura-glow-strong);
+  animation: aura-glow 3s ease-in-out infinite alternate;
+}
+
+.aura-logo-inner {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #4c1d95, #581c87);
+  border-radius: 50%;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.aura-logo-text {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--aura-light);
+  text-shadow: var(--aura-glow);
+  letter-spacing: 2px;
+}
+
+.aura-unlock-instruction {
+  text-align: center;
+  margin: 40px 0;
+}
+
+.aura-swipe-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.aura-swipe-arrow {
+  font-size: 2rem;
+  color: var(--aura-accent);
+  animation: aura-bounce 2s infinite;
+}
+
+.aura-swipe-text {
+  color: #94a3b8;
+  font-size: 1rem;
+}
+
+.aura-unlock-button {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--aura-primary), var(--aura-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--aura-glow);
+  transition: all 0.3s ease;
+  margin-bottom: 60px;
+}
+
+.aura-unlock-button:hover {
+  transform: scale(1.1);
+  box-shadow: var(--aura-glow-strong);
+}
+
+.aura-unlock-button.unlocking {
+  animation: aura-unlock 0.8s ease forwards;
+}
+
+.aura-unlock-icon {
+  font-size: 2rem;
+  color: var(--aura-light);
+}
+
+/* Status Bar */
+.aura-status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(20px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  font-size: 0.9rem;
+  z-index: 100;
+}
+
+.aura-status-left, .aura-status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aura-status-center {
+  font-weight: 600;
+}
+
+/* Home Screen */
+.aura-home-screen {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.aura-app-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  padding: 80px 20px 120px;
+  flex: 1;
+}
+
+.aura-app-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.aura-app-icon:hover {
+  transform: scale(1.1);
+}
+
+.aura-app-icon-bg {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--app-color), color-mix(in srgb, var(--app-color) 80%, white));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.aura-app-icon:hover .aura-app-icon-bg {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.aura-app-icon-text {
+  font-size: 1.8rem;
+}
+
+.aura-app-name {
+  font-size: 0.8rem;
+  color: var(--aura-light);
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Dock */
+.aura-dock {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 16px;
+  padding: 16px 24px;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.aura-dock-app {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.aura-dock-app:hover {
+  transform: scale(1.2);
+}
+
+.aura-dock-app-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--app-color), color-mix(in srgb, var(--app-color) 80%, white));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.aura-dock-app-icon-text {
+  font-size: 1.5rem;
+}
+
+/* Control Center */
+.aura-control-center {
+  position: absolute;
+  top: 60px;
+  right: 20px;
+  width: 300px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  z-index: 200;
+  animation: aura-slide-in 0.3s ease;
+}
+
+.aura-control-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.aura-control-header h3 {
+  margin: 0;
+  color: var(--aura-light);
+  font-size: 1.2rem;
+}
+
+.aura-control-header button {
+  background: none;
+  border: none;
+  color: var(--aura-light);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.aura-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.aura-control-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.aura-control-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.aura-control-icon {
+  font-size: 1.5rem;
+}
+
+.aura-control-item span {
+  font-size: 0.8rem;
+  color: var(--aura-light);
+  text-align: center;
+}
+
+/* Notifications */
+.aura-notifications {
+  position: absolute;
+  top: 60px;
+  left: 20px;
+  width: 350px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  z-index: 200;
+  animation: aura-slide-in 0.3s ease;
+}
+
+.aura-notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.aura-notification-header h3 {
+  margin: 0;
+  color: var(--aura-light);
+  font-size: 1.2rem;
+}
+
+.aura-notification-header button {
+  background: none;
+  border: none;
+  color: var(--aura-light);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.aura-notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.aura-notification-item {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.aura-notification-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.aura-notification-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.aura-notification-content {
+  flex: 1;
+}
+
+.aura-notification-title {
+  font-weight: 600;
+  color: var(--aura-light);
+  margin-bottom: 4px;
+}
+
+.aura-notification-text {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+/* Lock Button */
+.aura-lock-button {
+  position: absolute;
+  bottom: 100px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--aura-primary), var(--aura-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--aura-glow);
+  transition: all 0.3s ease;
+}
+
+.aura-lock-button:hover {
+  transform: scale(1.1);
+  box-shadow: var(--aura-glow-strong);
+}
+
+.aura-lock-icon {
+  font-size: 1.5rem;
+  color: var(--aura-light);
+}
+
+/* App Container */
+.aura-app-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--aura-dark);
+}
+
+.aura-app-header {
+  height: 60px;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.aura-back-button, .aura-home-button {
+  background: none;
+  border: none;
+  color: var(--aura-light);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.aura-back-button:hover, .aura-home-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.aura-app-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--aura-light);
+  text-transform: capitalize;
+}
+
+.aura-app-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.aura-app-placeholder {
+  text-align: center;
+  max-width: 400px;
+}
+
+.aura-app-icon-large {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.aura-app-placeholder h2 {
+  color: var(--aura-light);
+  margin-bottom: 16px;
+  font-size: 1.8rem;
+}
+
+.aura-app-placeholder p {
+  color: #94a3b8;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+/* Demo Styles */
+.aura-demo-container {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--aura-darker) 0%, var(--aura-dark) 50%, #1e293b 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.aura-instructions {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.aura-instructions-content {
+  max-width: 800px;
+  text-align: center;
+  color: var(--aura-light);
+}
+
+.aura-demo-logo {
+  margin-bottom: 60px;
+}
+
+.aura-demo-logo-ring {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 30px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aura-demo-logo-ring::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 10px solid transparent;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--aura-accent), var(--aura-secondary)) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  box-shadow: var(--aura-glow-strong);
+  animation: aura-glow 3s ease-in-out infinite alternate;
+}
+
+.aura-demo-logo-inner {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #4c1d95, #581c87);
+  border-radius: 50%;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.aura-demo-logo h1 {
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: var(--aura-light);
+  text-shadow: var(--aura-glow);
+  letter-spacing: 3px;
+  margin: 0 0 10px 0;
+}
+
+.aura-demo-subtitle {
+  font-size: 1.3rem;
+  color: var(--aura-accent);
+  font-weight: 400;
+  margin: 0;
+}
+
+.aura-features {
+  margin-bottom: 50px;
+  text-align: left;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.aura-features h2 {
+  font-size: 2rem;
+  color: var(--aura-light);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.aura-features ul {
+  list-style: none;
+  padding: 0;
+}
+
+.aura-features li {
+  padding: 12px 0;
+  font-size: 1.1rem;
+  color: #cbd5e1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.aura-features li:last-child {
+  border-bottom: none;
+}
+
+.aura-instructions-text {
+  margin-bottom: 50px;
+  text-align: left;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.aura-instructions-text h2 {
+  font-size: 2rem;
+  color: var(--aura-light);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.aura-instructions-text ol {
+  padding-left: 20px;
+}
+
+.aura-instructions-text li {
+  padding: 8px 0;
+  font-size: 1.1rem;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.aura-start-button {
+  background: linear-gradient(135deg, var(--aura-primary), var(--aura-secondary));
+  color: var(--aura-light);
+  border: none;
+  padding: 18px 40px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: var(--aura-glow);
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.aura-start-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--aura-glow-strong);
+}
+
+.aura-os-wrapper {
+  position: relative;
+}
+
+.aura-demo-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 1000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.aura-back-to-instructions {
+  background: none;
+  border: none;
+  color: var(--aura-light);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.aura-back-to-instructions:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.aura-demo-header h3 {
+  color: var(--aura-light);
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.aura-demo-info {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+/* Animations */
+@keyframes aura-glow {
+  0% { box-shadow: var(--aura-glow); }
+  100% { box-shadow: var(--aura-glow-strong); }
+}
+
+@keyframes aura-bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+@keyframes aura-unlock {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(0.8); opacity: 0; }
+}
+
+@keyframes aura-slide-in {
+  0% { transform: translateY(-20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .aura-app-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 70px 16px 100px;
+  }
+  
+  .aura-app-icon-bg {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .aura-app-icon-text {
+    font-size: 1.5rem;
+  }
+  
+  .aura-app-name {
+    font-size: 0.7rem;
+  }
+  
+  .aura-dock {
+    bottom: 16px;
+    padding: 12px 20px;
+  }
+  
+  .aura-dock-app-icon {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .aura-control-center,
+  .aura-notifications {
+    width: calc(100% - 32px);
+    right: 16px;
+    left: 16px;
+  }
+  
+  .aura-time {
+    font-size: 3rem;
+  }
+  
+  .aura-logo-ring {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .aura-logo-inner {
+    width: 50px;
+    height: 50px;
+  }
+
+  .aura-demo-logo h1 {
+    font-size: 2.5rem;
+  }
+
+  .aura-demo-subtitle {
+    font-size: 1.1rem;
+  }
+
+  .aura-features h2,
+  .aura-instructions-text h2 {
+    font-size: 1.5rem;
+  }
+
+  .aura-features li,
+  .aura-instructions-text li {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .aura-app-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 60px 12px 80px;
+  }
+  
+  .aura-app-icon-bg {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .aura-dock {
+    gap: 12px;
+    padding: 10px 16px;
+  }
+  
+  .aura-dock-app-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .aura-time {
+    font-size: 2.5rem;
+  }
+  
+  .aura-logo-ring {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .aura-logo-inner {
+    width: 40px;
+    height: 40px;
+  }
+
+  .aura-demo-logo h1 {
+    font-size: 2rem;
+  }
+
+  .aura-demo-subtitle {
+    font-size: 1rem;
+  }
+
+  .aura-start-button {
+    padding: 16px 32px;
+    font-size: 1.1rem;
+  }
+}

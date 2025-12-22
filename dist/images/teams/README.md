@@ -1,0 +1,40 @@
+# NFL Team Logos
+
+This directory contains NFL team logos. In a production app, you would place actual team logo images here.
+
+For demo purposes, the app will use placeholder images or fallback to default team representations.
+
+## Required Files:
+- kc.png (Kansas City Chiefs)
+- buf.png (Buffalo Bills)
+- sf.png (San Francisco 49ers)
+- dal.png (Dallas Cowboys)
+- ari.png (Arizona Cardinals)
+- atl.png (Atlanta Falcons)
+- bal.png (Baltimore Ravens)
+- car.png (Carolina Panthers)
+- chi.png (Chicago Bears)
+- cin.png (Cincinnati Bengals)
+- cle.png (Cleveland Browns)
+- den.png (Denver Broncos)
+- det.png (Detroit Lions)
+- gb.png (Green Bay Packers)
+- hou.png (Houston Texans)
+- ind.png (Indianapolis Colts)
+- jax.png (Jacksonville Jaguars)
+- lv.png (Las Vegas Raiders)
+- lac.png (Los Angeles Chargers)
+- lar.png (Los Angeles Rams)
+- mia.png (Miami Dolphins)
+- min.png (Minnesota Vikings)
+- ne.png (New England Patriots)
+- no.png (New Orleans Saints)
+- nyg.png (New York Giants)
+- nyj.png (New York Jets)
+- phi.png (Philadelphia Eagles)
+- pit.png (Pittsburgh Steelers)
+- sea.png (Seattle Seahawks)
+- tb.png (Tampa Bay Buccaneers)
+- ten.png (Tennessee Titans)
+- wsh.png (Washington Commanders)
+- default.png (Default fallback logo)

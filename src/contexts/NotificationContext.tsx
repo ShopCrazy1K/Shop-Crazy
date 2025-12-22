@@ -104,13 +104,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         const username = mention.substring(1); // Remove @ symbol
         
         // Don't notify if user mentions themselves
-        if (username === user.username) return;
+        if (username === user.displayName) return;
 
                  addNotification({
            type: 'mention',
            title: 'You were mentioned!',
            message: `${username} mentioned you in a post`,
-           userId: user.id || '1',
+           userId: user.uid || '1',
            username,
            userAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
            postId,
@@ -122,7 +122,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   // Add reaction notification
   const addReactionNotification = (userId: string, username: string, userAvatar: string, postId: string, reactionType: string) => {
-    if (!user || userId === user.id) return; // Don't notify for own reactions
+    if (!user || userId === user.uid) return; // Don't notify for own reactions
 
          addNotification({
        type: 'reaction',
@@ -138,7 +138,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   // Add comment notification
   const addCommentNotification = (userId: string, username: string, userAvatar: string, postId: string, commentId: string) => {
-    if (!user || userId === user.id) return; // Don't notify for own comments
+    if (!user || userId === user.uid) return; // Don't notify for own comments
 
          addNotification({
        type: 'comment',

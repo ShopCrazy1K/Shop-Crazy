@@ -204,3 +204,103 @@ input[type="range"]::-moz-range-thumb {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
+
+/* NFL GamePick specific styles */
+.nfl-gradient {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%);
+}
+
+.nfl-card {
+  @apply bg-white rounded-lg shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300;
+}
+
+.nfl-button {
+  @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200;
+}
+
+.nfl-button-secondary {
+  @apply bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200;
+}
+
+.nfl-input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500;
+}
+
+/* Live score animations */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.live-pulse {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* Breaking news ticker */
+@keyframes ticker {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.ticker {
+  animation: ticker 20s linear infinite;
+}
+
+/* Mobile responsive improvements */
+@media (max-width: 768px) {
+  .mobile-stack {
+    @apply flex-col space-y-4 space-x-0;
+  }
+  
+  .mobile-full {
+    @apply w-full;
+  }
+  
+  .mobile-text-sm {
+    @apply text-sm;
+  }
+  
+  .mobile-p-4 {
+    @apply p-4;
+  }
+}
+
+/* Game card hover effects */
+.game-card {
+  @apply transition-all duration-300 hover:scale-105 hover:shadow-2xl;
+}
+
+/* Parlay builder styles */
+.parlay-leg {
+  @apply bg-gray-50 border border-gray-200 rounded-lg p-3 hover:bg-gray-100 transition-colors;
+}
+
+.parlay-leg.selected {
+  @apply bg-red-50 border-red-300;
+}
+
+/* Betting odds styling */
+.odds-positive {
+  @apply text-green-600 font-semibold;
+}
+
+.odds-negative {
+  @apply text-red-600 font-semibold;
+}
+
+/* Status badges */
+.status-badge {
+  @apply px-2 py-1 rounded text-xs font-medium;
+}
+
+.status-live {
+  @apply bg-red-100 text-red-800 animate-pulse;
+}
+
+.status-final {
+  @apply bg-gray-100 text-gray-800;
+}
+
+.status-upcoming {
+  @apply bg-blue-100 text-blue-800;
+}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page</title>
+</head>
+<body>
+    <div id="root">
+        <h1>🏈 NFL CENTER - Test Page</h1>
+        <p>If you can see this, the HTML is working.</p>
+        <p>Now let's test if React can mount:</p>
+        <div id="react-test"></div>
+    </div>
+    
+    <script>
+        console.log('Test HTML loaded');
+        
+        // Test if we can access the root element
+        const rootElement = document.getElementById('root');
+        console.log('Root element found:', rootElement);
+        
+        // Test if we can access the React test element
+        const reactTestElement = document.getElementById('react-test');
+        console.log('React test element found:', reactTestElement);
+        
+        if (reactTestElement) {
+            reactTestElement.innerHTML = '<p style="color: green;">✅ React test element is accessible!</p>';
+        }
+    </script>
+</body>
+</html>
+

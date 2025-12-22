@@ -1,0 +1,266 @@
+/* Advanced Mobile Features */
+
+/* Safe Area Support for Notched Devices */
+@supports (padding: max(0px)) {
+  .safe-area-top {
+    padding-top: max(20px, env(safe-area-inset-top));
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+  
+  .safe-area-left {
+    padding-left: max(20px, env(safe-area-inset-left));
+  }
+  
+  .safe-area-right {
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  /* Increase touch targets */
+  .btn-primary, .btn-secondary, button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+    touch-action: manipulation;
+  }
+  
+  /* Improve mobile navigation */
+  .navbar {
+    padding: 8px 16px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  
+  .navbar-brand {
+    font-size: 1.2rem;
+  }
+  
+  /* Mobile-friendly forms */
+  input, textarea, select {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 12px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    touch-action: manipulation;
+  }
+  
+  /* Mobile card layout */
+  .card {
+    margin: 8px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Mobile-friendly spacing */
+  .container {
+    padding: 0 16px;
+  }
+  
+  /* Mobile navigation menu */
+  .nav-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+  }
+  
+  /* Swipeable cards */
+  .swipeable-card {
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  
+  /* Mobile-optimized images */
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  
+  /* Mobile-friendly tables */
+  table {
+    font-size: 14px;
+    overflow-x: auto;
+    display: block;
+  }
+  
+  /* Mobile-optimized modals */
+  .modal {
+    margin: 16px;
+    border-radius: 16px;
+    max-height: calc(100vh - 32px);
+  }
+  
+  /* Mobile gesture feedback */
+  .gesture-feedback {
+    transition: transform 0.2s ease-out;
+  }
+  
+  .gesture-feedback:active {
+    transform: scale(0.95);
+  }
+  
+  /* Mobile-optimized lists */
+  .list-item {
+    padding: 16px;
+    border-bottom: 1px solid #f3f4f6;
+    touch-action: manipulation;
+  }
+  
+  /* Mobile-friendly buttons */
+  .mobile-btn {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .mobile-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+  }
+  
+  .mobile-btn:active::after {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+/* iOS-specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .btn-primary, .btn-secondary {
+    -webkit-appearance: none;
+    border-radius: 8px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* iOS momentum scrolling */
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+  }
+  
+  /* iOS input styling */
+  input, textarea, select {
+    -webkit-appearance: none;
+    border-radius: 8px;
+  }
+  
+  /* iOS button styling */
+  button {
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Android-specific fixes */
+@supports (-webkit-overflow-scrolling: touch) {
+  .container {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Android ripple effect */
+  .android-ripple {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .android-ripple::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+  }
+  
+  .android-ripple:active::before {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+/* Dark mode support for mobile */
+@media (prefers-color-scheme: dark) {
+  .mobile-nav {
+    background: #1f2937;
+    border-color: #374151;
+  }
+  
+  .mobile-card {
+    background: #374151;
+    border-color: #4b5563;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .btn-primary, .btn-secondary {
+    border: 2px solid currentColor;
+  }
+  
+  .mobile-nav {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .gesture-feedback,
+  .mobile-btn::after,
+  .android-ripple::before {
+    transition: none;
+  }
+}
+
+/* Mobile landscape orientation */
+@media (max-width: 768px) and (orientation: landscape) {
+  .mobile-nav {
+    padding: 4px 16px;
+  }
+  
+  .mobile-nav .nav-item {
+    padding: 8px 12px;
+  }
+  
+  .floating-action-btn {
+    bottom: 16px;
+    right: 16px;
+  }
+}
+
+/* Mobile portrait orientation */
+@media (max-width: 768px) and (orientation: portrait) {
+  .mobile-nav {
+    padding: 8px 16px;
+  }
+  
+  .mobile-nav .nav-item {
+    padding: 12px 16px;
+  }
+  
+  .floating-action-btn {
+    bottom: 80px;
+    right: 16px;
+  }
+}
