@@ -168,6 +168,9 @@ function getPrismaClient(): PrismaClient {
   console.log('[Prisma] Attempting to connect with URL:', urlForLogging)
   console.log('[Prisma] URL length:', fixedUrl.length)
   console.log('[Prisma] URL starts with postgresql://', fixedUrl.startsWith('postgresql://'))
+  console.log('[Prisma] Username from URL:', fixedUrl.match(/postgresql:\/\/([^:]+):/)?.[1] || 'not found')
+  console.log('[Prisma] Host from URL:', fixedUrl.match(/@([^:]+)/)?.[1] || 'not found')
+  console.log('[Prisma] Port from URL:', fixedUrl.match(/:(\d+)\//)?.[1] || 'not found')
   
   // Set the fixed URL for Prisma (it reads from process.env.DATABASE_URL)
   const originalEnvUrl = process.env.DATABASE_URL
