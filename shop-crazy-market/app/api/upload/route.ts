@@ -67,6 +67,7 @@ export async function POST(request: Request) {
       size: file.size,
       type: file.type,
       note: "Using data URL. Configure cloud storage for better performance.",
+      version: "2.0-data-url", // Version marker to verify new code is deployed
     });
   } catch (error: any) {
     console.error("File upload error:", error);
