@@ -93,24 +93,45 @@ function getPrismaClient(): PrismaClient {
     )
   }
   
-  // Temporarily override DATABASE_URL for Prisma
+  // Store original URL to restore later
   const originalUrl = process.env.DATABASE_URL
-  process.env.DATABASE_URL = fixedUrl
 
+  // Log the URL we're about to pass to Prisma (hide password for security)
+  const urlForLogging = fixedUrl.replace(/:([^:@]+)@/, ':****@')
+  console.log('[Prisma] Attempting to connect with URL:', urlForLogging)
+  console.log('[Prisma] URL length:', fixedUrl.length)
+  console.log('[Prisma] URL starts with postgresql://', fixedUrl.startsWith('postgresql://'))
+  
   let prisma: PrismaClient
   try {
+    // Temporarily set the fixed URL for Prisma
+    const originalEnvUrl = process.env.DATABASE_URL
+    process.env.DATABASE_URL = fixedUrl
+    
     prisma = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     })
+    
+    // Restore original URL
+    process.env.DATABASE_URL = originalEnvUrl
   } catch (prismaError: any) {
-    console.error('[Prisma] Failed to create client:', prismaError)
+    // Restore original URL even on error
+    process.env.DATABASE_URL = originalUrl
+    
+    const errorMessage = prismaError instanceof Error ? prismaError.message : String(prismaError)
+    console.error('[Prisma] Failed to create client:', errorMessage)
+    console.error('[Prisma] Error stack:', prismaError instanceof Error ? prismaError.stack : 'No stack')
+    
     // If it's a URL validation error, provide helpful message
-    if (prismaError.message?.includes('pattern') || prismaError.message?.includes('URL')) {
+    if (errorMessage.includes('pattern') || errorMessage.includes('URL') || errorMessage.includes('connection string')) {
       throw new Error(
-        `DATABASE_URL validation failed. Please check your Vercel environment variables. ` +
-        `The URL should be in format: postgresql://user:password@host:port/database. ` +
-        `If your password contains special characters, they must be URL-encoded (e.g., # as %23). ` +
-        `Original error: ${prismaError.message}`
+        `DATABASE_URL validation failed. ` +
+        `URL format: ${urlForLogging} ` +
+        `Please check your Vercel environment variables. ` +
+        `The URL should be: postgresql://user:password@host:port/database ` +
+        `For connection pooling: postgresql://postgres.PROJECT_REF:PASSWORD@aws-1-REGION.pooler.supabase.com:6543/postgres ` +
+        `Special characters in password must be URL-encoded. ` +
+        `Original error: ${errorMessage}`
       )
     }
     throw prismaError
