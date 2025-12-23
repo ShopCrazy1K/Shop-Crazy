@@ -61,9 +61,10 @@ function getPrismaClient(): PrismaClient {
       const encodedPassword = encodeURIComponent(urlObj.password)
       fixedUrl = fixedUrl.replace(`:${urlObj.password}@`, `:${encodedPassword}@`)
     }
-  } catch (urlError) {
+  } catch (urlError: unknown) {
     // If URL parsing fails, try to fix common issues
-    console.warn('[Prisma] URL parsing failed, attempting to fix:', urlError.message)
+    const errorMessage = urlError instanceof Error ? urlError.message : String(urlError)
+    console.warn('[Prisma] URL parsing failed, attempting to fix:', errorMessage)
     
     // Try encoding the entire password part if it contains special chars
     const passwordMatch = fixedUrl.match(/postgresql:\/\/[^:]+:([^@]+)@/)
@@ -81,13 +82,14 @@ function getPrismaClient(): PrismaClient {
   try {
     // Try to parse as URL to validate format
     new URL(fixedUrl)
-  } catch (urlError) {
-    console.error('[Prisma] Invalid DATABASE_URL format after fixes:', urlError)
+  } catch (urlError: unknown) {
+    const errorMessage = urlError instanceof Error ? urlError.message : String(urlError)
+    console.error('[Prisma] Invalid DATABASE_URL format after fixes:', errorMessage)
     console.error('[Prisma] Original URL (first 80 chars):', process.env.DATABASE_URL?.substring(0, 80))
     console.error('[Prisma] Fixed URL (first 80 chars):', fixedUrl.substring(0, 80))
     throw new Error(
       `Invalid DATABASE_URL format. Expected: postgresql://user:password@host:port/database. ` +
-      `Error: ${urlError.message}. Please check your Vercel environment variables.`
+      `Error: ${errorMessage}. Please check your Vercel environment variables.`
     )
   }
   
