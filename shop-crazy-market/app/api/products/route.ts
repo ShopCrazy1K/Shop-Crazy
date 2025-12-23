@@ -7,6 +7,8 @@ export const runtime = 'nodejs';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log('[API] Creating product, body keys:', Object.keys(body));
+    
     const {
       title,
       description,
@@ -21,8 +23,13 @@ export async function POST(request: Request) {
       userId, // Get userId from request body (sent from client)
     } = body;
 
+    console.log('[API] userId:', userId ? 'present' : 'missing');
+    console.log('[API] title:', title);
+    console.log('[API] type:', type);
+
     // Validate userId
     if (!userId) {
+      console.error('[API] Missing userId');
       return NextResponse.json(
         { error: "User ID required. Please log in." },
         { status: 401 }
@@ -38,29 +45,40 @@ export async function POST(request: Request) {
     }
 
     // Find or create shop for user
-    let shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
-    });
-
-    if (!shop) {
-      // Create shop if it doesn't exist
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
+    console.log('[API] Finding or creating shop for userId:', userId);
+    let shop;
+    try {
+      shop = await prisma.shop.findFirst({
+        where: { ownerId: userId },
       });
+      console.log('[API] Shop found:', shop ? 'yes' : 'no');
 
-      if (!user) {
-        return NextResponse.json(
-          { error: "User not found" },
-          { status: 404 }
-        );
+      if (!shop) {
+        // Create shop if it doesn't exist
+        console.log('[API] Creating new shop...');
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+        });
+
+        if (!user) {
+          console.error('[API] User not found:', userId);
+          return NextResponse.json(
+            { error: "User not found" },
+            { status: 404 }
+          );
+        }
+
+        shop = await prisma.shop.create({
+          data: {
+            name: `${user.username || user.email}'s Shop`,
+            ownerId: userId,
+          },
+        });
+        console.log('[API] Shop created:', shop.id);
       }
-
-      shop = await prisma.shop.create({
-        data: {
-          name: `${user.username || user.email}'s Shop`,
-          ownerId: userId,
-        },
-      });
+    } catch (shopError: any) {
+      console.error('[API] Error with shop:', shopError);
+      throw new Error(`Shop error: ${shopError.message}`);
     }
 
     // For digital products, combine digitalFileUrls with images
@@ -73,26 +91,55 @@ export async function POST(request: Request) {
     }
 
     // Create product
+    console.log('[API] Creating product with shopId:', shop.id);
+    console.log('[API] Final images count:', finalImages.length);
+    
+    const productData = {
+      title,
+      description,
+      price: parseInt(price),
+      quantity: quantity ? parseInt(quantity) : 1,
+      category: category || null,
+      type: type || "PHYSICAL",
+      condition: condition || "NEW",
+      zone: zone || "SHOP_4_US",
+      images: JSON.stringify(finalImages),
+      shopId: shop.id,
+    };
+    
+    console.log('[API] Product data:', {
+      ...productData,
+      images: `[${finalImages.length} images]`,
+    });
+    
     const product = await prisma.product.create({
-      data: {
-        title,
-        description,
-        price: parseInt(price),
-        quantity: quantity ? parseInt(quantity) : 1,
-        category: category || null,
-        type: type || "PHYSICAL",
-        condition: condition || "NEW",
-        zone: zone || "SHOP_4_US",
-        images: JSON.stringify(finalImages),
-        shopId: shop.id,
-      },
+      data: productData,
     });
 
+    console.log('[API] Product created successfully:', product.id);
     return NextResponse.json(product);
   } catch (error: any) {
-    console.error("Error creating product:", error);
+    console.error("[API] Error creating product:", error);
+    console.error("[API] Error stack:", error.stack);
+    console.error("[API] Error name:", error.name);
+    
+    // Provide more detailed error message
+    let errorMessage = error.message || "Failed to create product";
+    
+    // Check for specific Prisma errors
+    if (error.code === 'P2002') {
+      errorMessage = "A product with this information already exists";
+    } else if (error.code === 'P2003') {
+      errorMessage = "Invalid reference (shop or user not found)";
+    } else if (error.message?.includes('pattern')) {
+      errorMessage = "Database connection error. Please try again.";
+    }
+    
     return NextResponse.json(
-      { error: error.message || "Failed to create product" },
+      { 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      },
       { status: 500 }
     );
   }
