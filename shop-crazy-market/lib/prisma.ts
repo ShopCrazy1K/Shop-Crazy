@@ -182,6 +182,15 @@ function getPrismaClient(): PrismaClient {
   
   // Strategy 1: Try with fixed URL as-is
   try {
+    // Log what we're about to try
+    console.log('[Prisma] Strategy 1: Attempting with fixed URL')
+    console.log('[Prisma] URL format check:', {
+      startsWithPostgresql: fixedUrl.startsWith('postgresql://'),
+      hasUsername: fixedUrl.includes('@') && fixedUrl.split('@')[0].includes(':'),
+      hasHost: fixedUrl.includes('@') && fixedUrl.split('@')[1].includes('/'),
+      length: fixedUrl.length,
+    })
+    
     prisma = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
       datasources: {
@@ -190,12 +199,13 @@ function getPrismaClient(): PrismaClient {
         },
       },
     })
-    console.log('[Prisma] Client created successfully with fixed URL')
+    console.log('[Prisma] ✅ Strategy 1 succeeded! Client created successfully')
   } catch (error1: unknown) {
     lastError = error1 instanceof Error ? error1 : new Error(String(error1))
     const errorMessage = lastError.message
     
-    console.warn('[Prisma] Strategy 1 failed:', errorMessage)
+    console.warn('[Prisma] ❌ Strategy 1 failed:', errorMessage)
+    console.warn('[Prisma] Error type:', lastError.constructor.name)
     
     // Strategy 2: Reconstruct URL with fully encoded password
     if (errorMessage.includes('pattern') || errorMessage.includes('expected') || errorMessage.includes('string')) {
