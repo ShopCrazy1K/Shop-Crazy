@@ -63,41 +63,70 @@ function getPrismaClient(): PrismaClient {
   // Create PrismaClient - let it read from process.env.DATABASE_URL directly
   // No explicit datasource, no URL manipulation, just use what's in the environment
   // Prisma will validate the URL format internally
+  
+  // IMPORTANT: Prisma validates the URL format when PrismaClient is instantiated
+  // If the URL doesn't match the expected pattern, it throws "The string did not match the expected pattern"
+  // This happens BEFORE any connection attempt
+  
+  let prisma: PrismaClient;
+  
   try {
-    const prisma = new PrismaClient({
+    console.log('[Prisma] Creating PrismaClient instance...');
+    prisma = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    })
-
-    if (process.env.NODE_ENV !== 'production') {
-      globalForPrisma.prisma = prisma
-    }
-
-    return prisma
+    });
+    console.log('[Prisma] ✅ PrismaClient created successfully');
   } catch (error: any) {
-    const errorMsg = error.message || String(error)
-    console.error('[Prisma] Failed to create PrismaClient:', errorMsg)
+    const errorMsg = error.message || String(error);
+    console.error('[Prisma] ❌ Failed to create PrismaClient:', errorMsg);
+    console.error('[Prisma] Error type:', error.constructor?.name);
+    console.error('[Prisma] Error code:', error.code);
     
     // If it's a pattern error, provide detailed help
     if (errorMsg.includes('pattern') || errorMsg.includes('expected') || errorMsg.includes('string did not match')) {
-      console.error('[Prisma] PATTERN VALIDATION ERROR DETECTED')
-      console.error('[Prisma] This means the DATABASE_URL format is invalid')
-      console.error('[Prisma] Current URL (first 100 chars):', process.env.DATABASE_URL.substring(0, 100))
-      console.error('[Prisma] Expected format: postgresql://user:password@host:port/database')
-      console.error('[Prisma] Visit /api/debug-database-url to see detailed URL analysis')
+      console.error('[Prisma] ⚠️ PATTERN VALIDATION ERROR DETECTED');
+      console.error('[Prisma] This error occurs when PrismaClient is instantiated, BEFORE any connection attempt');
+      console.error('[Prisma] Current URL (first 100 chars):', process.env.DATABASE_URL.substring(0, 100));
+      console.error('[Prisma] URL length:', process.env.DATABASE_URL.length);
+      console.error('[Prisma] Expected format: postgresql://user:password@host:port/database');
+      console.error('[Prisma] Visit /api/debug-database-url to see detailed URL analysis');
+      console.error('[Prisma] Visit /api/test-prisma-connection to test step-by-step');
+      
+      // Check if URL matches pattern
+      const prismaPattern = /^postgresql:\/\/([^:]+):([^@]+)@([^:]+)(?::(\d+))?(\/.*)?$/;
+      const matches = process.env.DATABASE_URL.match(prismaPattern);
+      console.error('[Prisma] Pattern match check:', matches ? 'MATCHES' : 'DOES NOT MATCH');
+      
+      if (!matches) {
+        console.error('[Prisma] URL breakdown:');
+        console.error('[Prisma] - Has protocol:', process.env.DATABASE_URL.startsWith('postgresql://'));
+        console.error('[Prisma] - Has username:', process.env.DATABASE_URL.includes('://') && process.env.DATABASE_URL.split('://')[1].includes(':'));
+        console.error('[Prisma] - Has password:', process.env.DATABASE_URL.includes(':') && process.env.DATABASE_URL.includes('@'));
+        console.error('[Prisma] - Has host:', process.env.DATABASE_URL.includes('@'));
+        console.error('[Prisma] - Has database:', process.env.DATABASE_URL.includes('/') && process.env.DATABASE_URL.split('/').length > 1);
+      }
       
       // Re-throw with helpful message
       throw new Error(
         `DATABASE_URL validation failed: ${errorMsg}. ` +
         `The URL format does not match Prisma's expected pattern. ` +
+        `This error occurs when PrismaClient is created, not during connection. ` +
         `Please check your Vercel environment variables. ` +
         `Visit /api/debug-database-url for detailed analysis. ` +
+        `Visit /api/test-prisma-connection for step-by-step testing. ` +
         `Expected format: postgresql://postgres:PASSWORD@db.hbufjpxdzmygjnbfsniu.supabase.co:5432/postgres`
-      )
+      );
     }
     
     // Re-throw other errors
-    throw error
+    throw error;
   }
+
+  if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = prisma;
+  }
+
+  return prisma;
 }
 
 // Export prisma client - created lazily on first access
