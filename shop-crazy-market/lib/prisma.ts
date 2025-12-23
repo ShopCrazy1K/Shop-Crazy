@@ -219,10 +219,10 @@ function getPrismaClient(): PrismaClient {
       const errorMessage05 = lastError.message
       
       console.warn('[Prisma] ❌ Strategy 0.5 failed:', errorMessage05)
-    
-    // Strategy 1: Try with fixed URL as-is
-    try {
-      // Log what we're about to try
+      
+      // Strategy 1: Try with fixed URL as-is
+      try {
+        // Log what we're about to try
       console.log('[Prisma] Strategy 1: Attempting with fixed URL (explicit datasource)')
       console.log('[Prisma] URL format check:', {
         startsWithPostgresql: fixedUrl.startsWith('postgresql://'),
@@ -334,6 +334,7 @@ function getPrismaClient(): PrismaClient {
         // Not a pattern error, restore and throw original
         process.env.DATABASE_URL = originalUrl
         throw lastError
+      }
       }
     }
   }
