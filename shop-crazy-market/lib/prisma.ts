@@ -315,6 +315,7 @@ function getPrismaClient(): PrismaClient {
             lastError = error3 instanceof Error ? error3 : new Error(String(error3))
             console.error('[Prisma] ❌ All strategies failed!')
             console.error('[Prisma] Strategy 0 error:', errorMessage0)
+            console.error('[Prisma] Strategy 0.5 error:', typeof errorMessage05 !== 'undefined' ? errorMessage05 : 'not attempted')
             console.error('[Prisma] Strategy 1 error:', errorMessage)
             console.error('[Prisma] Strategy 2 error:', lastError.message)
             console.error('[Prisma] Strategy 3 error:', lastError.message)
