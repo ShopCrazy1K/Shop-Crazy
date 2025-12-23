@@ -102,40 +102,50 @@ function getPrismaClient(): PrismaClient {
   console.log('[Prisma] URL length:', fixedUrl.length)
   console.log('[Prisma] URL starts with postgresql://', fixedUrl.startsWith('postgresql://'))
   
+  // Set the fixed URL for Prisma (it reads from process.env.DATABASE_URL)
+  const originalEnvUrl = process.env.DATABASE_URL
+  process.env.DATABASE_URL = fixedUrl
+  
   let prisma: PrismaClient
   try {
-    // Temporarily set the fixed URL for Prisma
-    const originalEnvUrl = process.env.DATABASE_URL
-    process.env.DATABASE_URL = fixedUrl
-    
     prisma = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      datasources: {
+        db: {
+          url: fixedUrl, // Explicitly pass the URL to bypass env var issues
+        },
+      },
     })
-    
-    // Restore original URL
-    process.env.DATABASE_URL = originalEnvUrl
-  } catch (prismaError: any) {
+  } catch (prismaError: unknown) {
     // Restore original URL even on error
     process.env.DATABASE_URL = originalUrl
     
     const errorMessage = prismaError instanceof Error ? prismaError.message : String(prismaError)
-    console.error('[Prisma] Failed to create client:', errorMessage)
-    console.error('[Prisma] Error stack:', prismaError instanceof Error ? prismaError.stack : 'No stack')
+    const errorStack = prismaError instanceof Error ? prismaError.stack : 'No stack'
+    
+    console.error('[Prisma] Failed to create client')
+    console.error('[Prisma] Error message:', errorMessage)
+    console.error('[Prisma] Error stack:', errorStack)
+    console.error('[Prisma] URL attempted (password hidden):', urlForLogging)
+    console.error('[Prisma] URL length:', fixedUrl.length)
     
     // If it's a URL validation error, provide helpful message
-    if (errorMessage.includes('pattern') || errorMessage.includes('URL') || errorMessage.includes('connection string')) {
+    if (errorMessage.includes('pattern') || errorMessage.includes('URL') || errorMessage.includes('connection string') || errorMessage.includes('expected')) {
       throw new Error(
         `DATABASE_URL validation failed. ` +
-        `URL format: ${urlForLogging} ` +
+        `URL format attempted: ${urlForLogging} ` +
         `Please check your Vercel environment variables. ` +
         `The URL should be: postgresql://user:password@host:port/database ` +
         `For connection pooling: postgresql://postgres.PROJECT_REF:PASSWORD@aws-1-REGION.pooler.supabase.com:6543/postgres ` +
-        `Special characters in password must be URL-encoded. ` +
+        `Special characters in password must be URL-encoded ($ as %24, # as %23). ` +
         `Original error: ${errorMessage}`
       )
     }
     throw prismaError
   }
+  
+  // Restore original URL after successful creation
+  process.env.DATABASE_URL = originalUrl
 
   // Restore original URL (in case it's used elsewhere)
   process.env.DATABASE_URL = originalUrl
