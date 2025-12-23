@@ -236,7 +236,7 @@ function getPrismaClient(): PrismaClient {
       
       // Strategy 2: Reconstruct URL with fully encoded password
       if (errorMessage.includes('pattern') || errorMessage.includes('expected') || errorMessage.includes('string')) {
-      try {
+        try {
         console.warn('[Prisma] Attempting Strategy 2: Full URL reconstruction...')
         
         // Parse URL components
@@ -270,11 +270,11 @@ function getPrismaClient(): PrismaClient {
           })
           
           fixedUrl = reconstructedUrl
-          console.log('[Prisma] Strategy 2 succeeded!')
+          console.log('[Prisma] ✅ Strategy 2 succeeded!')
         } else {
           throw new Error('Could not parse URL components')
         }
-      } catch (error2: unknown) {
+        } catch (error2: unknown) {
         lastError = error2 instanceof Error ? error2 : new Error(String(error2))
         console.warn('[Prisma] Strategy 2 failed:', lastError.message)
         
