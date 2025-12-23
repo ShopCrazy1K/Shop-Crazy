@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node -e \"require('fs').writeFileSync('.env.local','DATABASE_URL='+JSON.stringify((u=>{const m=u.match(/^(postgresql:\\/\\/[^:]+:)([^@]+)(@.+)$/);return m&&m[2].includes('#')&&!m[2].includes('%23')?m[1]+m[2].replace(/#/g,'%23')+m[3]:u})(process.env.DATABASE_URL||''))+'\\n');\" && prisma generate && next build",
+    "build": "node -e \"require('fs').writeFileSync('.env.local','DATABASE_URL='+JSON.stringify((u=>{if(!u)return'';const m=u.match(/^(postgresql:\\/\\/[^:]+:)([^@]+)(@.+)$/);if(!m)return u;let p=m[2];if(p.includes('#')&&!p.includes('%23'))p=p.replace(/#/g,'%23');if(p.includes('$')&&!p.includes('%24'))p=p.replace(/\\$/g,'%24');return p!==m[2]?m[1]+p+m[3]:u})(process.env.DATABASE_URL||''))+'\\n');\" && prisma generate && next build",
     "start": "next start",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
