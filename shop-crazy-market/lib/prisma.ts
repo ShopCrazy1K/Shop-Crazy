@@ -276,10 +276,28 @@ function getPrismaClient(): PrismaClient {
   return prisma
 }
 
+// Create a proxy that ensures PrismaClient is created with correct URL
 export const prisma = new Proxy({} as PrismaClient, {
   get(target, prop) {
-    const client = getPrismaClient()
-    return (client as any)[prop]
+    try {
+      const client = getPrismaClient()
+      return (client as any)[prop]
+    } catch (error: any) {
+      const errorMessage = error.message || String(error)
+      
+      // If it's a pattern error during client creation, provide helpful message
+      if (errorMessage.includes('pattern') || errorMessage.includes('expected')) {
+        console.error('[Prisma Proxy] Pattern error during client access:', errorMessage)
+        throw new Error(
+          `Database connection error: The database URL format is invalid. ` +
+          `Please check your Vercel environment variables. ` +
+          `Error: ${errorMessage}`
+        )
+      }
+      
+      // Re-throw other errors
+      throw error
+    }
   },
 })
 
