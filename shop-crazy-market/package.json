@@ -5,7 +5,7 @@
     "dev": "next dev",
     "build": "DATABASE_URL='postgresql://postgres:postgres@localhost:5432/postgres' prisma generate --schema=./prisma/schema.prisma && next build",
     "start": "next start",
-    "postinstall": "prisma generate",
+    "postinstall": "DATABASE_URL='postgresql://postgres:postgres@localhost:5432/postgres' prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",

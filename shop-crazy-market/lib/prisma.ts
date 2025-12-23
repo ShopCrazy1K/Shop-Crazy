@@ -10,23 +10,72 @@ function fixDatabaseUrl(url: string): string {
     return url
   }
   
-  // If URL contains unencoded # in password, encode it
-  // Pattern: postgresql://user:password#@host
-  const urlPattern = /^(postgresql:\/\/[^:]+:)([^@]+)(@.+)$/
-  const match = url.match(urlPattern)
+  // Remove any whitespace, quotes, or newlines
+  url = url.trim().replace(/^["']|["']$/g, '').replace(/\n/g, '')
   
-  if (match) {
-    const [, prefix, password, suffix] = match
-    // Check if password contains unencoded special characters
-    if (password.includes('#') && !password.includes('%23')) {
-      // Encode # as %23
-      const encodedPassword = password.replace(/#/g, '%23')
-      return `${prefix}${encodedPassword}${suffix}`
+  // Try to parse and reconstruct the URL properly
+  try {
+    // Pattern: postgresql://user:password@host:port/database
+    const urlPattern = /^postgresql:\/\/([^:]+):([^@]+)@([^:]+)(?::(\d+))?(\/.*)?$/
+    const match = url.match(urlPattern)
+    
+    if (match) {
+      const [, username, password, host, port, path] = match
+      
+      // Properly encode the password
+      let encodedPassword = password
+      // If password contains special chars that aren't encoded, encode them
+      if (password.includes('#') && !password.includes('%23')) {
+        encodedPassword = encodedPassword.replace(/#/g, '%23')
+      }
+      if (password.includes('$') && !password.includes('%24')) {
+        encodedPassword = encodedPassword.replace(/\$/g, '%24')
+      }
+      if (password.includes('@') && !password.includes('%40')) {
+        encodedPassword = encodedPassword.replace(/@/g, '%40')
+      }
+      if (password.includes('%') && !password.match(/%[0-9A-Fa-f]{2}/)) {
+        // If % is present but not as part of encoding, encode it
+        encodedPassword = encodedPassword.replace(/%(?![0-9A-Fa-f]{2})/g, '%25')
+      }
+      
+      // Reconstruct URL
+      const portPart = port ? `:${port}` : ''
+      const pathPart = path || '/postgres'
+      return `postgresql://${username}:${encodedPassword}@${host}${portPart}${pathPart}`
     }
+    
+    // If pattern doesn't match, try URL constructor
+    const urlObj = new URL(url)
+    if (urlObj.password) {
+      // Re-encode password
+      const decodedPassword = decodeURIComponent(urlObj.password)
+      const encodedPassword = encodeURIComponent(decodedPassword)
+      urlObj.password = encodedPassword
+      return urlObj.toString()
+    }
+    
+    return url
+  } catch (error) {
+    // If URL parsing fails, try basic fixes
+    console.warn('[Prisma] URL parsing failed, attempting basic fixes:', error)
+    
+    // Remove any obvious issues
+    url = url.trim()
+    
+    // Try to encode password if it looks unencoded
+    const passwordMatch = url.match(/postgresql:\/\/[^:]+:([^@]+)@/)
+    if (passwordMatch) {
+      const password = passwordMatch[1]
+      // If password has special chars but no % encoding, encode them
+      if (password.match(/[#\$@%]/) && !password.match(/%[0-9A-Fa-f]{2}/)) {
+        const encodedPassword = encodeURIComponent(password)
+        url = url.replace(`:${password}@`, `:${encodedPassword}@`)
+      }
+    }
+    
+    return url
   }
-  
-  // If pattern doesn't match, return original (might be connection pooling URL)
-  return url
 }
 
 // Lazy initialization - only create client when actually used
