@@ -155,10 +155,11 @@ function getPrismaClient(): PrismaClient {
   const originalEnvUrl = process.env.DATABASE_URL
   process.env.DATABASE_URL = fixedUrl
   
-  // Try to create PrismaClient - catch validation errors early
+  // Try to create PrismaClient - use multiple fallback strategies
   let prisma: PrismaClient
+  let lastError: Error | null = null
   
-  // First, try with the fixed URL
+  // Strategy 1: Try with fixed URL as-is
   try {
     prisma = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
@@ -168,29 +169,39 @@ function getPrismaClient(): PrismaClient {
         },
       },
     })
-  } catch (prismaError: unknown) {
-    const errorMessage = prismaError instanceof Error ? prismaError.message : String(prismaError)
+    console.log('[Prisma] Client created successfully with fixed URL')
+  } catch (error1: unknown) {
+    lastError = error1 instanceof Error ? error1 : new Error(String(error1))
+    const errorMessage = lastError.message
     
-    // If it's a pattern validation error, try reconstructing the URL more carefully
-    if (errorMessage.includes('pattern') || errorMessage.includes('expected')) {
-      console.warn('[Prisma] Pattern validation failed, attempting URL reconstruction...')
-      
+    console.warn('[Prisma] Strategy 1 failed:', errorMessage)
+    
+    // Strategy 2: Reconstruct URL with fully encoded password
+    if (errorMessage.includes('pattern') || errorMessage.includes('expected') || errorMessage.includes('string')) {
       try {
-        // Parse the URL components manually
+        console.warn('[Prisma] Attempting Strategy 2: Full URL reconstruction...')
+        
+        // Parse URL components
         const urlMatch = fixedUrl.match(/^postgresql:\/\/([^:]+):([^@]+)@([^:]+)(?::(\d+))?(\/.*)?$/)
         
         if (urlMatch) {
-          const [, username, password, host, port, path] = urlMatch
+          let [, username, password, host, port, path] = urlMatch
           
-          // Re-encode password using encodeURIComponent (handles all special chars)
-          const safePassword = encodeURIComponent(decodeURIComponent(password))
+          // Decode then re-encode password to ensure proper encoding
+          try {
+            password = decodeURIComponent(password)
+          } catch {
+            // If decode fails, password might already be raw, use as-is
+          }
           
-          // Reconstruct URL with properly encoded password
-          const reconstructedUrl = `postgresql://${username}:${safePassword}@${host}${port ? `:${port}` : ''}${path || '/postgres'}`
+          // Fully encode password
+          const fullyEncodedPassword = encodeURIComponent(password)
           
-          console.log('[Prisma] Attempting with reconstructed URL:', reconstructedUrl.replace(/:([^:@]+)@/, ':****@'))
+          // Reconstruct URL
+          const reconstructedUrl = `postgresql://${username}:${fullyEncodedPassword}@${host}${port ? `:${port}` : ''}${path || '/postgres'}`
           
-          // Try again with reconstructed URL
+          console.log('[Prisma] Strategy 2 - Reconstructed URL:', reconstructedUrl.replace(/:([^:@]+)@/, ':****@'))
+          
           prisma = new PrismaClient({
             log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
             datasources: {
@@ -200,50 +211,52 @@ function getPrismaClient(): PrismaClient {
             },
           })
           
-          // Update fixedUrl for logging
           fixedUrl = reconstructedUrl
+          console.log('[Prisma] Strategy 2 succeeded!')
         } else {
-          throw new Error('Could not parse URL format')
+          throw new Error('Could not parse URL components')
         }
-      } catch (reconstructError: unknown) {
-        // Restore original URL even on error
-        process.env.DATABASE_URL = originalUrl
+      } catch (error2: unknown) {
+        lastError = error2 instanceof Error ? error2 : new Error(String(error2))
+        console.warn('[Prisma] Strategy 2 failed:', lastError.message)
         
-        const reconstructMessage = reconstructError instanceof Error ? reconstructError.message : String(reconstructError)
-        const errorStack = prismaError instanceof Error ? prismaError.stack : 'No stack'
-        
-        console.error('[Prisma] Failed to create client after reconstruction')
-        console.error('[Prisma] Original error:', errorMessage)
-        console.error('[Prisma] Reconstruction error:', reconstructMessage)
-        console.error('[Prisma] Error stack:', errorStack)
-        console.error('[Prisma] URL attempted (password hidden):', urlForLogging)
-        console.error('[Prisma] URL length:', fixedUrl.length)
-        console.error('[Prisma] Original URL (first 100 chars):', process.env.DATABASE_URL?.substring(0, 100))
-        
-        throw new Error(
-          `DATABASE_URL validation failed. ` +
-          `Prisma rejected the URL format. ` +
-          `Please check your Vercel environment variables. ` +
-          `URL format attempted: ${urlForLogging} ` +
-          `The URL should be: postgresql://user:password@host:port/database ` +
-          `Special characters in password must be URL-encoded ($ as %24, # as %23). ` +
-          `Original error: ${errorMessage} ` +
-          `Reconstruction error: ${reconstructMessage}`
-        )
+        // Strategy 3: Use environment variable directly (let Prisma handle it)
+        try {
+          console.warn('[Prisma] Attempting Strategy 3: Using process.env.DATABASE_URL directly...')
+          
+          // Set the fixed URL in environment
+          process.env.DATABASE_URL = fixedUrl
+          
+          // Create client without explicit datasource (uses env var)
+          prisma = new PrismaClient({
+            log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+          })
+          
+          console.log('[Prisma] Strategy 3 succeeded!')
+        } catch (error3: unknown) {
+          // Restore original URL
+          process.env.DATABASE_URL = originalUrl
+          
+          lastError = error3 instanceof Error ? error3 : new Error(String(error3))
+          console.error('[Prisma] All strategies failed!')
+          console.error('[Prisma] Strategy 1 error:', errorMessage)
+          console.error('[Prisma] Strategy 2 error:', lastError.message)
+          console.error('[Prisma] Strategy 3 error:', lastError.message)
+          console.error('[Prisma] Original URL (first 100 chars):', process.env.DATABASE_URL?.substring(0, 100))
+          console.error('[Prisma] Fixed URL (first 100 chars):', fixedUrl.substring(0, 100))
+          
+          throw new Error(
+            `DATABASE_URL validation failed after all strategies. ` +
+            `Please check your Vercel environment variables. ` +
+            `URL format: ${urlForLogging} ` +
+            `Errors: Strategy1=${errorMessage}, Strategy2=${lastError.message}, Strategy3=${lastError.message}`
+          )
+        }
       }
     } else {
-      // Restore original URL even on error
+      // Not a pattern error, restore and throw original
       process.env.DATABASE_URL = originalUrl
-      
-      const errorStack = prismaError instanceof Error ? prismaError.stack : 'No stack'
-      
-      console.error('[Prisma] Failed to create client')
-      console.error('[Prisma] Error message:', errorMessage)
-      console.error('[Prisma] Error stack:', errorStack)
-      console.error('[Prisma] URL attempted (password hidden):', urlForLogging)
-      console.error('[Prisma] URL length:', fixedUrl.length)
-      
-      throw prismaError
+      throw lastError
     }
   }
   
