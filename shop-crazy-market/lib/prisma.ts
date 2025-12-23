@@ -233,9 +233,9 @@ function getPrismaClient(): PrismaClient {
       
       console.warn('[Prisma] ❌ Strategy 1 failed:', errorMessage)
       console.warn('[Prisma] Error type:', lastError.constructor.name)
-    
-    // Strategy 2: Reconstruct URL with fully encoded password
-    if (errorMessage.includes('pattern') || errorMessage.includes('expected') || errorMessage.includes('string')) {
+      
+      // Strategy 2: Reconstruct URL with fully encoded password
+      if (errorMessage.includes('pattern') || errorMessage.includes('expected') || errorMessage.includes('string')) {
       try {
         console.warn('[Prisma] Attempting Strategy 2: Full URL reconstruction...')
         
