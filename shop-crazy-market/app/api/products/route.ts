@@ -4,6 +4,31 @@ import { NextResponse } from "next/server";
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+// Helper to safely execute Prisma queries with pattern error handling
+async function safePrismaQuery<T>(
+  queryFn: () => Promise<T>,
+  errorContext: string
+): Promise<T> {
+  try {
+    return await queryFn();
+  } catch (error: any) {
+    const errorMessage = error.message || String(error);
+    
+    // Check for pattern validation errors
+    if (errorMessage.includes('pattern') || errorMessage.includes('expected')) {
+      console.error(`[API] Pattern error in ${errorContext}:`, errorMessage);
+      throw new Error(
+        `Database connection error. The database URL format is invalid. ` +
+        `Please check your Vercel environment variables. ` +
+        `Context: ${errorContext}`
+      );
+    }
+    
+    // Re-throw other errors
+    throw error;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -48,17 +73,23 @@ export async function POST(request: Request) {
     console.log('[API] Finding or creating shop for userId:', userId);
     let shop;
     try {
-      shop = await prisma.shop.findFirst({
-        where: { ownerId: userId },
-      });
+      shop = await safePrismaQuery(
+        () => prisma.shop.findFirst({
+          where: { ownerId: userId },
+        }),
+        'finding shop'
+      );
       console.log('[API] Shop found:', shop ? 'yes' : 'no');
 
       if (!shop) {
         // Create shop if it doesn't exist
         console.log('[API] Creating new shop...');
-        const user = await prisma.user.findUnique({
-          where: { id: userId },
-        });
+        const user = await safePrismaQuery(
+          () => prisma.user.findUnique({
+            where: { id: userId },
+          }),
+          'finding user'
+        );
 
         if (!user) {
           console.error('[API] User not found:', userId);
@@ -68,12 +99,15 @@ export async function POST(request: Request) {
           );
         }
 
-        shop = await prisma.shop.create({
-          data: {
-            name: `${user.username || user.email}'s Shop`,
-            ownerId: userId,
-          },
-        });
+        shop = await safePrismaQuery(
+          () => prisma.shop.create({
+            data: {
+              name: `${user.username || user.email}'s Shop`,
+              ownerId: userId,
+            },
+          }),
+          'creating shop'
+        );
         console.log('[API] Shop created:', shop.id);
       }
     } catch (shopError: any) {
@@ -112,9 +146,12 @@ export async function POST(request: Request) {
       images: `[${finalImages.length} images]`,
     });
     
-    const product = await prisma.product.create({
-      data: productData,
-    });
+    const product = await safePrismaQuery(
+      () => prisma.product.create({
+        data: productData,
+      }),
+      'creating product'
+    );
 
     console.log('[API] Product created successfully:', product.id);
     return NextResponse.json(product);
