@@ -224,13 +224,17 @@ function getPrismaClient(): PrismaClient {
         try {
           console.warn('[Prisma] Attempting Strategy 3: Using process.env.DATABASE_URL directly...')
           
-          // Set the fixed URL in environment
+          // Set the fixed URL in environment temporarily
+          const tempEnvUrl = process.env.DATABASE_URL
           process.env.DATABASE_URL = fixedUrl
           
           // Create client without explicit datasource (uses env var)
           prisma = new PrismaClient({
             log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
           })
+          
+          // Restore original URL after successful creation
+          process.env.DATABASE_URL = tempEnvUrl || originalUrl
           
           console.log('[Prisma] Strategy 3 succeeded!')
         } catch (error3: unknown) {
@@ -260,11 +264,10 @@ function getPrismaClient(): PrismaClient {
     }
   }
   
-  // Restore original URL after successful creation
-  process.env.DATABASE_URL = originalUrl
-
-  // Restore original URL (in case it's used elsewhere)
-  process.env.DATABASE_URL = originalUrl
+  // Restore original URL after successful creation (if not already restored)
+  if (process.env.DATABASE_URL !== originalUrl) {
+    process.env.DATABASE_URL = originalUrl
+  }
 
   if (process.env.NODE_ENV !== 'production') {
     globalForPrisma.prisma = prisma
