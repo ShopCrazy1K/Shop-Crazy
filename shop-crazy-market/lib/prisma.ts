@@ -180,32 +180,45 @@ function getPrismaClient(): PrismaClient {
   let prisma: PrismaClient
   let lastError: Error | null = null
   
-  // Strategy 0: Try with environment variable directly (let Prisma handle validation)
-  // This is the simplest approach - Prisma reads from process.env.DATABASE_URL
+  // Strategy 0: Try with ORIGINAL URL directly (no processing at all)
+  // Sometimes the simplest approach works - use URL exactly as Vercel provides it
   try {
-    console.log('[Prisma] Strategy 0: Using process.env.DATABASE_URL directly (no explicit datasource)')
+    console.log('[Prisma] Strategy 0: Using ORIGINAL process.env.DATABASE_URL (no processing)')
     
-    // Ensure the fixed URL is in environment
+    // Use the original URL directly - don't process it at all
     const originalEnvUrl = process.env.DATABASE_URL
-    process.env.DATABASE_URL = fixedUrl
     
     // Create client without explicit datasource - Prisma will read from env
     prisma = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     })
     
-    // Restore original URL
-    process.env.DATABASE_URL = originalEnvUrl
-    
-    console.log('[Prisma] ✅ Strategy 0 succeeded! Client created with env var')
+    console.log('[Prisma] ✅ Strategy 0 succeeded! Client created with original URL')
   } catch (error0: unknown) {
-    // Restore original URL on error
-    process.env.DATABASE_URL = originalUrl
-    
     lastError = error0 instanceof Error ? error0 : new Error(String(error0))
     const errorMessage0 = lastError.message
     
     console.warn('[Prisma] ❌ Strategy 0 failed:', errorMessage0)
+    
+    // Strategy 0.5: Try with fixed URL in environment (minimal processing)
+    try {
+      console.log('[Prisma] Strategy 0.5: Using fixed URL in environment (minimal processing)')
+      
+      const originalEnvUrl = process.env.DATABASE_URL
+      process.env.DATABASE_URL = fixedUrl
+      
+      prisma = new PrismaClient({
+        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      })
+      
+      process.env.DATABASE_URL = originalEnvUrl
+      
+      console.log('[Prisma] ✅ Strategy 0.5 succeeded!')
+    } catch (error05: unknown) {
+      lastError = error05 instanceof Error ? error05 : new Error(String(error05))
+      const errorMessage05 = lastError.message
+      
+      console.warn('[Prisma] ❌ Strategy 0.5 failed:', errorMessage05)
     
     // Strategy 1: Try with fixed URL as-is
     try {
