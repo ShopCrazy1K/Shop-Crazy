@@ -13,8 +13,56 @@ function fixDatabaseUrl(url: string): string {
   // Remove any whitespace, quotes, or newlines
   url = url.trim().replace(/^["']|["']$/g, '').replace(/\n/g, '')
   
-  // Try to parse and reconstruct the URL properly
+  // For connection pooling URLs (postgres.PROJECT_REF format), 
+  // Prisma might be strict about the format. Let's validate it properly.
+  
   try {
+    // First, try to parse with URL constructor to validate basic format
+    const urlObj = new URL(url)
+    
+    // Check if it's a PostgreSQL URL
+    if (urlObj.protocol !== 'postgresql:') {
+      console.warn('[Prisma] URL protocol is not postgresql:', urlObj.protocol)
+      return url
+    }
+    
+    // If password exists, ensure it's properly encoded
+    if (urlObj.password) {
+      // Decode and re-encode to ensure proper encoding
+      try {
+        const decodedPassword = decodeURIComponent(urlObj.password)
+        const encodedPassword = encodeURIComponent(decodedPassword)
+        
+        // Only update if encoding changed (means it wasn't properly encoded)
+        if (urlObj.password !== encodedPassword) {
+          // Reconstruct URL with properly encoded password
+          const newUrl = new URL(url)
+          newUrl.password = encodedPassword
+          url = newUrl.toString()
+          console.log('[Prisma] Re-encoded password in URL')
+        }
+      } catch (encodeError) {
+        // If decode fails, password might already be raw, try encoding it
+        const encodedPassword = encodeURIComponent(urlObj.password)
+        const newUrl = new URL(url)
+        newUrl.password = encodedPassword
+        url = newUrl.toString()
+        console.log('[Prisma] Encoded raw password in URL')
+      }
+    }
+    
+    // Validate the reconstructed URL
+    const validatedUrl = new URL(url)
+    console.log('[Prisma] URL validated successfully')
+    console.log('[Prisma] Username:', validatedUrl.username)
+    console.log('[Prisma] Host:', validatedUrl.hostname)
+    console.log('[Prisma] Port:', validatedUrl.port || 'default')
+    
+    return url
+  } catch (error: any) {
+    // If URL constructor fails, try regex-based approach
+    console.warn('[Prisma] URL constructor failed, trying regex approach:', error.message)
+    
     // Pattern: postgresql://user:password@host:port/database
     const urlPattern = /^postgresql:\/\/([^:]+):([^@]+)@([^:]+)(?::(\d+))?(\/.*)?$/
     const match = url.match(urlPattern)
@@ -22,58 +70,28 @@ function fixDatabaseUrl(url: string): string {
     if (match) {
       const [, username, password, host, port, path] = match
       
-      // Properly encode the password
+      // Decode and re-encode password to ensure proper encoding
       let encodedPassword = password
-      // If password contains special chars that aren't encoded, encode them
-      if (password.includes('#') && !password.includes('%23')) {
-        encodedPassword = encodedPassword.replace(/#/g, '%23')
-      }
-      if (password.includes('$') && !password.includes('%24')) {
-        encodedPassword = encodedPassword.replace(/\$/g, '%24')
-      }
-      if (password.includes('@') && !password.includes('%40')) {
-        encodedPassword = encodedPassword.replace(/@/g, '%40')
-      }
-      if (password.includes('%') && !password.match(/%[0-9A-Fa-f]{2}/)) {
-        // If % is present but not as part of encoding, encode it
-        encodedPassword = encodedPassword.replace(/%(?![0-9A-Fa-f]{2})/g, '%25')
+      try {
+        // Try to decode first (in case it's already encoded)
+        const decoded = decodeURIComponent(password)
+        encodedPassword = encodeURIComponent(decoded)
+      } catch {
+        // If decode fails, encode as-is
+        encodedPassword = encodeURIComponent(password)
       }
       
       // Reconstruct URL
       const portPart = port ? `:${port}` : ''
       const pathPart = path || '/postgres'
-      return `postgresql://${username}:${encodedPassword}@${host}${portPart}${pathPart}`
+      const reconstructed = `postgresql://${username}:${encodedPassword}@${host}${portPart}${pathPart}`
+      
+      console.log('[Prisma] Reconstructed URL using regex')
+      return reconstructed
     }
     
-    // If pattern doesn't match, try URL constructor
-    const urlObj = new URL(url)
-    if (urlObj.password) {
-      // Re-encode password
-      const decodedPassword = decodeURIComponent(urlObj.password)
-      const encodedPassword = encodeURIComponent(decodedPassword)
-      urlObj.password = encodedPassword
-      return urlObj.toString()
-    }
-    
-    return url
-  } catch (error) {
-    // If URL parsing fails, try basic fixes
-    console.warn('[Prisma] URL parsing failed, attempting basic fixes:', error)
-    
-    // Remove any obvious issues
-    url = url.trim()
-    
-    // Try to encode password if it looks unencoded
-    const passwordMatch = url.match(/postgresql:\/\/[^:]+:([^@]+)@/)
-    if (passwordMatch) {
-      const password = passwordMatch[1]
-      // If password has special chars but no % encoding, encode them
-      if (password.match(/[#\$@%]/) && !password.match(/%[0-9A-Fa-f]{2}/)) {
-        const encodedPassword = encodeURIComponent(password)
-        url = url.replace(`:${password}@`, `:${encodedPassword}@`)
-      }
-    }
-    
+    // If all else fails, return original (might work anyway)
+    console.warn('[Prisma] Could not parse URL, returning original')
     return url
   }
 }
