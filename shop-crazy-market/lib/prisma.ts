@@ -47,15 +47,42 @@ function getPrismaClient(): PrismaClient {
   }
 
   // Fix URL encoding issues automatically
-  const fixedUrl = fixDatabaseUrl(process.env.DATABASE_URL)
+  let fixedUrl = fixDatabaseUrl(process.env.DATABASE_URL)
+  
+  // Validate URL format before passing to Prisma
+  try {
+    // Try to parse as URL to validate format
+    new URL(fixedUrl)
+  } catch (urlError) {
+    console.error('[Prisma] Invalid DATABASE_URL format:', urlError)
+    throw new Error(
+      `Invalid DATABASE_URL format. Expected: postgresql://user:password@host:port/database. ` +
+      `Got: ${fixedUrl.substring(0, 50)}... (truncated for security)`
+    )
+  }
   
   // Temporarily override DATABASE_URL for Prisma
   const originalUrl = process.env.DATABASE_URL
   process.env.DATABASE_URL = fixedUrl
 
-  const prisma = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  })
+  let prisma: PrismaClient
+  try {
+    prisma = new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    })
+  } catch (prismaError: any) {
+    console.error('[Prisma] Failed to create client:', prismaError)
+    // If it's a URL validation error, provide helpful message
+    if (prismaError.message?.includes('pattern') || prismaError.message?.includes('URL')) {
+      throw new Error(
+        `DATABASE_URL validation failed. Please check your Vercel environment variables. ` +
+        `The URL should be in format: postgresql://user:password@host:port/database. ` +
+        `If your password contains special characters, they must be URL-encoded (e.g., # as %23). ` +
+        `Original error: ${prismaError.message}`
+      )
+    }
+    throw prismaError
+  }
 
   // Restore original URL (in case it's used elsewhere)
   process.env.DATABASE_URL = originalUrl
