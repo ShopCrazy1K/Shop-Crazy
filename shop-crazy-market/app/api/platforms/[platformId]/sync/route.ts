@@ -10,10 +10,10 @@ import { PrintifyClient, convertPrintifyProduct } from "@/lib/platforms/printify
  */
 export async function POST(
   req: Request,
-  { params }: { params: { platformId: string } }
+  { params }: { params: Promise<{ platformId: string }> }
 ) {
   try {
-    const platformId = params.platformId;
+    const { platformId } = await params;
     const { zone } = await req.json().catch(() => ({}));
 
     const connection = await prisma.platformConnection.findUnique({

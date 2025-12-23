@@ -7,12 +7,12 @@ export const runtime = 'nodejs';
 // GET /api/messages/[userId] - Get messages between current user and another user
 export async function GET(
   request: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
+    const { userId: otherUserId } = await params;
     const { searchParams } = new URL(request.url);
     const currentUserId = searchParams.get("currentUserId");
-    const otherUserId = params.userId;
 
     if (!currentUserId) {
       return NextResponse.json(

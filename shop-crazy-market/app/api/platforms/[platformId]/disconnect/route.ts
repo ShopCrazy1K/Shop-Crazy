@@ -8,10 +8,10 @@ import { prisma } from "@/lib/prisma";
  */
 export async function DELETE(
   req: Request,
-  { params }: { params: { platformId: string } }
+  { params }: { params: Promise<{ platformId: string }> }
 ) {
   try {
-    const platformId = params.platformId;
+    const { platformId } = await params;
 
     const connection = await prisma.platformConnection.findUnique({
       where: { id: platformId },

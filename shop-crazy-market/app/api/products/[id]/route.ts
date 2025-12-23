@@ -6,11 +6,12 @@ export const runtime = 'nodejs';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         shop: {
           include: {
@@ -69,9 +70,10 @@ export async function GET(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId") || request.headers.get("x-user-id");
 
@@ -84,7 +86,7 @@ export async function DELETE(
 
     // Get the product with shop owner info
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         shop: {
           include: {
@@ -112,13 +114,13 @@ export async function DELETE(
     // Check if product has been ordered (has order items)
     // We can't delete products with order items due to foreign key constraints
     const orderItemsCount = await prisma.orderItem.count({
-      where: { productId: params.id },
+      where: { productId: id },
     });
 
     if (orderItemsCount > 0) {
       // If product has been ordered, hide it instead of deleting
       await prisma.product.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           hidden: true,
         },
@@ -126,19 +128,19 @@ export async function DELETE(
 
       // Delete related records that can be safely removed
       await prisma.review.deleteMany({
-        where: { productId: params.id },
+        where: { productId: id },
       });
 
       await prisma.favorite.deleteMany({
-        where: { productId: params.id },
+        where: { productId: id },
       });
 
       await prisma.listingFee.deleteMany({
-        where: { productId: params.id },
+        where: { productId: id },
       });
 
       await prisma.copyrightReport.deleteMany({
-        where: { productId: params.id },
+        where: { productId: id },
       });
 
       return NextResponse.json({
@@ -151,24 +153,24 @@ export async function DELETE(
     // If no orders exist, we can safely delete everything
     // Delete all related records first (to avoid foreign key constraint errors)
     await prisma.review.deleteMany({
-      where: { productId: params.id },
+      where: { productId: id },
     });
 
     await prisma.favorite.deleteMany({
-      where: { productId: params.id },
+      where: { productId: id },
     });
 
     await prisma.listingFee.deleteMany({
-      where: { productId: params.id },
+      where: { productId: id },
     });
 
     await prisma.copyrightReport.deleteMany({
-      where: { productId: params.id },
+      where: { productId: id },
     });
     
     // Delete the product
     await prisma.product.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

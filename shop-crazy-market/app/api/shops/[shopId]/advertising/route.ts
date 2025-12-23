@@ -8,11 +8,11 @@ import { prisma } from "@/lib/prisma";
  */
 export async function PUT(
   req: Request,
-  { params }: { params: { shopId: string } }
+  { params }: { params: Promise<{ shopId: string }> }
 ) {
   try {
     const { enabled } = await req.json();
-    const shopId = params.shopId;
+    const { shopId } = await params;
 
     if (typeof enabled !== "boolean") {
       return NextResponse.json(
@@ -54,10 +54,10 @@ export async function PUT(
  */
 export async function GET(
   req: Request,
-  { params }: { params: { shopId: string } }
+  { params }: { params: Promise<{ shopId: string }> }
 ) {
   try {
-    const shopId = params.shopId;
+    const { shopId } = await params;
 
     const shop = await prisma.shop.findUnique({
       where: { id: shopId },

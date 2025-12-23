@@ -7,14 +7,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(
   request: Request,
-  { params }: { params: { disputeId: string } }
+  { params }: { params: Promise<{ disputeId: string }> }
 ) {
   try {
     const { action } = await request.json();
+    const { disputeId } = await params;
 
     if (action === "accept") {
       // Accept the dispute (lose the dispute)
-      await stripe.disputes.update(params.disputeId, {
+      await stripe.disputes.update(disputeId, {
         metadata: {
           action: "accepted",
           acceptedAt: new Date().toISOString(),
@@ -27,7 +28,7 @@ export async function POST(
       });
     } else if (action === "contest") {
       // Contest the dispute
-      await stripe.disputes.update(params.disputeId, {
+      await stripe.disputes.update(disputeId, {
         evidence: {
           customer_communication: "We have provided all necessary documentation.",
         },

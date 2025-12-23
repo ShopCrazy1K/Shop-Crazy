@@ -6,9 +6,10 @@ export const runtime = 'nodejs';
 
 export async function GET(
   request: Request,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
+    const { productId } = await params;
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get("orderId");
     const userId = searchParams.get("userId") || request.headers.get("x-user-id");
@@ -30,7 +31,7 @@ export async function GET(
         },
         items: {
           some: {
-            productId: params.productId,
+            productId,
           },
         },
       },
@@ -52,7 +53,7 @@ export async function GET(
 
     // Get the product
     const orderItem = order.items.find(
-      (item) => item.productId === params.productId
+      (item) => item.productId === productId
     );
 
     if (!orderItem || orderItem.product.type !== "DIGITAL") {
@@ -87,7 +88,7 @@ export async function GET(
     const files = fileUrls.map((url, index) => {
       const filename = url.split("/").pop() || `file-${index + 1}`;
       return {
-        url: `/api/download/${params.productId}?orderId=${orderId}&userId=${userId}&fileIndex=${index}`,
+        url: `/api/download/${productId}?orderId=${orderId}&userId=${userId}&fileIndex=${index}`,
         filename,
         index,
       };
