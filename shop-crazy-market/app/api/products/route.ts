@@ -71,8 +71,32 @@ export async function POST(request: Request) {
 
     // Find or create shop for user
     console.log('[API] Finding or creating shop for userId:', userId);
+    console.log('[API] DATABASE_URL check:', {
+      present: !!process.env.DATABASE_URL,
+      length: process.env.DATABASE_URL?.length || 0,
+      startsWith: process.env.DATABASE_URL?.substring(0, 20) || 'none',
+    });
+    
     let shop;
     try {
+      // Test connection first
+      try {
+        await prisma.$connect();
+        console.log('[API] ✅ Prisma connection successful');
+      } catch (connectError: any) {
+        console.error('[API] ❌ Prisma connection failed:', connectError.message);
+        if (connectError.message?.includes('pattern')) {
+          return NextResponse.json(
+            { 
+              error: "Database connection error. The database URL format is invalid.",
+              suggestion: "Please check your Vercel environment variables. Try using the direct connection URL instead of connection pooling.",
+            },
+            { status: 500 }
+          );
+        }
+        throw connectError;
+      }
+      
       shop = await safePrismaQuery(
         () => prisma.shop.findFirst({
           where: { ownerId: userId },
