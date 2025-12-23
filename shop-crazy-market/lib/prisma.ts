@@ -24,6 +24,33 @@ function getPrismaClient(): PrismaClient {
   console.log('[Prisma] Using DATABASE_URL:', urlForLogging.substring(0, 80) + '...')
   console.log('[Prisma] URL length:', process.env.DATABASE_URL.length)
   console.log('[Prisma] URL starts with postgresql://', process.env.DATABASE_URL.startsWith('postgresql://'))
+  
+  // Detailed URL analysis for debugging
+  try {
+    const url = new URL(process.env.DATABASE_URL)
+    console.log('[Prisma] URL components:', {
+      protocol: url.protocol,
+      username: url.username,
+      hostname: url.hostname,
+      port: url.port || 'default',
+      pathname: url.pathname,
+      passwordLength: url.password?.length || 0,
+      passwordHasSpecialChars: url.password ? /[#\$@%&]/.test(url.password) : false,
+      passwordIsEncoded: url.password ? url.password.includes('%') : false,
+    })
+    
+    // Check Prisma pattern match
+    const prismaPattern = /^postgresql:\/\/([^:]+):([^@]+)@([^:]+)(?::(\d+))?(\/.*)?$/
+    const matches = process.env.DATABASE_URL.match(prismaPattern)
+    console.log('[Prisma] Prisma pattern match:', matches ? 'YES' : 'NO')
+    if (!matches) {
+      console.error('[Prisma] URL does not match Prisma pattern!')
+      console.error('[Prisma] Expected: postgresql://user:password@host:port/database')
+      console.error('[Prisma] Got:', process.env.DATABASE_URL.substring(0, 100))
+    }
+  } catch (urlError: any) {
+    console.error('[Prisma] Failed to parse URL:', urlError.message)
+  }
 
   // Create PrismaClient - let it read from process.env.DATABASE_URL directly
   // No explicit datasource, no URL manipulation, just use what's in the environment
