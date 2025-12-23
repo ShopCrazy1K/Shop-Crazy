@@ -6,6 +6,10 @@ const globalForPrisma = globalThis as unknown as {
 
 // Helper function to fix DATABASE_URL encoding issues
 function fixDatabaseUrl(url: string): string {
+  if (!url || typeof url !== 'string') {
+    return url
+  }
+  
   // If URL contains unencoded # in password, encode it
   // Pattern: postgresql://user:password#@host
   const urlPattern = /^(postgresql:\/\/[^:]+:)([^@]+)(@.+)$/
@@ -21,6 +25,7 @@ function fixDatabaseUrl(url: string): string {
     }
   }
   
+  // If pattern doesn't match, return original (might be connection pooling URL)
   return url
 }
 
