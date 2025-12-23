@@ -49,15 +49,45 @@ function getPrismaClient(): PrismaClient {
   // Fix URL encoding issues automatically
   let fixedUrl = fixDatabaseUrl(process.env.DATABASE_URL)
   
+  // Additional fix: Ensure all special characters in password are properly encoded
+  // This handles cases where password might have $, #, @, etc.
+  try {
+    const urlObj = new URL(fixedUrl)
+    // If we can parse it, reconstruct with properly encoded password
+    if (urlObj.password && urlObj.password !== decodeURIComponent(urlObj.password)) {
+      // Password is already encoded, use as-is
+    } else if (urlObj.password) {
+      // Re-encode password to ensure all special chars are encoded
+      const encodedPassword = encodeURIComponent(urlObj.password)
+      fixedUrl = fixedUrl.replace(`:${urlObj.password}@`, `:${encodedPassword}@`)
+    }
+  } catch (urlError) {
+    // If URL parsing fails, try to fix common issues
+    console.warn('[Prisma] URL parsing failed, attempting to fix:', urlError.message)
+    
+    // Try encoding the entire password part if it contains special chars
+    const passwordMatch = fixedUrl.match(/postgresql:\/\/[^:]+:([^@]+)@/)
+    if (passwordMatch) {
+      const password = passwordMatch[1]
+      // If password contains unencoded special chars, encode them
+      if (password.match(/[#\$@%]/) && !password.includes('%')) {
+        const encodedPassword = encodeURIComponent(password)
+        fixedUrl = fixedUrl.replace(`:${password}@`, `:${encodedPassword}@`)
+      }
+    }
+  }
+  
   // Validate URL format before passing to Prisma
   try {
     // Try to parse as URL to validate format
     new URL(fixedUrl)
   } catch (urlError) {
-    console.error('[Prisma] Invalid DATABASE_URL format:', urlError)
+    console.error('[Prisma] Invalid DATABASE_URL format after fixes:', urlError)
+    console.error('[Prisma] Original URL (first 80 chars):', process.env.DATABASE_URL?.substring(0, 80))
+    console.error('[Prisma] Fixed URL (first 80 chars):', fixedUrl.substring(0, 80))
     throw new Error(
       `Invalid DATABASE_URL format. Expected: postgresql://user:password@host:port/database. ` +
-      `Got: ${fixedUrl.substring(0, 50)}... (truncated for security)`
+      `Error: ${urlError.message}. Please check your Vercel environment variables.`
     )
   }
   
