@@ -188,14 +188,12 @@ function getPrismaClient(): PrismaClient {
     
     // Use the original URL directly - don't process it at all
     // Prisma reads from process.env.DATABASE_URL automatically
+    // Note: Prisma connects lazily on first query, so we don't need to await $connect()
     prisma = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     })
     
-    // Test the connection immediately
-    await prisma.$connect()
-    
-    console.log('[Prisma] ✅ Strategy 0 succeeded! Client created and connected with original URL')
+    console.log('[Prisma] ✅ Strategy 0 succeeded! Client created with original URL')
   } catch (error0: unknown) {
     lastError = error0 instanceof Error ? error0 : new Error(String(error0))
     const errorMessage0 = lastError.message
