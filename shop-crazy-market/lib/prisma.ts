@@ -184,21 +184,29 @@ function getPrismaClient(): PrismaClient {
   // Sometimes the simplest approach works - use URL exactly as Vercel provides it
   try {
     console.log('[Prisma] Strategy 0: Using ORIGINAL process.env.DATABASE_URL (no processing)')
+    console.log('[Prisma] Original URL preview:', process.env.DATABASE_URL?.substring(0, 50) + '...')
     
     // Use the original URL directly - don't process it at all
-    const originalEnvUrl = process.env.DATABASE_URL
-    
-    // Create client without explicit datasource - Prisma will read from env
+    // Prisma reads from process.env.DATABASE_URL automatically
     prisma = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     })
     
-    console.log('[Prisma] ✅ Strategy 0 succeeded! Client created with original URL')
+    // Test the connection immediately
+    await prisma.$connect()
+    
+    console.log('[Prisma] ✅ Strategy 0 succeeded! Client created and connected with original URL')
   } catch (error0: unknown) {
     lastError = error0 instanceof Error ? error0 : new Error(String(error0))
     const errorMessage0 = lastError.message
     
     console.warn('[Prisma] ❌ Strategy 0 failed:', errorMessage0)
+    console.warn('[Prisma] Strategy 0 error details:', {
+      message: errorMessage0,
+      includesPattern: errorMessage0.includes('pattern'),
+      includesExpected: errorMessage0.includes('expected'),
+      includesString: errorMessage0.includes('string'),
+    })
     
     // Strategy 0.5: Try with fixed URL in environment (minimal processing)
     try {
