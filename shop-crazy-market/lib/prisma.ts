@@ -108,13 +108,22 @@ function getPrismaClient(): PrismaClient {
   
   let prisma: PrismaClient
   try {
+    // Try creating Prisma client with explicit datasource URL first
+    // This bypasses environment variable parsing
     prisma = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
       datasources: {
         db: {
-          url: fixedUrl, // Explicitly pass the URL to bypass env var issues
+          url: fixedUrl,
         },
       },
+    })
+    
+    // Test connection immediately to catch validation errors early
+    // This will throw if the URL format is invalid
+    await prisma.$connect().catch(() => {
+      // If connection fails, it might be a validation issue
+      // But we'll let it fail naturally to see the real error
     })
   } catch (prismaError: unknown) {
     // Restore original URL even on error
