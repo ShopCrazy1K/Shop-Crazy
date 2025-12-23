@@ -152,7 +152,13 @@ export default function SellPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        setError(data.error || "Failed to create listing");
+        // Show detailed error message
+        const errorMsg = data.error || "Failed to create listing";
+        const errorDetails = data.details ? `\n\nDetails: ${data.details}` : '';
+        const errorSuggestion = data.suggestion ? `\n\nSuggestion: ${data.suggestion}` : '';
+        const debugInfo = data.debugUrl ? `\n\nDebug: Visit ${data.debugUrl} to see what Prisma is receiving.` : '';
+        
+        setError(errorMsg + errorDetails + errorSuggestion + debugInfo);
         setLoading(false);
         return;
       }

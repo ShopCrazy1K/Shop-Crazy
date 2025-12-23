@@ -79,21 +79,55 @@ export async function POST(request: Request) {
     
     let shop;
     try {
-      // Test connection first
+      // Test connection first - this will trigger Prisma client creation
+      // and catch any URL validation errors early
       try {
+        console.log('[API] Testing Prisma connection...');
         await prisma.$connect();
         console.log('[API] ✅ Prisma connection successful');
       } catch (connectError: any) {
-        console.error('[API] ❌ Prisma connection failed:', connectError.message);
-        if (connectError.message?.includes('pattern')) {
+        const errorMsg = connectError.message || String(connectError);
+        console.error('[API] ❌ Prisma connection failed:', errorMsg);
+        console.error('[API] Error type:', connectError.constructor?.name);
+        console.error('[API] Error code:', connectError.code);
+        
+        // Check for pattern validation errors
+        if (errorMsg.includes('pattern') || errorMsg.includes('expected') || errorMsg.includes('string did not match')) {
           return NextResponse.json(
             { 
               error: "Database connection error. The database URL format is invalid.",
-              suggestion: "Please check your Vercel environment variables. Try using the direct connection URL instead of connection pooling.",
+              details: "The DATABASE_URL in Vercel does not match Prisma's expected format.",
+              suggestion: "Please check your Vercel environment variables. Use the direct connection URL: postgresql://postgres:PASSWORD@db.hbufjpxdzmygjnbfsniu.supabase.co:5432/postgres",
+              debugUrl: "/api/debug-database-url",
             },
             { status: 500 }
           );
         }
+        
+        // Check for authentication errors
+        if (errorMsg.includes('authentication') || errorMsg.includes('password') || errorMsg.includes('credentials')) {
+          return NextResponse.json(
+            { 
+              error: "Database authentication failed.",
+              details: "The database credentials are incorrect.",
+              suggestion: "Please check your DATABASE_URL password in Vercel environment variables.",
+            },
+            { status: 500 }
+          );
+        }
+        
+        // Check for connection errors
+        if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes("Can't reach") || errorMsg.includes('timeout')) {
+          return NextResponse.json(
+            { 
+              error: "Cannot connect to database server.",
+              details: "The database server is not reachable.",
+              suggestion: "Please check your DATABASE_URL host and port in Vercel environment variables.",
+            },
+            { status: 500 }
+          );
+        }
+        
         throw connectError;
       }
       
