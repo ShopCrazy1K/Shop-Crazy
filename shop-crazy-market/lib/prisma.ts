@@ -118,13 +118,6 @@ function getPrismaClient(): PrismaClient {
         },
       },
     })
-    
-    // Test connection immediately to catch validation errors early
-    // This will throw if the URL format is invalid
-    await prisma.$connect().catch(() => {
-      // If connection fails, it might be a validation issue
-      // But we'll let it fail naturally to see the real error
-    })
   } catch (prismaError: unknown) {
     // Restore original URL even on error
     process.env.DATABASE_URL = originalUrl
