@@ -7,7 +7,7 @@ import type { NextRequest } from "next/server";
  * Replaces the deprecated middleware.ts convention.
  * Handles security headers and request proxying.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const response = NextResponse.next();
 
   // In development, skip security headers to avoid Safari issues
