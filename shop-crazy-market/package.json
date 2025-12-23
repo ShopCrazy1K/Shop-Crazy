@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node -e \"require('fs').writeFileSync('.env.local','DATABASE_URL='+JSON.stringify((u=>{if(!u)return'';const m=u.match(/^(postgresql:\\/\\/[^:]+:)([^@]+)(@.+)$/);if(!m)return u;let p=m[2];if(p.includes('#')&&!p.includes('%23'))p=p.replace(/#/g,'%23');if(p.includes('$')&&!p.includes('%24'))p=p.replace(/\\$/g,'%24');return p!==m[2]?m[1]+p+m[3]:u})(process.env.DATABASE_URL||''))+'\\n');\" && DATABASE_URL=$(node -e \"console.log(require('fs').readFileSync('.env.local','utf8').split('=')[1].trim())\") prisma generate --schema=./prisma/schema.prisma && next build",
+    "build": "node -e \"const fs=require('fs');const u=process.env.DATABASE_URL||'';let fixed=u;if(u){const m=u.match(/^(postgresql:\\/\\/[^:]+:)([^@]+)(@.+)$/);if(m){let p=m[2];if(p.includes('#')&&!p.includes('%23'))p=p.replace(/#/g,'%23');if(p.includes('$')&&!p.includes('%24'))p=p.replace(/\\$/g,'%24');fixed=p!==m[2]?m[1]+p+m[3]:u;}fs.writeFileSync('.env.local','DATABASE_URL='+JSON.stringify(fixed)+'\\n');process.env.DATABASE_URL=fixed;}\" && prisma generate && next build",
     "start": "next start",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
