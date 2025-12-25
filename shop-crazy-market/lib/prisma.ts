@@ -5,8 +5,103 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 /**
- * Prisma Client with robust error handling
- * Handles DATABASE_URL validation errors gracefully
+ * Clean and normalize DATABASE_URL to ensure it matches Prisma's expected format
+ */
+function cleanDatabaseUrl(url: string): string {
+  if (!url || typeof url !== 'string') {
+    return url
+  }
+  
+  // Step 1: Trim whitespace
+  let cleaned = url.trim()
+  
+  // Step 2: Remove quotes
+  cleaned = cleaned.replace(/^["']|["']$/g, '')
+  
+  // Step 3: Remove any newlines or carriage returns
+  cleaned = cleaned.replace(/[\r\n]/g, '')
+  
+  // Step 4: Fix protocol (postgres:// -> postgresql://)
+  if (cleaned.startsWith('postgres://')) {
+    cleaned = cleaned.replace('postgres://', 'postgresql://')
+  }
+  
+  // Step 5: Ensure it starts with postgresql://
+  if (!cleaned.startsWith('postgresql://')) {
+    throw new Error(`DATABASE_URL must start with postgresql://, got: ${cleaned.substring(0, 20)}...`)
+  }
+  
+  // Step 6: Parse and reconstruct to ensure proper encoding
+  try {
+    const urlObj = new URL(cleaned)
+    
+    // Reconstruct with proper encoding
+    const username = urlObj.username || 'postgres'
+    const password = urlObj.password || ''
+    const hostname = urlObj.hostname || ''
+    const port = urlObj.port || '5432'
+    const pathname = urlObj.pathname || '/postgres'
+    
+    // Ensure password is properly encoded
+    let encodedPassword = password
+    try {
+      // If password contains unencoded special chars, encode them
+      if (password && !password.includes('%')) {
+        // Check if it has special chars that need encoding
+        if (/[#\$@%&+\s]/.test(password)) {
+          encodedPassword = encodeURIComponent(password)
+        }
+      } else if (password.includes('%')) {
+        // Already encoded, but decode and re-encode to ensure consistency
+        try {
+          const decoded = decodeURIComponent(password)
+          encodedPassword = encodeURIComponent(decoded)
+        } catch {
+          // If decode fails, use as-is
+          encodedPassword = password
+        }
+      }
+    } catch {
+      // If encoding fails, use original
+      encodedPassword = password
+    }
+    
+    // Reconstruct URL
+    cleaned = `postgresql://${username}:${encodedPassword}@${hostname}:${port}${pathname}`
+    
+    // Remove any query params or hash (Prisma doesn't like them)
+    const urlObj2 = new URL(cleaned)
+    cleaned = `postgresql://${urlObj2.username}:${urlObj2.password}@${urlObj2.hostname}:${urlObj2.port || '5432'}${urlObj2.pathname}`
+    
+  } catch (parseError) {
+    // If URL parsing fails, try regex-based approach
+    const pattern = /^postgresql:\/\/([^:]+):([^@]+)@([^:]+)(?::(\d+))?(\/.*)?$/
+    const match = cleaned.match(pattern)
+    
+    if (match) {
+      let [, username, password, host, port, path] = match
+      
+      // Encode password if needed
+      if (password && !password.includes('%')) {
+        try {
+          password = encodeURIComponent(password)
+        } catch {
+          // Keep original if encoding fails
+        }
+      }
+      
+      port = port || '5432'
+      path = path || '/postgres'
+      
+      cleaned = `postgresql://${username}:${password}@${host}:${port}${path}`
+    }
+  }
+  
+  return cleaned
+}
+
+/**
+ * Prisma Client with robust error handling and URL cleaning
  */
 function getPrismaClient(): PrismaClient {
   if (globalForPrisma.prisma) {
@@ -17,53 +112,43 @@ function getPrismaClient(): PrismaClient {
     throw new Error('DATABASE_URL environment variable is not set.')
   }
 
-  const dbUrl = process.env.DATABASE_URL.trim()
+  const originalUrl = process.env.DATABASE_URL
+  console.log('[Prisma] Original DATABASE_URL length:', originalUrl.length)
+  console.log('[Prisma] Original DATABASE_URL (first 50):', originalUrl.substring(0, 50) + '...')
   
-  // Log the URL format (hide password for security)
-  const urlForLogging = dbUrl.replace(/:([^:@]+)@/, ':****@')
-  console.log('[Prisma] Using DATABASE_URL:', urlForLogging.substring(0, 80) + '...')
-  console.log('[Prisma] URL length:', dbUrl.length)
-  console.log('[Prisma] URL starts with postgresql://', dbUrl.startsWith('postgresql://'))
-  
-  // Validate and clean the URL
-  let cleanedUrl = dbUrl
-  
-  // Remove any quotes
-  cleanedUrl = cleanedUrl.replace(/^["']|["']$/g, '')
-  
-  // Ensure it starts with postgresql:// (not postgres://)
-  if (cleanedUrl.startsWith('postgres://')) {
-    cleanedUrl = cleanedUrl.replace('postgres://', 'postgresql://')
-    console.log('[Prisma] Fixed protocol: postgres:// -> postgresql://')
+  // Clean the URL
+  let cleanedUrl: string
+  try {
+    cleanedUrl = cleanDatabaseUrl(originalUrl)
+    console.log('[Prisma] Cleaned DATABASE_URL length:', cleanedUrl.length)
+    console.log('[Prisma] Cleaned DATABASE_URL (first 50):', cleanedUrl.substring(0, 50) + '...')
+    
+    if (cleanedUrl !== originalUrl) {
+      console.log('[Prisma] ⚠️ URL was modified during cleaning')
+    }
+  } catch (cleanError: any) {
+    console.error('[Prisma] ❌ Failed to clean URL:', cleanError.message)
+    throw new Error(`Failed to clean DATABASE_URL: ${cleanError.message}`)
   }
   
-  // Check Prisma pattern match BEFORE creating client
+  // Validate pattern BEFORE creating PrismaClient
   const prismaPattern = /^postgresql:\/\/([^:]+):([^@]+)@([^:]+)(?::(\d+))?(\/.*)?$/
   const matches = cleanedUrl.match(prismaPattern)
   
   if (!matches) {
-    console.error('[Prisma] ❌ URL does not match Prisma pattern!')
-    console.error('[Prisma] URL (first 100 chars):', cleanedUrl.substring(0, 100))
-    console.error('[Prisma] Expected format: postgresql://user:password@host:port/database')
-    
-    // Try to provide helpful error
-    const issues: string[] = []
-    if (!cleanedUrl.startsWith('postgresql://')) {
-      issues.push('Must start with postgresql://')
-    }
-    if (!cleanedUrl.includes('://')) {
-      issues.push('Missing protocol separator (://)')
-    }
-    if (!cleanedUrl.includes('@')) {
-      issues.push('Missing @ separator between credentials and host')
-    }
-    if (!cleanedUrl.includes('/')) {
-      issues.push('Missing database name (path after /)')
-    }
+    console.error('[Prisma] ❌ Cleaned URL does not match Prisma pattern!')
+    console.error('[Prisma] Cleaned URL:', cleanedUrl.substring(0, 100))
+    console.error('[Prisma] Pattern check:', {
+      startsWithPostgresql: cleanedUrl.startsWith('postgresql://'),
+      hasUsername: cleanedUrl.includes('://') && cleanedUrl.split('://')[1].includes(':'),
+      hasPassword: cleanedUrl.includes(':') && cleanedUrl.includes('@'),
+      hasHost: cleanedUrl.includes('@'),
+      hasPort: /:\d+\//.test(cleanedUrl),
+      hasDatabase: cleanedUrl.includes('/') && cleanedUrl.split('/').length > 1,
+    })
     
     throw new Error(
-      `DATABASE_URL format is invalid. ` +
-      `Issues: ${issues.join(', ')}. ` +
+      `DATABASE_URL format is invalid after cleaning. ` +
       `Expected: postgresql://user:password@host:port/database ` +
       `Got: ${cleanedUrl.substring(0, 100)}... ` +
       `Visit /api/debug-database-url for detailed analysis.`
@@ -79,8 +164,8 @@ function getPrismaClient(): PrismaClient {
     database: matches[5] || '/postgres',
   })
   
-  // Set cleaned URL in environment temporarily for Prisma
-  const originalUrl = process.env.DATABASE_URL
+  // Set cleaned URL in environment temporarily
+  const originalEnvUrl = process.env.DATABASE_URL
   process.env.DATABASE_URL = cleanedUrl
   
   try {
@@ -94,7 +179,7 @@ function getPrismaClient(): PrismaClient {
     console.log('[Prisma] ✅ PrismaClient created successfully')
     
     // Restore original URL
-    process.env.DATABASE_URL = originalUrl
+    process.env.DATABASE_URL = originalEnvUrl
     
     if (process.env.NODE_ENV !== 'production') {
       globalForPrisma.prisma = prisma
@@ -103,29 +188,31 @@ function getPrismaClient(): PrismaClient {
     return prisma
   } catch (error: any) {
     // Restore original URL on error
-    process.env.DATABASE_URL = originalUrl
+    process.env.DATABASE_URL = originalEnvUrl
     
     const errorMsg = error.message || String(error)
     console.error('[Prisma] ❌ Failed to create PrismaClient:', errorMsg)
     console.error('[Prisma] Error type:', error.constructor?.name)
     console.error('[Prisma] Error code:', error.code)
+    console.error('[Prisma] Cleaned URL used:', cleanedUrl.substring(0, 100))
     
     // If it's a pattern error, provide detailed help
     if (errorMsg.includes('pattern') || errorMsg.includes('expected') || errorMsg.includes('string did not match')) {
       console.error('[Prisma] ⚠️ PATTERN VALIDATION ERROR')
-      console.error('[Prisma] This occurs when PrismaClient is instantiated')
-      console.error('[Prisma] Cleaned URL (first 100 chars):', cleanedUrl.substring(0, 100))
-      console.error('[Prisma] Original URL (first 100 chars):', originalUrl.substring(0, 100))
+      console.error('[Prisma] Original URL:', originalUrl.substring(0, 100))
+      console.error('[Prisma] Cleaned URL:', cleanedUrl.substring(0, 100))
+      console.error('[Prisma] Pattern match (before Prisma):', matches ? 'YES' : 'NO')
       
-      // Check if cleaning helped
-      if (cleanedUrl !== originalUrl) {
-        console.error('[Prisma] URL was cleaned but still failed validation')
-      }
+      // Double-check pattern match
+      const finalMatch = cleanedUrl.match(prismaPattern)
+      console.error('[Prisma] Final pattern check:', finalMatch ? 'MATCHES' : 'DOES NOT MATCH')
       
       throw new Error(
         `DATABASE_URL validation failed: ${errorMsg}. ` +
-        `The URL format does not match Prisma's expected pattern. ` +
+        `Original URL: ${originalUrl.substring(0, 80)}... ` +
         `Cleaned URL: ${cleanedUrl.substring(0, 80)}... ` +
+        `Pattern match: ${matches ? 'YES' : 'NO'}. ` +
+        `This error occurs when PrismaClient is created. ` +
         `Please check your Vercel environment variables. ` +
         `Visit /api/debug-database-url for detailed analysis. ` +
         `Visit /api/test-prisma-connection for step-by-step testing.`
