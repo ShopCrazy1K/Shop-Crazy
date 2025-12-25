@@ -190,9 +190,27 @@ export default function SellPage() {
         const data = await response.json();
         let errorMessage = data.error || "Failed to create listing";
         
-        // Provide user-friendly error messages
-        if (errorMessage.includes('DATABASE_URL') || errorMessage.includes('pattern') || errorMessage.includes('connection')) {
+        // Log the actual error for debugging (in development)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[Sell Page] API Error:', data);
+        }
+        
+        // Check for database connection errors
+        const isDatabaseError = errorMessage.includes('DATABASE_URL') || 
+                               errorMessage.includes('pattern') || 
+                               errorMessage.includes('connection') ||
+                               errorMessage.includes('Prisma') ||
+                               errorMessage.includes('string did not match');
+        
+        if (isDatabaseError) {
+          // Show user-friendly message but also log the actual error
+          console.error('[Sell Page] Database error detected:', errorMessage);
           errorMessage = "We're experiencing technical difficulties. Please try again in a moment. If the problem persists, contact support.";
+          
+          // In development, show more details
+          if (process.env.NODE_ENV === 'development') {
+            errorMessage += `\n\n[DEV] Actual error: ${data.error}`;
+          }
         }
         
         // Show detailed error with suggestions if available

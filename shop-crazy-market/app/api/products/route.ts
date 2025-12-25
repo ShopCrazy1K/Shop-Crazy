@@ -79,26 +79,43 @@ export async function POST(request: Request) {
     
     let shop;
     try {
-      // Test connection first - this will trigger Prisma client creation
-      // and catch any URL validation errors early
+      // Try to use Prisma - this will trigger client creation
+      // If it fails, we'll catch the error and provide helpful feedback
+      console.log('[API] Attempting to use Prisma (this will create client if needed)...');
+      
+      // Just try a simple query - this will trigger PrismaClient creation
+      // and catch any URL validation errors
       try {
-        console.log('[API] Testing Prisma connection...');
-        await prisma.$connect();
-        console.log('[API] ✅ Prisma connection successful');
-      } catch (connectError: any) {
-        const errorMsg = connectError.message || String(connectError);
-        console.error('[API] ❌ Prisma connection failed:', errorMsg);
-        console.error('[API] Error type:', connectError.constructor?.name);
-        console.error('[API] Error code:', connectError.code);
+        // Test with a simple query that doesn't require connection
+        // Actually, let's just try to find the shop - if PrismaClient creation fails,
+        // it will throw an error before the query
+        shop = await safePrismaQuery(
+          () => prisma.shop.findFirst({
+            where: { ownerId: userId },
+          }),
+          'finding shop (first attempt)'
+        );
+        console.log('[API] ✅ Prisma query successful, shop found:', shop ? 'yes' : 'no');
+      } catch (prismaError: any) {
+        const errorMsg = prismaError.message || String(prismaError);
+        console.error('[API] ❌ Prisma error:', errorMsg);
+        console.error('[API] Error type:', prismaError.constructor?.name);
+        console.error('[API] Error code:', prismaError.code);
+        console.error('[API] Error stack:', prismaError.stack?.substring(0, 500));
         
         // Check for pattern validation errors
         if (errorMsg.includes('pattern') || errorMsg.includes('expected') || errorMsg.includes('string did not match')) {
+          console.error('[API] Pattern validation error detected!');
+          console.error('[API] This means DATABASE_URL format is invalid');
+          console.error('[API] Visit /api/debug-database-url to see what Prisma is receiving');
+          
           return NextResponse.json(
             { 
               error: "Database connection error. The database URL format is invalid.",
               details: "The DATABASE_URL in Vercel does not match Prisma's expected format.",
               suggestion: "Please check your Vercel environment variables. Use the direct connection URL: postgresql://postgres:PASSWORD@db.hbufjpxdzmygjnbfsniu.supabase.co:5432/postgres",
               debugUrl: "/api/debug-database-url",
+              testUrl: "/api/test-prisma-connection",
             },
             { status: 500 }
           );
@@ -128,7 +145,8 @@ export async function POST(request: Request) {
           );
         }
         
-        throw connectError;
+        // Re-throw if it's not a known error type
+        throw prismaError;
       }
       
       shop = await safePrismaQuery(
