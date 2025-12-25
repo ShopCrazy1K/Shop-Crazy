@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
@@ -14,6 +14,7 @@ export default function SellPage() {
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdProduct, setCreatedProduct] = useState<any>(null);
+  const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "disconnected">("checking");
   
   const [formData, setFormData] = useState({
     title: "",
@@ -30,6 +31,44 @@ export default function SellPage() {
   const [uploadedFileUrls, setUploadedFileUrls] = useState<string[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
+
+  // Save form data to localStorage to prevent data loss
+  useEffect(() => {
+    const savedData = localStorage.getItem('listing-form-data');
+    if (savedData && !formData.title) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setFormData(parsed);
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (formData.title || formData.description) {
+      localStorage.setItem('listing-form-data', JSON.stringify(formData));
+    }
+  }, [formData]);
+
+  // Check database connection on mount
+  useEffect(() => {
+    checkConnection();
+  }, []);
+
+  async function checkConnection() {
+    setConnectionStatus("checking");
+    try {
+      const response = await fetch("/api/test-connection");
+      if (response.ok) {
+        setConnectionStatus("connected");
+      } else {
+        setConnectionStatus("disconnected");
+      }
+    } catch {
+      setConnectionStatus("disconnected");
+    }
+  }
 
   // Redirect if not logged in
   if (!user) {
@@ -86,7 +125,7 @@ export default function SellPage() {
     return data.url;
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent, retryCount = 0) {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -124,7 +163,6 @@ export default function SellPage() {
         }
         setUploadingFiles(false);
       } else if (formData.images) {
-        // Use comma-separated URLs if provided
         imageArray = formData.images.split(',').map(url => url.trim()).filter(url => url);
       }
 
@@ -169,69 +207,85 @@ export default function SellPage() {
         setUploadingFiles(false);
       }
 
-      // Create the listing
-      const response = await fetch("/api/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          price: priceInCents,
-          quantity: parseInt(formData.quantity) || 1,
-          images: imageArray,
-          digitalFileUrls: formData.type === "DIGITAL" ? uploadedUrls : undefined,
-          zone: "SHOP_4_US",
-          userId: user?.id,
-        }),
-      });
+      // Create the listing with retry logic
+      let response: Response;
+      let data: any;
+      
+      try {
+        response = await fetch("/api/products", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...formData,
+            price: priceInCents,
+            quantity: parseInt(formData.quantity) || 1,
+            images: imageArray,
+            digitalFileUrls: formData.type === "DIGITAL" ? uploadedUrls : undefined,
+            zone: "SHOP_4_US",
+            userId: user?.id,
+          }),
+        });
+
+        data = await response.json();
+      } catch (fetchError: any) {
+        // Network error - retry up to 2 times
+        if (retryCount < 2) {
+          console.log(`[Retry] Attempt ${retryCount + 1} failed, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+          return handleSubmit(e, retryCount + 1);
+        }
+        throw new Error("Network error. Please check your connection and try again.");
+      }
 
       if (!response.ok) {
-        const data = await response.json();
-        let errorMessage = data.error || "Failed to create listing";
+        const errorMessage = data.error || "Failed to create listing";
         
-        // Log the actual error for debugging (in development)
-        if (process.env.NODE_ENV === 'development') {
-          console.error('[Sell Page] API Error:', data);
-        }
-        
-        // Check for database connection errors
+        // Check if it's a database error that might be temporary
         const isDatabaseError = errorMessage.includes('DATABASE_URL') || 
                                errorMessage.includes('pattern') || 
                                errorMessage.includes('connection') ||
-                               errorMessage.includes('Prisma') ||
-                               errorMessage.includes('string did not match');
+                               errorMessage.includes('Prisma');
         
-        if (isDatabaseError) {
-          // Show user-friendly message but also log the actual error
-          console.error('[Sell Page] Database error detected:', errorMessage);
-          errorMessage = "We're experiencing technical difficulties. Please try again in a moment. If the problem persists, contact support.";
-          
-          // In development, show more details
-          if (process.env.NODE_ENV === 'development') {
-            errorMessage += `\n\n[DEV] Actual error: ${data.error}`;
-          }
+        if (isDatabaseError && retryCount < 2) {
+          // Retry for database errors
+          console.log(`[Retry] Database error detected, retrying... (attempt ${retryCount + 1})`);
+          await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1)));
+          await checkConnection(); // Re-check connection
+          return handleSubmit(e, retryCount + 1);
         }
         
-        // Show detailed error with suggestions if available
-        const errorDetails = data.details ? `\n\nDetails: ${data.details}` : '';
-        const errorSuggestion = data.suggestion ? `\n\n${data.suggestion}` : '';
-        
-        setError(errorMessage + errorDetails + errorSuggestion);
+        // Show user-friendly error
+        if (isDatabaseError) {
+          setError(
+            "We're experiencing technical difficulties with our database. " +
+            "Please try again in a few moments. Your form data has been saved locally."
+          );
+        } else {
+          setError(errorMessage + (data.details ? `\n\n${data.details}` : ''));
+        }
         setLoading(false);
         return;
       }
 
-      const product = await response.json();
+      // Success!
+      const product = data;
       setCreatedProduct(product);
       setShowSuccess(true);
       setLoading(false);
+      
+      // Clear saved form data
+      localStorage.removeItem('listing-form-data');
+      
+      // Clear connection status check
+      setConnectionStatus("connected");
     } catch (err: any) {
       let errorMessage = err.message || "An error occurred while creating your listing";
       
       // Provide user-friendly error messages
       if (errorMessage.includes('DATABASE_URL') || errorMessage.includes('pattern') || errorMessage.includes('connection')) {
-        errorMessage = "We're experiencing technical difficulties. Please try again in a moment.";
+        errorMessage = "We're experiencing technical difficulties. Your form data has been saved. Please try again in a moment.";
       }
       
       setError(errorMessage);
@@ -284,6 +338,7 @@ export default function SellPage() {
                   setImageFiles([]);
                   setUploadedImageUrls([]);
                   setError("");
+                  localStorage.removeItem('listing-form-data');
                 }}
                 className="bg-gray-100 text-gray-800 px-8 py-4 rounded-xl font-semibold hover:bg-gray-200 transition-all transform hover:scale-105"
               >
@@ -309,6 +364,37 @@ export default function SellPage() {
           </p>
         </div>
 
+        {/* Connection Status */}
+        {connectionStatus === "checking" && (
+          <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+            <p className="text-sm text-blue-700 flex items-center">
+              <span className="animate-spin mr-2">⏳</span>
+              Checking database connection...
+            </p>
+          </div>
+        )}
+
+        {connectionStatus === "disconnected" && (
+          <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm text-yellow-700 font-semibold mb-1">
+                  ⚠️ Database Connection Issue
+                </p>
+                <p className="text-sm text-yellow-600 mb-2">
+                  We're having trouble connecting to the database. You can still fill out the form - your data will be saved locally.
+                </p>
+                <button
+                  onClick={checkConnection}
+                  className="text-sm text-yellow-700 underline hover:text-yellow-900"
+                >
+                  Check Connection Again
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Error Message */}
         {error && (
           <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
@@ -318,6 +404,17 @@ export default function SellPage() {
               </div>
               <div className="ml-3 flex-1">
                 <p className="text-sm text-red-700 whitespace-pre-line">{error}</p>
+                {error.includes("technical difficulties") && (
+                  <button
+                    onClick={() => {
+                      checkConnection();
+                      setTimeout(() => handleSubmit(new Event('submit') as any), 1000);
+                    }}
+                    className="mt-2 text-sm text-red-700 underline hover:text-red-900"
+                  >
+                    Try Again
+                  </button>
+                )}
               </div>
               <button
                 onClick={() => setError("")}
@@ -571,7 +668,7 @@ export default function SellPage() {
           <div className="flex flex-col sm:flex-row gap-4">
             <button
               type="submit"
-              disabled={loading || uploadingFiles}
+              disabled={loading || uploadingFiles || connectionStatus === "checking"}
               className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
             >
               {loading || uploadingFiles ? (
