@@ -59,9 +59,17 @@ export default function SellPage() {
   async function checkConnection() {
     setConnectionStatus("checking");
     try {
-      const response = await fetch("/api/test-connection");
+      // Try a simple API call that uses Prisma
+      const response = await fetch("/api/debug-database-url");
       if (response.ok) {
-        setConnectionStatus("connected");
+        const data = await response.json();
+        // If we get a response, connection is working
+        // Check if URL format is valid
+        if (data.urlInfo?.prismaPatternMatch?.success) {
+          setConnectionStatus("connected");
+        } else {
+          setConnectionStatus("disconnected");
+        }
       } else {
         setConnectionStatus("disconnected");
       }
@@ -381,17 +389,35 @@ export default function SellPage() {
                 <p className="text-sm text-yellow-700 font-semibold mb-1">
                   ⚠️ Database Connection Issue
                 </p>
-                <p className="text-sm text-yellow-600 mb-2">
-                  We're having trouble connecting to the database. You can still fill out the form - your data will be saved locally.
+                <p className="text-sm text-yellow-600 mb-3">
+                  We're having trouble connecting to the database. You can still fill out the form - your data will be saved locally and you can try submitting again later.
                 </p>
-                <button
-                  onClick={checkConnection}
-                  className="text-sm text-yellow-700 underline hover:text-yellow-900"
-                >
-                  Check Connection Again
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={checkConnection}
+                    className="text-sm bg-yellow-100 text-yellow-800 px-3 py-1 rounded-lg hover:bg-yellow-200 transition-colors"
+                  >
+                    🔄 Check Connection Again
+                  </button>
+                  <Link
+                    href="/api/debug-database-url"
+                    target="_blank"
+                    className="text-sm bg-yellow-100 text-yellow-800 px-3 py-1 rounded-lg hover:bg-yellow-200 transition-colors"
+                  >
+                    🔍 Debug Info
+                  </Link>
+                </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {connectionStatus === "connected" && (
+          <div className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
+            <p className="text-sm text-green-700 flex items-center">
+              <span className="mr-2">✅</span>
+              Database connection is working. You're ready to create a listing!
+            </p>
           </div>
         )}
 
