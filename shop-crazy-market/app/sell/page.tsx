@@ -1,11 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 import { categories } from "@/lib/categories";
 import { LISTING_FEE_PER_MONTH } from "@/lib/fees";
+
+interface FormData {
+  title: string;
+  description: string;
+  price: string;
+  quantity: string;
+  category: string;
+  type: "PHYSICAL" | "DIGITAL";
+  condition: "NEW" | "USED";
+}
 
 export default function SellPage() {
   const { user } = useAuth();
@@ -16,7 +26,7 @@ export default function SellPage() {
   const [createdProduct, setCreatedProduct] = useState<any>(null);
   const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "disconnected">("checking");
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: "",
     description: "",
     price: "",
@@ -24,19 +34,24 @@ export default function SellPage() {
     category: "",
     type: "PHYSICAL",
     condition: "NEW",
-    images: "",
   });
-  const [digitalFiles, setDigitalFiles] = useState<File[]>([]);
-  const [uploadingFiles, setUploadingFiles] = useState(false);
-  const [uploadedFileUrls, setUploadedFileUrls] = useState<string[]>([]);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
 
-  // Save form data to localStorage to prevent data loss
+  // Digital files state
+  const [digitalFiles, setDigitalFiles] = useState<File[]>([]);
+  const [uploadingDigitalFiles, setUploadingDigitalFiles] = useState(false);
+  const [uploadedDigitalFileUrls, setUploadedDigitalFileUrls] = useState<string[]>([]);
+
+  // Image files state (for physical products only)
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string>(""); // Manual URLs
+
+  // Load saved form data from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedData = localStorage.getItem('listing-form-data');
-      if (savedData && !formData.title) {
+      if (savedData) {
         try {
           const parsed = JSON.parse(savedData);
           setFormData(parsed);
@@ -47,6 +62,7 @@ export default function SellPage() {
     }
   }, []);
 
+  // Save form data to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined' && (formData.title || formData.description)) {
       localStorage.setItem('listing-form-data', JSON.stringify(formData));
@@ -58,15 +74,12 @@ export default function SellPage() {
     checkConnection();
   }, []);
 
-  async function checkConnection() {
+  const checkConnection = useCallback(async () => {
     setConnectionStatus("checking");
     try {
-      // Try a simple API call that uses Prisma
       const response = await fetch("/api/debug-database-url");
       if (response.ok) {
         const data = await response.json();
-        // If we get a response, connection is working
-        // Check if URL format is valid
         if (data.urlInfo?.prismaPatternMatch?.success) {
           setConnectionStatus("connected");
         } else {
@@ -78,25 +91,23 @@ export default function SellPage() {
     } catch {
       setConnectionStatus("disconnected");
     }
-  }
+  }, []);
 
   // Redirect if not logged in
   if (!user) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4 sm:p-6">
-        <div className="max-w-2xl mx-auto">
+      <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4 sm:p-6 flex items-center justify-center">
+        <div className="max-w-md w-full">
           <div className="bg-white rounded-2xl p-8 sm:p-12 text-center shadow-xl border border-purple-100">
-            <div className="mb-6">
-              <div className="w-20 h-20 mx-auto bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4">
-                <span className="text-3xl">📦</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Create a Listing
-              </h1>
-              <p className="text-gray-600 text-lg mb-8">
-                You need to be logged in to create a listing.
-              </p>
+            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-6">
+              <span className="text-4xl">🔒</span>
             </div>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Login Required
+            </h1>
+            <p className="text-gray-600 text-lg mb-8">
+              You need to be logged in to create a listing.
+            </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/login"
@@ -117,7 +128,7 @@ export default function SellPage() {
     );
   }
 
-  async function handleImageUpload(file: File): Promise<string> {
+  async function handleFileUpload(file: File): Promise<string> {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -127,15 +138,67 @@ export default function SellPage() {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to upload image");
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Failed to upload ${file.name}`);
     }
 
     const data = await response.json();
     return data.url;
   }
 
-  async function handleSubmit(e: React.FormEvent, retryCount = 0) {
+  async function handleDigitalFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setDigitalFiles((prev) => [...prev, ...files]);
+    setUploadingDigitalFiles(true);
+
+    const newUrls: string[] = [];
+    for (const file of files) {
+      try {
+        const url = await handleFileUpload(file);
+        newUrls.push(url);
+      } catch (error: any) {
+        alert(`Failed to upload ${file.name}: ${error.message || "Unknown error"}`);
+        // Remove failed file from list
+        setDigitalFiles((prev) => prev.filter(f => f !== file));
+      }
+    }
+
+    setUploadedDigitalFileUrls((prev) => [...prev, ...newUrls]);
+    setUploadingDigitalFiles(false);
+    e.target.value = ""; // Clear input
+  }
+
+  async function handleImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setImageFiles((prev) => [...prev, ...files]);
+    setUploadingImages(true);
+
+    const newUrls: string[] = [];
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name} is too large. Max size is 5MB.`);
+        setImageFiles((prev) => prev.filter(f => f !== file));
+        continue;
+      }
+      try {
+        const url = await handleFileUpload(file);
+        newUrls.push(url);
+      } catch (error: any) {
+        alert(`Failed to upload ${file.name}: ${error.message || "Unknown error"}`);
+        setImageFiles((prev) => prev.filter(f => f !== file));
+      }
+    }
+
+    setUploadedImageUrls((prev) => [...prev, ...newUrls]);
+    setUploadingImages(false);
+    e.target.value = ""; // Clear input
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -155,132 +218,53 @@ export default function SellPage() {
         return;
       }
 
-      // Upload images first
-      let imageArray: string[] = [];
-      if (imageFiles.length > 0) {
-        setUploadingFiles(true);
-        try {
-          for (const file of imageFiles) {
-            const url = await handleImageUpload(file);
-            imageArray.push(url);
-          }
-          setUploadedImageUrls(imageArray);
-        } catch (uploadError: any) {
-          setError(`Failed to upload images: ${uploadError.message}`);
-          setLoading(false);
-          setUploadingFiles(false);
-          return;
-        }
-        setUploadingFiles(false);
-      } else if (formData.images) {
-        imageArray = formData.images.split(',').map(url => url.trim()).filter(url => url);
-      }
-
-      // Validate digital files
-      if (formData.type === "DIGITAL" && digitalFiles.length === 0 && uploadedFileUrls.length === 0) {
+      // Validate digital files for digital products
+      if (formData.type === "DIGITAL" && uploadedDigitalFileUrls.length === 0) {
         setError("Please upload at least one digital file for digital products");
         setLoading(false);
         return;
       }
 
-      // Upload digital files if needed
-      let uploadedUrls: string[] = [...uploadedFileUrls];
-      if (formData.type === "DIGITAL" && digitalFiles.length > uploadedFileUrls.length) {
-        setUploadingFiles(true);
-        const remainingFiles = digitalFiles.slice(uploadedFileUrls.length);
-        
-        for (const file of remainingFiles) {
-          const uploadFormData = new FormData();
-          uploadFormData.append("file", file);
+      // Prepare images array
+      let finalImages: string[] = [];
 
-          try {
-            const uploadResponse = await fetch("/api/upload", {
-              method: "POST",
-              body: uploadFormData,
-            });
-
-            if (!uploadResponse.ok) {
-              const errorData = await uploadResponse.json();
-              throw new Error(errorData.error || "Failed to upload file");
-            }
-
-            const uploadData = await uploadResponse.json();
-            uploadedUrls.push(uploadData.url);
-          } catch (uploadError: any) {
-            setError(`Failed to upload ${file.name}: ${uploadError.message}`);
-            setLoading(false);
-            setUploadingFiles(false);
-            return;
-          }
-        }
-        setUploadedFileUrls(uploadedUrls);
-        setUploadingFiles(false);
+      if (formData.type === "DIGITAL") {
+        // For digital products: digital files are the images
+        finalImages = uploadedDigitalFileUrls;
+      } else {
+        // For physical products: combine uploaded images and manual URLs
+        finalImages = [
+          ...uploadedImageUrls,
+          ...(imageUrls ? imageUrls.split(",").map(url => url.trim()).filter(Boolean) : [])
+        ];
       }
 
-      // Create the listing with retry logic
-      let response: Response;
-      let data: any;
-      
-      try {
-        response = await fetch("/api/products", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...formData,
-            price: priceInCents,
-            quantity: parseInt(formData.quantity) || 1,
-            images: imageArray,
-            digitalFileUrls: formData.type === "DIGITAL" ? uploadedUrls : undefined,
-            zone: "SHOP_4_US",
-            userId: user?.id,
-          }),
-        });
-
-        data = await response.json();
-      } catch (fetchError: any) {
-        // Network error - retry up to 2 times
-        if (retryCount < 2) {
-          console.log(`[Retry] Attempt ${retryCount + 1} failed, retrying...`);
-          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
-          return handleSubmit(e, retryCount + 1);
-        }
-        throw new Error("Network error. Please check your connection and try again.");
-      }
+      // Create the listing
+      const response = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...formData,
+          price: priceInCents,
+          quantity: parseInt(formData.quantity) || 1,
+          images: finalImages,
+          digitalFileUrls: formData.type === "DIGITAL" ? uploadedDigitalFileUrls : undefined,
+          zone: "SHOP_4_US",
+          userId: user?.id,
+        }),
+      });
 
       if (!response.ok) {
+        const data = await response.json();
         const errorMessage = data.error || "Failed to create listing";
-        
-        // Check if it's a database error that might be temporary
-        const isDatabaseError = errorMessage.includes('DATABASE_URL') || 
-                               errorMessage.includes('pattern') || 
-                               errorMessage.includes('connection') ||
-                               errorMessage.includes('Prisma');
-        
-        if (isDatabaseError && retryCount < 2) {
-          // Retry for database errors
-          console.log(`[Retry] Database error detected, retrying... (attempt ${retryCount + 1})`);
-          await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1)));
-          await checkConnection(); // Re-check connection
-          return handleSubmit(e, retryCount + 1);
-        }
-        
-        // Show user-friendly error
-        if (isDatabaseError) {
-          setError(
-            "We're experiencing technical difficulties with our database. " +
-            "Please try again in a few moments. Your form data has been saved locally."
-          );
-        } else {
-          setError(errorMessage + (data.details ? `\n\n${data.details}` : ''));
-        }
+        setError(errorMessage + (data.details ? `\n\n${data.details}` : ''));
         setLoading(false);
         return;
       }
 
-      // Success!
-      const product = data;
+      const product = await response.json();
       setCreatedProduct(product);
       setShowSuccess(true);
       setLoading(false);
@@ -289,75 +273,87 @@ export default function SellPage() {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('listing-form-data');
       }
-      
-      // Clear connection status check
-      setConnectionStatus("connected");
     } catch (err: any) {
-      let errorMessage = err.message || "An error occurred while creating your listing";
-      
-      // Provide user-friendly error messages
-      if (errorMessage.includes('DATABASE_URL') || errorMessage.includes('pattern') || errorMessage.includes('connection')) {
-        errorMessage = "We're experiencing technical difficulties. Your form data has been saved. Please try again in a moment.";
-      }
-      
-      setError(errorMessage);
+      setError(err.message || "An error occurred while creating your listing");
       setLoading(false);
     }
   }
 
+  function handleCreateAnother() {
+    setShowSuccess(false);
+    setCreatedProduct(null);
+    setDigitalFiles([]);
+    setUploadedDigitalFileUrls([]);
+    setImageFiles([]);
+    setUploadedImageUrls([]);
+    setImageUrls("");
+    setFormData({
+      title: "",
+      description: "",
+      price: "",
+      quantity: "1",
+      category: "",
+      type: "PHYSICAL",
+      condition: "NEW",
+    });
+    setError("");
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('listing-form-data');
+    }
+    checkConnection();
+  }
+
+  // Success modal
   if (showSuccess && createdProduct) {
+    const listingFeeDollars = (LISTING_FEE_PER_MONTH / 100).toFixed(2);
+    
     return (
-      <main className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 p-4 sm:p-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-2xl p-8 sm:p-12 text-center shadow-xl border border-green-200">
-            <div className="mb-6">
-              <div className="w-20 h-20 mx-auto bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mb-4 animate-bounce">
-                <span className="text-4xl">✅</span>
+      <main className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 p-4 sm:p-6 flex items-center justify-center">
+        <div className="max-w-2xl w-full">
+          <div className="bg-white rounded-2xl p-8 sm:p-12 text-center shadow-2xl border border-green-200">
+            <div className="text-6xl mb-6 animate-bounce">✅</div>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-green-600">
+              Listing Created Successfully!
+            </h1>
+            
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6 mb-8">
+              <h2 className="text-xl font-bold mb-4 text-purple-800">💰 Listing Fee Information</h2>
+              <div className="space-y-3 text-left">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">Monthly Listing Fee:</span>
+                  <span className="text-2xl font-bold text-purple-600">${listingFeeDollars}</span>
+                </div>
+                <div className="text-sm text-gray-600 bg-white rounded-lg p-4 mt-3">
+                  <p className="mb-2">💡 <strong>How it works:</strong></p>
+                  <ul className="list-disc list-inside space-y-1 text-left">
+                    <li>You'll be charged <strong>${listingFeeDollars} per month</strong> for this listing</li>
+                    <li>Fees are billed on the 1st of each month</li>
+                    <li>You can remove listings anytime to stop fees</li>
+                    <li>Fees are charged automatically via Stripe</li>
+                  </ul>
+                </div>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-green-600">
-                Listing Created Successfully!
-              </h1>
-              <p className="text-gray-600 text-lg mb-2">
-                Your listing has been created and is now live.
-              </p>
-              <p className="text-sm text-gray-500 mb-8">
-                Monthly listing fee: ${(LISTING_FEE_PER_MONTH / 100).toFixed(2)}
-              </p>
             </div>
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href={`/product/${createdProduct.id}`}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 shadow-lg"
-              >
-                View Listing
-              </Link>
               <button
-                onClick={() => {
-                  setShowSuccess(false);
-                  setCreatedProduct(null);
-                  setFormData({
-                    title: "",
-                    description: "",
-                    price: "",
-                    quantity: "1",
-                    category: "",
-                    type: "PHYSICAL",
-                    condition: "NEW",
-                    images: "",
-                  });
-                  setDigitalFiles([]);
-                  setUploadedFileUrls([]);
-                  setImageFiles([]);
-                  setUploadedImageUrls([]);
-                  setError("");
-                  if (typeof window !== 'undefined') {
-                    localStorage.removeItem('listing-form-data');
-                  }
-                }}
+                onClick={() => router.push(`/product/${createdProduct.id}`)}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg"
+              >
+                View Your Listing
+              </button>
+              <button
+                onClick={handleCreateAnother}
                 className="bg-gray-100 text-gray-800 px-8 py-4 rounded-xl font-semibold hover:bg-gray-200 transition-all transform hover:scale-105"
               >
                 Create Another Listing
               </button>
+              <Link
+                href="/marketplace"
+                className="bg-purple-100 text-purple-700 px-8 py-4 rounded-xl font-semibold hover:bg-purple-200 transition-all transform hover:scale-105 text-center flex items-center justify-center"
+              >
+                Browse Marketplace
+              </Link>
             </div>
           </div>
         </div>
@@ -366,7 +362,7 @@ export default function SellPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4 sm:p-6 py-8">
+    <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4 sm:p-6 pb-24">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -396,14 +392,14 @@ export default function SellPage() {
                   ⚠️ Database Connection Issue
                 </p>
                 <p className="text-sm text-yellow-600 mb-3">
-                  We're having trouble connecting to the database. You can still fill out the form - your data will be saved locally and you can try submitting again later.
+                  We're having trouble connecting to the database. You can still fill out the form - your data will be saved locally.
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={checkConnection}
                     className="text-sm bg-yellow-100 text-yellow-800 px-3 py-1 rounded-lg hover:bg-yellow-200 transition-colors"
                   >
-                    🔄 Check Connection Again
+                    🔄 Check Again
                   </button>
                   <Link
                     href="/api/debug-database-url"
@@ -422,7 +418,7 @@ export default function SellPage() {
           <div className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
             <p className="text-sm text-green-700 flex items-center">
               <span className="mr-2">✅</span>
-              Database connection is working. You're ready to create a listing!
+              Database connected. Ready to create your listing!
             </p>
           </div>
         )}
@@ -431,46 +427,24 @@ export default function SellPage() {
         {error && (
           <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
             <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <span className="text-red-500 text-xl">⚠️</span>
-              </div>
-              <div className="ml-3 flex-1">
+              <span className="text-red-500 text-xl mr-3">⚠️</span>
+              <div className="flex-1">
                 <p className="text-sm text-red-700 whitespace-pre-line">{error}</p>
-                {error.includes("technical difficulties") && (
-                  <button
-                    onClick={async () => {
-                      await checkConnection();
-                      // Create a synthetic form event for retry
-                      const form = document.querySelector('form');
-                      if (form) {
-                        const syntheticEvent = new Event('submit', { bubbles: true, cancelable: true });
-                        Object.defineProperty(syntheticEvent, 'preventDefault', {
-                          value: () => {},
-                          writable: false,
-                        });
-                        handleSubmit(syntheticEvent as any, 0);
-                      }
-                    }}
-                    className="mt-2 text-sm text-red-700 underline hover:text-red-900"
-                  >
-                    Try Again
-                  </button>
-                )}
               </div>
               <button
                 onClick={() => setError("")}
-                className="ml-4 text-red-500 hover:text-red-700"
+                className="ml-4 text-red-500 hover:text-red-700 text-xl"
               >
-                ✕
+                ×
               </button>
             </div>
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-purple-100 p-6 sm:p-8">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-purple-100 p-6 sm:p-8 space-y-8">
           {/* Basic Information */}
-          <div className="mb-8">
+          <section>
             <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
               <span className="mr-2">📝</span>
               Basic Information
@@ -479,13 +453,13 @@ export default function SellPage() {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Title <span className="text-red-500">*</span>
+                  Product Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   placeholder="Enter product title"
                   required
                 />
@@ -499,7 +473,7 @@ export default function SellPage() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={6}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
                   placeholder="Describe your product in detail..."
                   required
                 />
@@ -516,7 +490,7 @@ export default function SellPage() {
                     min="0"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="0.00"
                     required
                   />
@@ -531,16 +505,16 @@ export default function SellPage() {
                     min="1"
                     value={formData.quantity}
                     onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="1"
                   />
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* Product Details */}
-          <div className="mb-8">
+          <section>
             <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
               <span className="mr-2">🔍</span>
               Product Details
@@ -554,12 +528,12 @@ export default function SellPage() {
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white"
                 >
                   <option value="">Select a category</option>
                   {categories.map((cat) => (
                     <option key={cat.slug} value={cat.slug}>
-                      {cat.name}
+                      {cat.emoji} {cat.name}
                     </option>
                   ))}
                 </select>
@@ -567,15 +541,27 @@ export default function SellPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Product Type
+                  Product Type <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as "PHYSICAL" | "DIGITAL" })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white"
+                  onChange={(e) => {
+                    const newType = e.target.value as "PHYSICAL" | "DIGITAL";
+                    setFormData({ ...formData, type: newType });
+                    // Clear files when switching types
+                    if (newType === "DIGITAL") {
+                      setImageFiles([]);
+                      setUploadedImageUrls([]);
+                      setImageUrls("");
+                    } else {
+                      setDigitalFiles([]);
+                      setUploadedDigitalFileUrls([]);
+                    }
+                  }}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white"
                 >
-                  <option value="PHYSICAL">Physical Product</option>
-                  <option value="DIGITAL">Digital Product</option>
+                  <option value="PHYSICAL">📦 Physical Product</option>
+                  <option value="DIGITAL">💾 Digital Product</option>
                 </select>
               </div>
 
@@ -586,147 +572,217 @@ export default function SellPage() {
                   </label>
                   <select
                     value={formData.condition}
-                    onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white"
+                    onChange={(e) => setFormData({ ...formData, condition: e.target.value as "NEW" | "USED" })}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white"
                   >
-                    <option value="NEW">New</option>
-                    <option value="USED">Used</option>
+                    <option value="NEW">✨ New</option>
+                    <option value="USED">🔄 Used</option>
                   </select>
                 </div>
               )}
             </div>
-          </div>
+          </section>
 
-          {/* Images */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-              <span className="mr-2">🖼️</span>
-              Images
-            </h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Upload Images
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    setImageFiles(files);
-                  }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-                />
-                {imageFiles.length > 0 && (
-                  <p className="mt-2 text-sm text-gray-600">
-                    {imageFiles.length} image(s) selected
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Or Enter Image URLs (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={formData.images}
-                  onChange={(e) => setFormData({ ...formData, images: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                  placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Digital Files */}
+          {/* Digital Files Section - Only for Digital Products */}
           {formData.type === "DIGITAL" && (
-            <div className="mb-8">
+            <section>
               <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
                 <span className="mr-2">📁</span>
-                Digital Files
+                Digital Files <span className="text-red-500">*</span>
               </h2>
               
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Upload Digital Files <span className="text-red-500">*</span>
+                    Upload Digital Files
                   </label>
                   <input
                     type="file"
                     multiple
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      setDigitalFiles([...digitalFiles, ...files]);
-                    }}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                    onChange={handleDigitalFileChange}
+                    disabled={uploadingDigitalFiles}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    accept=".zip,.rar,.pdf,.epub,.mobi,.doc,.docx,.txt,.mp3,.mp4,.avi,.mov,.jpg,.png,.gif,.psd,.ai,.svg"
                   />
-                  {digitalFiles.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-sm font-semibold text-gray-700">
-                        Selected Files ({digitalFiles.length}):
-                      </p>
-                      <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                        {digitalFiles.map((file, index) => (
-                          <li key={index} className="flex items-center justify-between">
-                            <span>{file.name}</span>
+                  <p className="text-xs text-gray-500 mt-2">
+                    💡 You can select multiple files. Max 50MB per file. Supported: ZIP, RAR, PDF, EPUB, MOBI, DOC, DOCX, TXT, MP3, MP4, AVI, MOV, JPG, PNG, GIF, PSD, AI, SVG
+                  </p>
+                </div>
+
+                {uploadingDigitalFiles && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
+                    <span className="text-blue-600 animate-spin">🔄</span>
+                    <p className="text-sm text-blue-800">Uploading files...</p>
+                  </div>
+                )}
+
+                {uploadedDigitalFileUrls.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-gray-700">
+                      Uploaded Files ({uploadedDigitalFileUrls.length}):
+                    </p>
+                    <div className="space-y-2">
+                      {uploadedDigitalFileUrls.map((url, idx) => {
+                        const filename = url.split("/").pop() || `File ${idx + 1}`;
+                        return (
+                          <div key={idx} className="p-3 bg-green-50 border border-green-200 rounded-lg flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                              <span className="text-green-600">✅</span>
+                              <p className="text-sm text-green-800">
+                                <strong>File {idx + 1}:</strong> {filename}
+                              </p>
+                            </div>
                             <button
                               type="button"
                               onClick={() => {
-                                setDigitalFiles(digitalFiles.filter((_, i) => i !== index));
+                                setUploadedDigitalFileUrls(uploadedDigitalFileUrls.filter((_, i) => i !== idx));
+                                setDigitalFiles(digitalFiles.filter((_, i) => i !== idx));
                               }}
-                              className="text-red-500 hover:text-red-700 ml-4"
+                              className="text-red-600 hover:text-red-800 text-sm font-semibold px-3 py-1 hover:bg-red-50 rounded-md transition-colors"
                             >
                               Remove
                             </button>
-                          </li>
-                        ))}
-                      </ul>
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
+                )}
+
+                {digitalFiles.length > uploadedDigitalFileUrls.length && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-gray-700">
+                      Files Pending Upload ({digitalFiles.length - uploadedDigitalFileUrls.length}):
+                    </p>
+                    {digitalFiles.slice(uploadedDigitalFileUrls.length).map((file, idx) => (
+                      <div key={`pending-${idx}`} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3">
+                        <span className="text-yellow-600 animate-pulse">⏳</span>
+                        <p className="text-sm text-yellow-800">
+                          <strong>Uploading:</strong> {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Images Section - Only for Physical Products */}
+          {formData.type === "PHYSICAL" && (
+            <section>
+              <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+                <span className="mr-2">🖼️</span>
+                Product Images
+              </h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Upload Images
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageFileChange}
+                    disabled={uploadingImages}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Upload images directly (max 5MB per image).
+                  </p>
+                </div>
+
+                {uploadingImages && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
+                    <span className="text-blue-600 animate-spin">🔄</span>
+                    <p className="text-sm text-blue-800">Uploading images...</p>
+                  </div>
+                )}
+
+                {uploadedImageUrls.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-gray-700">
+                      Uploaded Images ({uploadedImageUrls.length}):
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {uploadedImageUrls.map((url, idx) => (
+                        <div key={idx} className="relative group">
+                          <img
+                            src={url}
+                            alt={`Uploaded ${idx + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border-2 border-green-200 shadow-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setUploadedImageUrls(uploadedImageUrls.filter((_, i) => i !== idx))}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                            title="Remove image"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Or Enter Image URLs (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={imageUrls}
+                    onChange={(e) => setImageUrls(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Separate multiple URLs with commas.
+                  </p>
                 </div>
               </div>
-            </div>
+            </section>
           )}
 
           {/* Listing Fee Info */}
-          <div className="mb-8 bg-purple-50 border border-purple-200 rounded-xl p-6">
+          <section className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-purple-900 mb-2 flex items-center">
               <span className="mr-2">💰</span>
               Listing Fee
             </h3>
             <p className="text-purple-700">
-              Monthly listing fee: <span className="font-bold">${(LISTING_FEE_PER_MONTH / 100).toFixed(2)}</span>
+              Monthly listing fee: <span className="font-bold text-xl">${(LISTING_FEE_PER_MONTH / 100).toFixed(2)}</span>
             </p>
             <p className="text-sm text-purple-600 mt-2">
               This fee will be charged monthly to keep your listing active.
             </p>
-          </div>
+          </section>
 
           {/* Submit Button */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <button
               type="submit"
-              disabled={loading || uploadingFiles || connectionStatus === "checking"}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
+              disabled={loading || uploadingDigitalFiles || uploadingImages || connectionStatus === "checking"}
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
             >
-              {loading || uploadingFiles ? (
+              {loading || uploadingDigitalFiles || uploadingImages ? (
                 <>
-                  <span className="animate-spin mr-2">⏳</span>
+                  <span className="animate-spin">⏳</span>
                   Processing...
                 </>
               ) : (
                 <>
-                  <span className="mr-2">✨</span>
+                  <span>✨</span>
                   Create Listing
                 </>
               )}
             </button>
             <Link
               href="/marketplace"
-              className="px-8 py-4 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-all text-center"
+              className="px-8 py-4 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-all text-center flex items-center justify-center"
             >
               Cancel
             </Link>
