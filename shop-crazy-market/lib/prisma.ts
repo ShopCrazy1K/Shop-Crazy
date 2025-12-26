@@ -62,16 +62,11 @@ function getPrismaClient(): PrismaClient {
           log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
         })
 
-        // Test connection with a simple query
-        // This will fail fast if authentication is wrong
-        prisma.$connect().catch(() => {
-          // Connection test - if it fails, we'll catch it below
-        })
-
-        // Restore original URL
+        // Restore original URL (PrismaClient already created with cleaned URL)
         process.env.DATABASE_URL = originalEnv
 
         console.log(`[Prisma] ✅ Successfully created PrismaClient using ${name}`)
+        console.log(`[Prisma] Note: Connection will be tested on first query`)
 
         if (process.env.NODE_ENV !== 'production') {
           globalForPrisma.prisma = prisma
@@ -83,14 +78,7 @@ function getPrismaClient(): PrismaClient {
         process.env.DATABASE_URL = originalEnv
         
         const errorMsg = prismaError.message || String(prismaError)
-        console.error(`[Prisma] ❌ Failed with ${name}:`, errorMsg)
-        
-        // If it's an authentication error, try next URL
-        if (errorMsg.includes('authentication') || errorMsg.includes('credentials') || errorMsg.includes('password')) {
-          console.error(`[Prisma] Authentication failed with ${name}, trying next URL...`)
-          lastError = prismaError
-          continue // Try next URL
-        }
+        console.error(`[Prisma] ❌ Failed to create PrismaClient with ${name}:`, errorMsg)
         
         // If it's a pattern error, try next URL
         if (errorMsg.includes('pattern') || errorMsg.includes('expected') || errorMsg.includes('string did not match')) {
@@ -99,7 +87,8 @@ function getPrismaClient(): PrismaClient {
           continue // Try next URL
         }
         
-        // For other errors, throw immediately
+        // For other errors (including auth during creation), throw immediately
+        // Note: Auth errors usually happen on first query, not during client creation
         throw prismaError
       }
     } catch (error: any) {
@@ -120,16 +109,8 @@ function getPrismaClient(): PrismaClient {
   // All URLs failed
   if (lastError) {
     const errorMsg = lastError.message || String(lastError)
-    console.error('[Prisma] ❌ All URLs failed')
+    console.error('[Prisma] ❌ All URLs failed during client creation')
     console.error('[Prisma] Last error:', errorMsg)
-    
-    if (errorMsg.includes('authentication') || errorMsg.includes('credentials')) {
-      throw new Error(
-        `Database authentication failed with all connection URLs. ` +
-        `Please verify your password in Supabase Dashboard matches the password in Vercel environment variables. ` +
-        `Password should be: Gotjuiceicemanbaby1`
-      )
-    }
     
     throw lastError
   }
