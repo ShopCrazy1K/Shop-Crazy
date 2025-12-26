@@ -77,10 +77,11 @@ export default function SellPage() {
   const checkConnection = useCallback(async () => {
     setConnectionStatus("checking");
     try {
-      const response = await fetch("/api/debug-database-url");
+      // Test actual Prisma connection, not just URL pattern
+      const response = await fetch("/api/test-prisma-connection");
       if (response.ok) {
         const data = await response.json();
-        if (data.urlInfo?.prismaPatternMatch?.success) {
+        if (data.success && data.results?.step6_query?.success) {
           setConnectionStatus("connected");
         } else {
           setConnectionStatus("disconnected");

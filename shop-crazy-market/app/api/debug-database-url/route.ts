@@ -77,6 +77,26 @@ export async function GET() {
       };
     }
 
+    // Try to actually test Prisma connection
+    let prismaTest: any = { tested: false };
+    try {
+      const { prisma } = await import("@/lib/prisma");
+      // Try a simple query to test actual connection
+      await prisma.$queryRaw`SELECT 1 as test`;
+      prismaTest = {
+        tested: true,
+        success: true,
+        message: "Prisma connection successful",
+      };
+    } catch (prismaError: any) {
+      prismaTest = {
+        tested: true,
+        success: false,
+        error: prismaError.message || String(prismaError),
+        includesPattern: prismaError.message?.includes('pattern') || prismaError.message?.includes('expected'),
+      };
+    }
+
     // Show URL with password hidden for logging
     const urlForLogging = dbUrl.replace(/:([^:@]+)@/, ':****@');
     
@@ -84,8 +104,11 @@ export async function GET() {
       success: true,
       urlInfo,
       urlForLogging: urlForLogging.substring(0, 100),
+      prismaTest,
       recommendation: matches 
-        ? "URL format looks correct. Check Vercel logs for Prisma validation errors."
+        ? (prismaTest.success 
+          ? "URL format looks correct and Prisma connection is working."
+          : "URL format looks correct but Prisma connection failed. Check Vercel logs for details.")
         : "URL format does not match Prisma's expected pattern. Use: postgresql://user:password@host:port/database",
     });
   } catch (error: any) {
