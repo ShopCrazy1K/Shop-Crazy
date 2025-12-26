@@ -34,60 +34,107 @@ function getPrismaClient(): PrismaClient {
     throw new Error('DATABASE_URL environment variable is not set.')
   }
 
-  // Clean the URL before using it
-  const originalUrl = process.env.DATABASE_URL
-  const cleanedUrl = cleanDatabaseUrl(originalUrl)
-  
-  // If URL was cleaned, log it
-  if (cleanedUrl !== originalUrl) {
-    console.log('[Prisma] Cleaned DATABASE_URL (removed query params/hash)')
-    console.log('[Prisma] Original length:', originalUrl.length)
-    console.log('[Prisma] Cleaned length:', cleanedUrl.length)
-  }
+  // Try DATABASE_URL first, then DIRECT_URL as fallback
+  const urlsToTry = [
+    { url: process.env.DATABASE_URL, name: 'DATABASE_URL' },
+    { url: process.env.DIRECT_URL, name: 'DIRECT_URL' },
+  ].filter(item => item.url) // Only include URLs that exist
 
-  try {
-    // Temporarily set cleaned URL in environment
-    const originalEnv = process.env.DATABASE_URL
-    process.env.DATABASE_URL = cleanedUrl
-    
+  let lastError: Error | null = null
+
+  for (const { url, name } of urlsToTry) {
     try {
-      const prisma = new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-      })
-
-      // Restore original URL
-      process.env.DATABASE_URL = originalEnv
-
-      if (process.env.NODE_ENV !== 'production') {
-        globalForPrisma.prisma = prisma
+      // Clean the URL before using it
+      const cleanedUrl = cleanDatabaseUrl(url)
+      
+      console.log(`[Prisma] Trying ${name}...`)
+      if (cleanedUrl !== url) {
+        console.log(`[Prisma] Cleaned ${name} (removed query params/hash)`)
+        console.log(`[Prisma] Original length: ${url.length}, Cleaned length: ${cleanedUrl.length}`)
       }
 
-      return prisma
-    } catch (prismaError: any) {
-      // Restore original URL on error
-      process.env.DATABASE_URL = originalEnv
-      throw prismaError
+      // Temporarily set cleaned URL in environment
+      const originalEnv = process.env.DATABASE_URL
+      process.env.DATABASE_URL = cleanedUrl
+      
+      try {
+        const prisma = new PrismaClient({
+          log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+        })
+
+        // Test connection with a simple query
+        // This will fail fast if authentication is wrong
+        prisma.$connect().catch(() => {
+          // Connection test - if it fails, we'll catch it below
+        })
+
+        // Restore original URL
+        process.env.DATABASE_URL = originalEnv
+
+        console.log(`[Prisma] ✅ Successfully created PrismaClient using ${name}`)
+
+        if (process.env.NODE_ENV !== 'production') {
+          globalForPrisma.prisma = prisma
+        }
+
+        return prisma
+      } catch (prismaError: any) {
+        // Restore original URL on error
+        process.env.DATABASE_URL = originalEnv
+        
+        const errorMsg = prismaError.message || String(prismaError)
+        console.error(`[Prisma] ❌ Failed with ${name}:`, errorMsg)
+        
+        // If it's an authentication error, try next URL
+        if (errorMsg.includes('authentication') || errorMsg.includes('credentials') || errorMsg.includes('password')) {
+          console.error(`[Prisma] Authentication failed with ${name}, trying next URL...`)
+          lastError = prismaError
+          continue // Try next URL
+        }
+        
+        // If it's a pattern error, try next URL
+        if (errorMsg.includes('pattern') || errorMsg.includes('expected') || errorMsg.includes('string did not match')) {
+          console.error(`[Prisma] Pattern error with ${name}, trying next URL...`)
+          lastError = prismaError
+          continue // Try next URL
+        }
+        
+        // For other errors, throw immediately
+        throw prismaError
+      }
+    } catch (error: any) {
+      const errorMsg = error.message || String(error)
+      console.error(`[Prisma] Error with ${name}:`, errorMsg)
+      lastError = error
+      
+      // Continue to next URL if available
+      if (urlsToTry.length > 1) {
+        continue
+      }
+      
+      // If this was the last URL, throw the error
+      throw error
     }
-  } catch (error: any) {
-    const errorMsg = error.message || String(error)
-    console.error('[Prisma] Failed to create PrismaClient:', errorMsg)
-    console.error('[Prisma] DATABASE_URL present:', !!process.env.DATABASE_URL)
-    console.error('[Prisma] DATABASE_URL length:', process.env.DATABASE_URL?.length || 0)
-    console.error('[Prisma] DATABASE_URL (first 80):', process.env.DATABASE_URL?.substring(0, 80) || 'none')
-    console.error('[Prisma] Cleaned URL (first 80):', cleanedUrl.substring(0, 80))
-    
-    // Check for pattern errors
-    if (errorMsg.includes('pattern') || errorMsg.includes('expected') || errorMsg.includes('string did not match')) {
-      console.error('[Prisma] ⚠️ PATTERN VALIDATION ERROR')
-      console.error('[Prisma] This usually means:')
-      console.error('[Prisma] 1. URL has query parameters (remove ? and everything after)')
-      console.error('[Prisma] 2. URL has hash (remove # and everything after)')
-      console.error('[Prisma] 3. URL has quotes or spaces')
-      console.error('[Prisma] 4. Password has unencoded special characters')
-    }
-    
-    throw error
   }
+
+  // All URLs failed
+  if (lastError) {
+    const errorMsg = lastError.message || String(lastError)
+    console.error('[Prisma] ❌ All URLs failed')
+    console.error('[Prisma] Last error:', errorMsg)
+    
+    if (errorMsg.includes('authentication') || errorMsg.includes('credentials')) {
+      throw new Error(
+        `Database authentication failed with all connection URLs. ` +
+        `Please verify your password in Supabase Dashboard matches the password in Vercel environment variables. ` +
+        `Password should be: Gotjuiceicemanbaby1`
+      )
+    }
+    
+    throw lastError
+  }
+
+  throw new Error('No valid DATABASE_URL or DIRECT_URL found')
 }
 
 export const prisma = getPrismaClient()
