@@ -1,0 +1,18 @@
+✅ CORRECT DATABASE_URL (NO QUERY PARAMETERS)
+
+postgresql://postgres.hbufjpxdzmygjnbfsniu:Gotjuiceicemanbaby1@aws-1-us-east-2.pooler.supabase.com:6543/postgres
+
+⚠️ IMPORTANT:
+- NO query parameters (?pgbouncer=true&sslmode=require)
+- URL must end with: /postgres
+- No spaces, no quotes
+- Copy exactly as shown above
+
+How to Set in Vercel:
+1. Vercel Dashboard → Your Project → Settings → Environment Variables
+2. Find or create DATABASE_URL
+3. Paste the URL above (exactly as shown)
+4. Select all environments (Production, Preview, Development)
+5. Save
+6. Redeploy
+
