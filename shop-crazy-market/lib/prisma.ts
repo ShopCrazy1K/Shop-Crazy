@@ -45,21 +45,39 @@ function cleanDatabaseUrl(url: string): string {
     // Ensure password is properly encoded
     let encodedPassword = password
     try {
-      // If password contains unencoded special chars, encode them
-      if (password && !password.includes('%')) {
-        // Check if it has special chars that need encoding
-        if (/[#\$@%&+\s]/.test(password)) {
-          encodedPassword = encodeURIComponent(password)
-        }
-      } else if (password.includes('%')) {
-        // Already encoded, but decode and re-encode to ensure consistency
+      // First, decode if already encoded to avoid double encoding
+      let decodedPassword = password
+      if (password.includes('%')) {
         try {
-          const decoded = decodeURIComponent(password)
-          encodedPassword = encodeURIComponent(decoded)
+          decodedPassword = decodeURIComponent(password)
         } catch {
-          // If decode fails, use as-is
-          encodedPassword = password
+          // If decode fails, assume it's not properly encoded
+          decodedPassword = password
         }
+      }
+      
+      // Now encode special characters that need encoding
+      // Characters that MUST be encoded: # $ % & + , / : ; = ? @ [ ]
+      // We'll encode all special characters to be safe
+      if (decodedPassword && /[#\$%&+\/:;=?@\[\] ]/.test(decodedPassword)) {
+        // Encode each special character individually to avoid issues
+        encodedPassword = decodedPassword
+          .replace(/\$/g, '%24')  // $ -> %24
+          .replace(/#/g, '%23')    // # -> %23
+          .replace(/@/g, '%40')    // @ -> %40
+          .replace(/%/g, '%25')    // % -> %25
+          .replace(/&/g, '%26')    // & -> %26
+          .replace(/\+/g, '%2B')    // + -> %2B
+          .replace(/:/g, '%3A')    // : -> %3A
+          .replace(/;/g, '%3B')    // ; -> %3B
+          .replace(/=/g, '%3D')    // = -> %3D
+          .replace(/\?/g, '%3F')   // ? -> %3F
+          .replace(/\[/g, '%5B')   // [ -> %5B
+          .replace(/\]/g, '%5D')   // ] -> %5D
+          .replace(/ /g, '%20')    // space -> %20
+      } else {
+        // No special chars, use as-is
+        encodedPassword = decodedPassword
       }
     } catch {
       // If encoding fails, use original
@@ -70,8 +88,15 @@ function cleanDatabaseUrl(url: string): string {
     cleaned = `postgresql://${username}:${encodedPassword}@${hostname}:${port}${pathname}`
     
     // Remove any query params or hash (Prisma doesn't like them)
+    // Reconstruct URL with only essential parts
     const urlObj2 = new URL(cleaned)
-    cleaned = `postgresql://${urlObj2.username}:${urlObj2.password}@${urlObj2.hostname}:${urlObj2.port || '5432'}${urlObj2.pathname}`
+    const port = urlObj2.port || '5432'
+    const pathname = urlObj2.pathname || '/postgres'
+    
+    // Ensure pathname starts with /
+    const dbPath = pathname.startsWith('/') ? pathname : `/${pathname}`
+    
+    cleaned = `postgresql://${urlObj2.username}:${urlObj2.password}@${urlObj2.hostname}:${port}${dbPath}`
     
   } catch (parseError) {
     // If URL parsing fails, try regex-based approach
