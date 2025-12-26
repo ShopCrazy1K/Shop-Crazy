@@ -11,13 +11,17 @@ export const runtime = 'nodejs';
  */
 export async function GET() {
   try {
-    const dbUrl = process.env.DATABASE_URL;
+    let dbUrl = process.env.DATABASE_URL;
     
     if (!dbUrl) {
       return NextResponse.json({
         error: "DATABASE_URL is not set",
       }, { status: 500 });
     }
+
+    // Clean URL by removing query parameters and hash
+    const originalUrl = dbUrl;
+    dbUrl = dbUrl.split('?')[0].split('#')[0].trim().replace(/^["']|["']$/g, '');
 
     // Parse URL to show components (hide password)
     let urlInfo: any = {
@@ -77,23 +81,39 @@ export async function GET() {
       };
     }
 
-    // Try to actually test Prisma connection
+    // Try to actually test Prisma connection with cleaned URL
     let prismaTest: any = { tested: false };
     try {
-      const { prisma } = await import("@/lib/prisma");
-      // Try a simple query to test actual connection
-      await prisma.$queryRaw`SELECT 1 as test`;
+      // Temporarily set cleaned URL
+      const originalEnv = process.env.DATABASE_URL;
+      process.env.DATABASE_URL = dbUrl;
+      
+      try {
+        const { prisma } = await import("@/lib/prisma");
+        // Try a simple query to test actual connection
+        await prisma.$queryRaw`SELECT 1 as test`;
+        prismaTest = {
+          tested: true,
+          success: true,
+          message: "Prisma connection successful",
+        };
+      } catch (prismaError: any) {
+        prismaTest = {
+          tested: true,
+          success: false,
+          error: prismaError.message || String(prismaError),
+          includesPattern: prismaError.message?.includes('pattern') || prismaError.message?.includes('expected'),
+          isAuthError: prismaError.message?.includes('authentication') || prismaError.message?.includes('credentials'),
+        };
+      } finally {
+        // Restore original URL
+        process.env.DATABASE_URL = originalEnv;
+      }
+    } catch (importError: any) {
       prismaTest = {
-        tested: true,
-        success: true,
-        message: "Prisma connection successful",
-      };
-    } catch (prismaError: any) {
-      prismaTest = {
-        tested: true,
-        success: false,
-        error: prismaError.message || String(prismaError),
-        includesPattern: prismaError.message?.includes('pattern') || prismaError.message?.includes('expected'),
+        tested: false,
+        error: "Failed to import Prisma client",
+        details: importError.message,
       };
     }
 
@@ -104,10 +124,17 @@ export async function GET() {
       success: true,
       urlInfo,
       urlForLogging: urlForLogging.substring(0, 100),
+      cleanedUrl: dbUrl !== originalUrl ? {
+        original: originalUrl.substring(0, 100),
+        cleaned: dbUrl.substring(0, 100),
+        removed: originalUrl.length - dbUrl.length > 0,
+      } : null,
       prismaTest,
       recommendation: matches 
         ? (prismaTest.success 
           ? "URL format looks correct and Prisma connection is working."
+          : prismaTest.isAuthError
+          ? "URL format is correct but authentication failed. Verify password is correct in Vercel."
           : "URL format looks correct but Prisma connection failed. Check Vercel logs for details.")
         : "URL format does not match Prisma's expected pattern. Use: postgresql://user:password@host:port/database",
     });
