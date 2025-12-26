@@ -84,19 +84,12 @@ function cleanDatabaseUrl(url: string): string {
       encodedPassword = password
     }
     
-    // Reconstruct URL
-    cleaned = `postgresql://${username}:${encodedPassword}@${hostname}:${port}${pathname}`
-    
-    // Remove any query params or hash (Prisma doesn't like them)
-    // Reconstruct URL with only essential parts
-    const urlObj2 = new URL(cleaned)
-    const port = urlObj2.port || '5432'
-    const pathname = urlObj2.pathname || '/postgres'
-    
     // Ensure pathname starts with /
     const dbPath = pathname.startsWith('/') ? pathname : `/${pathname}`
     
-    cleaned = `postgresql://${urlObj2.username}:${urlObj2.password}@${urlObj2.hostname}:${port}${dbPath}`
+    // Reconstruct URL with properly encoded password and clean path
+    // Remove any query params or hash (Prisma doesn't like them)
+    cleaned = `postgresql://${username}:${encodedPassword}@${hostname}:${port}${dbPath}`
     
   } catch (parseError) {
     // If URL parsing fails, try regex-based approach
