@@ -83,17 +83,14 @@ export async function POST(request: Request) {
       // If it fails, we'll catch the error and provide helpful feedback
       console.log('[API] Attempting to use Prisma (this will create client if needed)...');
       
-      // Just try a simple query - this will trigger PrismaClient creation
+      // Try to find shop - this will trigger PrismaClient creation
       // and catch any URL validation errors
       try {
-        // Test with a simple query that doesn't require connection
-        // Actually, let's just try to find the shop - if PrismaClient creation fails,
-        // it will throw an error before the query
         shop = await safePrismaQuery(
           () => prisma.shop.findFirst({
             where: { ownerId: userId },
           }),
-          'finding shop (first attempt)'
+          'finding shop'
         );
         console.log('[API] ✅ Prisma query successful, shop found:', shop ? 'yes' : 'no');
       } catch (prismaError: any) {
@@ -134,12 +131,12 @@ export async function POST(request: Request) {
         }
         
         // Check for connection errors
-        if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes("Can't reach") || errorMsg.includes('timeout')) {
+        if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes("Can't reach") || errorMsg.includes('timeout') || errorMsg.includes('not reachable')) {
           return NextResponse.json(
             { 
               error: "Cannot connect to database server.",
-              details: "The database server is not reachable.",
-              suggestion: "Please check your DATABASE_URL host and port in Vercel environment variables.",
+              details: "The database server is not reachable. Please check your DATABASE_URL host and port.",
+              suggestion: "Use the direct connection URL: postgresql://postgres:Puggyboy1%24%24%24@db.hbufjpxdzmygjnbfsniu.supabase.co:5432/postgres",
             },
             { status: 500 }
           );
@@ -148,14 +145,6 @@ export async function POST(request: Request) {
         // Re-throw if it's not a known error type
         throw prismaError;
       }
-      
-      shop = await safePrismaQuery(
-        () => prisma.shop.findFirst({
-          where: { ownerId: userId },
-        }),
-        'finding shop'
-      );
-      console.log('[API] Shop found:', shop ? 'yes' : 'no');
 
       if (!shop) {
         // Create shop if it doesn't exist

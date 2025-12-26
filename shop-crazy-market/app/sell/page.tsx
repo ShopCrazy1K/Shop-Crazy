@@ -34,19 +34,21 @@ export default function SellPage() {
 
   // Save form data to localStorage to prevent data loss
   useEffect(() => {
-    const savedData = localStorage.getItem('listing-form-data');
-    if (savedData && !formData.title) {
-      try {
-        const parsed = JSON.parse(savedData);
-        setFormData(parsed);
-      } catch (e) {
-        // Ignore parse errors
+    if (typeof window !== 'undefined') {
+      const savedData = localStorage.getItem('listing-form-data');
+      if (savedData && !formData.title) {
+        try {
+          const parsed = JSON.parse(savedData);
+          setFormData(parsed);
+        } catch (e) {
+          // Ignore parse errors
+        }
       }
     }
   }, []);
 
   useEffect(() => {
-    if (formData.title || formData.description) {
+    if (typeof window !== 'undefined' && (formData.title || formData.description)) {
       localStorage.setItem('listing-form-data', JSON.stringify(formData));
     }
   }, [formData]);
@@ -284,7 +286,9 @@ export default function SellPage() {
       setLoading(false);
       
       // Clear saved form data
-      localStorage.removeItem('listing-form-data');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('listing-form-data');
+      }
       
       // Clear connection status check
       setConnectionStatus("connected");
@@ -346,7 +350,9 @@ export default function SellPage() {
                   setImageFiles([]);
                   setUploadedImageUrls([]);
                   setError("");
-                  localStorage.removeItem('listing-form-data');
+                  if (typeof window !== 'undefined') {
+                    localStorage.removeItem('listing-form-data');
+                  }
                 }}
                 className="bg-gray-100 text-gray-800 px-8 py-4 rounded-xl font-semibold hover:bg-gray-200 transition-all transform hover:scale-105"
               >
@@ -432,9 +438,18 @@ export default function SellPage() {
                 <p className="text-sm text-red-700 whitespace-pre-line">{error}</p>
                 {error.includes("technical difficulties") && (
                   <button
-                    onClick={() => {
-                      checkConnection();
-                      setTimeout(() => handleSubmit(new Event('submit') as any), 1000);
+                    onClick={async () => {
+                      await checkConnection();
+                      // Create a synthetic form event for retry
+                      const form = document.querySelector('form');
+                      if (form) {
+                        const syntheticEvent = new Event('submit', { bubbles: true, cancelable: true });
+                        Object.defineProperty(syntheticEvent, 'preventDefault', {
+                          value: () => {},
+                          writable: false,
+                        });
+                        handleSubmit(syntheticEvent as any, 0);
+                      }
                     }}
                     className="mt-2 text-sm text-red-700 underline hover:text-red-900"
                   >
