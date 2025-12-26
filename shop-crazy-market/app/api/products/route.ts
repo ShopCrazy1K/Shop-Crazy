@@ -4,31 +4,6 @@ import { NextResponse } from "next/server";
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Helper to safely execute Prisma queries with pattern error handling
-async function safePrismaQuery<T>(
-  queryFn: () => Promise<T>,
-  errorContext: string
-): Promise<T> {
-  try {
-    return await queryFn();
-  } catch (error: any) {
-    const errorMessage = error.message || String(error);
-    
-    // Check for pattern validation errors
-    if (errorMessage.includes('pattern') || errorMessage.includes('expected')) {
-      console.error(`[API] Pattern error in ${errorContext}:`, errorMessage);
-      throw new Error(
-        `Database connection error. The database URL format is invalid. ` +
-        `Please check your Vercel environment variables. ` +
-        `Context: ${errorContext}`
-      );
-    }
-    
-    // Re-throw other errors
-    throw error;
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -71,161 +46,33 @@ export async function POST(request: Request) {
 
     // Find or create shop for user
     console.log('[API] Finding or creating shop for userId:', userId);
-    console.log('[API] DATABASE_URL check:', {
-      present: !!process.env.DATABASE_URL,
-      length: process.env.DATABASE_URL?.length || 0,
-      startsWith: process.env.DATABASE_URL?.substring(0, 20) || 'none',
-    });
     
-    let shop;
-    try {
-      // Try to use Prisma - this will trigger client creation
-      // If it fails, we'll catch the error and provide helpful feedback
-      console.log('[API] Attempting to use Prisma (this will create client if needed)...');
-      
-      // Try to find shop - this will trigger PrismaClient creation
-      // and catch any URL validation errors
-      try {
-        shop = await safePrismaQuery(
-          () => prisma.shop.findFirst({
-            where: { ownerId: userId },
-          }),
-          'finding shop'
+    let shop = await prisma.shop.findFirst({
+      where: { ownerId: userId },
+    });
+
+    if (!shop) {
+      // Create shop if it doesn't exist
+      console.log('[API] Creating new shop...');
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        console.error('[API] User not found:', userId);
+        return NextResponse.json(
+          { error: "User not found" },
+          { status: 404 }
         );
-        console.log('[API] ✅ Prisma query successful, shop found:', shop ? 'yes' : 'no');
-      } catch (prismaError: any) {
-        const errorMsg = prismaError.message || String(prismaError);
-        console.error('[API] ❌ Prisma error:', errorMsg);
-        console.error('[API] Error type:', prismaError.constructor?.name);
-        console.error('[API] Error code:', prismaError.code);
-        console.error('[API] Error stack:', prismaError.stack?.substring(0, 500));
-        
-        // Check for pattern validation errors
-        if (errorMsg.includes('pattern') || errorMsg.includes('expected') || errorMsg.includes('string did not match')) {
-          console.error('[API] Pattern validation error detected!');
-          console.error('[API] This means DATABASE_URL format is invalid');
-          console.error('[API] Visit /api/debug-database-url to see what Prisma is receiving');
-          
-          return NextResponse.json(
-            { 
-              error: "Database connection error. The database URL format is invalid.",
-              details: "The DATABASE_URL in Vercel does not match Prisma's expected format.",
-              suggestion: "Please check your Vercel environment variables. Use the direct connection URL: postgresql://postgres:PASSWORD@db.hbufjpxdzmygjnbfsniu.supabase.co:5432/postgres",
-              debugUrl: "/api/debug-database-url",
-              testUrl: "/api/test-prisma-connection",
-            },
-            { status: 500 }
-          );
-        }
-        
-        // Check for authentication errors - try DIRECT_URL if available
-        if ((errorMsg.includes('authentication') || errorMsg.includes('password') || errorMsg.includes('credentials')) && process.env.DIRECT_URL) {
-          console.log('[API] Authentication failed with DATABASE_URL, trying DIRECT_URL...');
-          try {
-            // Clean DIRECT_URL
-            let directUrl = process.env.DIRECT_URL;
-            directUrl = directUrl.split('?')[0].split('#')[0].trim().replace(/^["']|["']$/g, '');
-            
-            // Temporarily use DIRECT_URL
-            const originalUrl = process.env.DATABASE_URL;
-            process.env.DATABASE_URL = directUrl;
-            
-            // Create new Prisma client with DIRECT_URL
-            const { PrismaClient } = await import("@prisma/client");
-            const directPrisma = new PrismaClient({
-              log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-            });
-            
-            // Try query with DIRECT_URL
-            shop = await directPrisma.shop.findFirst({
-              where: { ownerId: userId },
-            });
-            
-            // Restore original URL
-            process.env.DATABASE_URL = originalUrl;
-            
-            console.log('[API] ✅ Successfully used DIRECT_URL, shop found:', shop ? 'yes' : 'no');
-            
-            // Use directPrisma for rest of function
-            // Note: This is a workaround - ideally we'd use the same prisma instance
-            // For now, continue with the original prisma but shop is found
-          } catch (directError: any) {
-            // Restore original URL
-            process.env.DATABASE_URL = originalUrl;
-            
-            const directErrorMsg = directError.message || String(directError);
-            console.error('[API] ❌ DIRECT_URL also failed:', directErrorMsg);
-            
-            return NextResponse.json(
-              { 
-                error: "Database authentication failed with both DATABASE_URL and DIRECT_URL.",
-                details: "The database credentials are incorrect for both connection URLs.",
-                suggestion: "Please verify your password in Supabase Dashboard matches the password in Vercel. Password should be: Gotjuiceicemanbaby1",
-                debugUrl: "/api/debug-database-url",
-                testUrl: "/api/test-prisma-connection",
-              },
-              { status: 500 }
-            );
-          }
-        } else if (errorMsg.includes('authentication') || errorMsg.includes('password') || errorMsg.includes('credentials')) {
-          return NextResponse.json(
-            { 
-              error: "Database authentication failed.",
-              details: "The database credentials are incorrect.",
-              suggestion: "Please check your DATABASE_URL password in Vercel. If you have DIRECT_URL set, the code will try it automatically.",
-            },
-            { status: 500 }
-          );
-        }
-        
-        // Check for connection errors
-        if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes("Can't reach") || errorMsg.includes('timeout') || errorMsg.includes('not reachable')) {
-          return NextResponse.json(
-            { 
-              error: "Cannot connect to database server.",
-              details: "The database server is not reachable. Please check your DATABASE_URL host and port.",
-              suggestion: "Use the direct connection URL: postgresql://postgres:Puggyboy1%24%24%24@db.hbufjpxdzmygjnbfsniu.supabase.co:5432/postgres",
-            },
-            { status: 500 }
-          );
-        }
-        
-        // Re-throw if it's not a known error type
-        throw prismaError;
       }
 
-      if (!shop) {
-        // Create shop if it doesn't exist
-        console.log('[API] Creating new shop...');
-        const user = await safePrismaQuery(
-          () => prisma.user.findUnique({
-            where: { id: userId },
-          }),
-          'finding user'
-        );
-
-        if (!user) {
-          console.error('[API] User not found:', userId);
-          return NextResponse.json(
-            { error: "User not found" },
-            { status: 404 }
-          );
-        }
-
-        shop = await safePrismaQuery(
-          () => prisma.shop.create({
-            data: {
-              name: `${user.username || user.email}'s Shop`,
-              ownerId: userId,
-            },
-          }),
-          'creating shop'
-        );
-        console.log('[API] Shop created:', shop.id);
-      }
-    } catch (shopError: any) {
-      console.error('[API] Error with shop:', shopError);
-      throw new Error(`Shop error: ${shopError.message}`);
+      shop = await prisma.shop.create({
+        data: {
+          name: `${user.username || user.email}'s Shop`,
+          ownerId: userId,
+        },
+      });
+      console.log('[API] Shop created:', shop.id);
     }
 
     // For digital products, combine digitalFileUrls with images
@@ -241,30 +88,20 @@ export async function POST(request: Request) {
     console.log('[API] Creating product with shopId:', shop.id);
     console.log('[API] Final images count:', finalImages.length);
     
-    const productData = {
-      title,
-      description,
-      price: parseInt(price),
-      quantity: quantity ? parseInt(quantity) : 1,
-      category: category || null,
-      type: type || "PHYSICAL",
-      condition: condition || "NEW",
-      zone: zone || "SHOP_4_US",
-      images: JSON.stringify(finalImages),
-      shopId: shop.id,
-    };
-    
-    console.log('[API] Product data:', {
-      ...productData,
-      images: `[${finalImages.length} images]`,
+    const product = await prisma.product.create({
+      data: {
+        title,
+        description,
+        price: parseInt(price),
+        quantity: quantity ? parseInt(quantity) : 1,
+        category: category || null,
+        type: type || "PHYSICAL",
+        condition: condition || "NEW",
+        zone: zone || "SHOP_4_US",
+        images: JSON.stringify(finalImages),
+        shopId: shop.id,
+      },
     });
-    
-    const product = await safePrismaQuery(
-      () => prisma.product.create({
-        data: productData,
-      }),
-      'creating product'
-    );
 
     console.log('[API] Product created successfully:', product.id);
     return NextResponse.json(product);
@@ -281,8 +118,6 @@ export async function POST(request: Request) {
       errorMessage = "A product with this information already exists";
     } else if (error.code === 'P2003') {
       errorMessage = "Invalid reference (shop or user not found)";
-    } else if (error.message?.includes('pattern')) {
-      errorMessage = "Database connection error. Please try again.";
     }
     
     return NextResponse.json(
