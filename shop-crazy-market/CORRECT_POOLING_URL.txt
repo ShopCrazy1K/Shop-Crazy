@@ -1,2 +1,13 @@
-postgresql://postgres.hbufjpxdzmygjnbfsniu:Puggyboy1%24%24%24@aws-1-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true
+For Connection Pooling, the username MUST include the project reference:
 
+CORRECT DATABASE_URL:
+postgresql://postgres.hbufjpxdzmygjnbfsniu:Gotjuiceicemanbaby1@aws-1-us-east-2.pooler.supabase.com:6543/postgres
+
+Key Points:
+- Username: postgres.hbufjpxdzmygjnbfsniu (NOT just "postgres")
+- Password: Gotjuiceicemanbaby1
+- Host: aws-1-us-east-2.pooler.supabase.com
+- Port: 6543
+
+If authentication still fails, try DIRECT connection instead:
+postgresql://postgres:Gotjuiceicemanbaby1@db.hbufjpxdzmygjnbfsniu.supabase.co:5432/postgres
