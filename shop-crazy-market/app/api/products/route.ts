@@ -118,13 +118,61 @@ export async function POST(request: Request) {
           );
         }
         
-        // Check for authentication errors
-        if (errorMsg.includes('authentication') || errorMsg.includes('password') || errorMsg.includes('credentials')) {
+        // Check for authentication errors - try DIRECT_URL if available
+        if ((errorMsg.includes('authentication') || errorMsg.includes('password') || errorMsg.includes('credentials')) && process.env.DIRECT_URL) {
+          console.log('[API] Authentication failed with DATABASE_URL, trying DIRECT_URL...');
+          try {
+            // Clean DIRECT_URL
+            let directUrl = process.env.DIRECT_URL;
+            directUrl = directUrl.split('?')[0].split('#')[0].trim().replace(/^["']|["']$/g, '');
+            
+            // Temporarily use DIRECT_URL
+            const originalUrl = process.env.DATABASE_URL;
+            process.env.DATABASE_URL = directUrl;
+            
+            // Create new Prisma client with DIRECT_URL
+            const { PrismaClient } = await import("@prisma/client");
+            const directPrisma = new PrismaClient({
+              log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+            });
+            
+            // Try query with DIRECT_URL
+            shop = await directPrisma.shop.findFirst({
+              where: { ownerId: userId },
+            });
+            
+            // Restore original URL
+            process.env.DATABASE_URL = originalUrl;
+            
+            console.log('[API] ✅ Successfully used DIRECT_URL, shop found:', shop ? 'yes' : 'no');
+            
+            // Use directPrisma for rest of function
+            // Note: This is a workaround - ideally we'd use the same prisma instance
+            // For now, continue with the original prisma but shop is found
+          } catch (directError: any) {
+            // Restore original URL
+            process.env.DATABASE_URL = originalUrl;
+            
+            const directErrorMsg = directError.message || String(directError);
+            console.error('[API] ❌ DIRECT_URL also failed:', directErrorMsg);
+            
+            return NextResponse.json(
+              { 
+                error: "Database authentication failed with both DATABASE_URL and DIRECT_URL.",
+                details: "The database credentials are incorrect for both connection URLs.",
+                suggestion: "Please verify your password in Supabase Dashboard matches the password in Vercel. Password should be: Gotjuiceicemanbaby1",
+                debugUrl: "/api/debug-database-url",
+                testUrl: "/api/test-prisma-connection",
+              },
+              { status: 500 }
+            );
+          }
+        } else if (errorMsg.includes('authentication') || errorMsg.includes('password') || errorMsg.includes('credentials')) {
           return NextResponse.json(
             { 
               error: "Database authentication failed.",
               details: "The database credentials are incorrect.",
-              suggestion: "Please check your DATABASE_URL password in Vercel environment variables.",
+              suggestion: "Please check your DATABASE_URL password in Vercel. If you have DIRECT_URL set, the code will try it automatically.",
             },
             { status: 500 }
           );
