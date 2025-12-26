@@ -35,6 +35,19 @@ export async function GET(request: Request) {
   }
 }
 
+export async function POST(req: Request) {
+  try {
+    const reports = await prisma.copyrightReport.findMany();
+    return NextResponse.json(reports);
+  } catch (error: any) {
+    console.error("Error fetching reports:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch reports" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
