@@ -273,7 +273,7 @@ function getPrismaClient(): PrismaClient {
       
       // Try to create PrismaClient with explicit URL
       // Set it in process.env temporarily to ensure Prisma sees it
-      const originalEnv = process.env.DATABASE_URL
+      const originalEnv: string | undefined = process.env.DATABASE_URL
       process.env.DATABASE_URL = url
       
       try {
