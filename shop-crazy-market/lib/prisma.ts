@@ -182,22 +182,39 @@ function getPrismaClient(): PrismaClient {
     database: matches[5] || '/postgres',
   })
   
-  // Set cleaned URL in environment temporarily
-  const originalEnvUrl = process.env.DATABASE_URL
-  process.env.DATABASE_URL = cleanedUrl
-  
+  // Pass cleaned URL directly to PrismaClient via datasources
+  // This bypasses Prisma reading from process.env.DATABASE_URL
   try {
-    console.log('[Prisma] Creating PrismaClient instance...')
+    console.log('[Prisma] Creating PrismaClient instance with cleaned URL...')
+    console.log('[Prisma] Using cleaned URL (first 80 chars):', cleanedUrl.substring(0, 80) + '...')
+    console.log('[Prisma] Cleaned URL length:', cleanedUrl.length)
+    console.log('[Prisma] Cleaned URL character codes (first 100):', 
+      cleanedUrl.substring(0, 100).split('').map(c => c.charCodeAt(0)).join(', '))
     
-    // Create PrismaClient - it will read from process.env.DATABASE_URL
+    // Validate URL one more time before passing to Prisma
+    const urlTest = new URL(cleanedUrl)
+    console.log('[Prisma] URL test parse successful:', {
+      protocol: urlTest.protocol,
+      username: urlTest.username,
+      hostname: urlTest.hostname,
+      port: urlTest.port,
+      pathname: urlTest.pathname,
+      hasPassword: !!urlTest.password,
+      passwordLength: urlTest.password?.length || 0,
+    })
+    
+    // Create PrismaClient with explicit datasource URL
+    // This ensures Prisma uses our cleaned URL, not the raw env var
     const prisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: cleanedUrl,
+        },
+      },
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     })
     
     console.log('[Prisma] ✅ PrismaClient created successfully')
-    
-    // Restore original URL
-    process.env.DATABASE_URL = originalEnvUrl
     
     if (process.env.NODE_ENV !== 'production') {
       globalForPrisma.prisma = prisma
@@ -205,25 +222,48 @@ function getPrismaClient(): PrismaClient {
     
     return prisma
   } catch (error: any) {
-    // Restore original URL on error
-    process.env.DATABASE_URL = originalEnvUrl
-    
     const errorMsg = error.message || String(error)
     console.error('[Prisma] ❌ Failed to create PrismaClient:', errorMsg)
     console.error('[Prisma] Error type:', error.constructor?.name)
     console.error('[Prisma] Error code:', error.code)
+    console.error('[Prisma] Error stack (first 500 chars):', error.stack?.substring(0, 500))
     console.error('[Prisma] Cleaned URL used:', cleanedUrl.substring(0, 100))
+    console.error('[Prisma] Cleaned URL full length:', cleanedUrl.length)
+    
+    // Check for hidden/invalid characters
+    const invalidChars = cleanedUrl.match(/[^\x20-\x7E]/g)
+    if (invalidChars) {
+      console.error('[Prisma] ⚠️ Found invalid/non-printable characters:', invalidChars)
+    }
     
     // If it's a pattern error, provide detailed help
     if (errorMsg.includes('pattern') || errorMsg.includes('expected') || errorMsg.includes('string did not match')) {
       console.error('[Prisma] ⚠️ PATTERN VALIDATION ERROR')
-      console.error('[Prisma] Original URL:', originalUrl.substring(0, 100))
-      console.error('[Prisma] Cleaned URL:', cleanedUrl.substring(0, 100))
+      console.error('[Prisma] Original URL (first 100):', originalUrl.substring(0, 100))
+      console.error('[Prisma] Cleaned URL (first 100):', cleanedUrl.substring(0, 100))
       console.error('[Prisma] Pattern match (before Prisma):', matches ? 'YES' : 'NO')
       
       // Double-check pattern match
       const finalMatch = cleanedUrl.match(prismaPattern)
       console.error('[Prisma] Final pattern check:', finalMatch ? 'MATCHES' : 'DOES NOT MATCH')
+      
+      // Try to identify what Prisma doesn't like
+      console.error('[Prisma] URL breakdown for debugging:')
+      try {
+        const debugUrl = new URL(cleanedUrl)
+        console.error('[Prisma] - Protocol:', debugUrl.protocol)
+        console.error('[Prisma] - Username:', debugUrl.username)
+        console.error('[Prisma] - Password (first char):', debugUrl.password?.[0] || 'none')
+        console.error('[Prisma] - Password (last char):', debugUrl.password?.[debugUrl.password.length - 1] || 'none')
+        console.error('[Prisma] - Password length:', debugUrl.password?.length || 0)
+        console.error('[Prisma] - Hostname:', debugUrl.hostname)
+        console.error('[Prisma] - Port:', debugUrl.port || 'default')
+        console.error('[Prisma] - Pathname:', debugUrl.pathname)
+        console.error('[Prisma] - Search:', debugUrl.search || 'none')
+        console.error('[Prisma] - Hash:', debugUrl.hash || 'none')
+      } catch (e) {
+        console.error('[Prisma] - Could not parse URL for debugging:', e)
+      }
       
       throw new Error(
         `DATABASE_URL validation failed: ${errorMsg}. ` +
