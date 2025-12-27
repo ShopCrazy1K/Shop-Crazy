@@ -89,6 +89,7 @@ export async function GET(request: Request) {
     const isActive = searchParams.get("isActive");
     const userId = searchParams.get("userId") || request.headers.get("x-user-id");
     const search = searchParams.get("search") || searchParams.get("q");
+    const category = searchParams.get("category");
     
     const where: any = {};
     
@@ -102,6 +103,11 @@ export async function GET(request: Request) {
       where.isActive = isActive === "true";
     }
     // If userId exists and isActive is not specified, show all listings (user can see their own inactive ones)
+    
+    // Add category filter if provided
+    if (category && category !== "all") {
+      where.category = category;
+    }
     
     // Add search filter if provided
     if (search) {
