@@ -40,21 +40,34 @@ export async function POST(req: Request) {
             console.log("[WEBHOOK] Subscription status:", subscriptionStatus);
           } catch (err: any) {
             console.error("[WEBHOOK] Error fetching subscription:", err);
+            // If we can't fetch subscription, still save the IDs and let subscription.updated handle it
+            subscriptionStatus = "unknown";
           }
+        } else {
+          console.warn("[WEBHOOK] No subscription ID in checkout session");
         }
 
         // Update listing with subscription info and activate if subscription is active
-        await prisma.listing.update({
-          where: { id: listingId },
-          data: {
-            feeSubscriptionId: subscriptionId,
-            feeCustomerId: customerId,
-            feeSubscriptionStatus: subscriptionStatus,
-            isActive: subscriptionStatus === "active", // Activate immediately if subscription is active
-          },
-        });
+        try {
+          const updated = await prisma.listing.update({
+            where: { id: listingId },
+            data: {
+              feeSubscriptionId: subscriptionId || undefined,
+              feeCustomerId: customerId || undefined,
+              feeSubscriptionStatus: subscriptionStatus,
+              isActive: subscriptionStatus === "active", // Activate immediately if subscription is active
+            },
+          });
 
-        console.log("[WEBHOOK] Listing updated:", { listingId, isActive: subscriptionStatus === "active" });
+          console.log("[WEBHOOK] Listing updated:", { 
+            listingId, 
+            isActive: updated.isActive,
+            subscriptionStatus: updated.feeSubscriptionStatus,
+          });
+        } catch (dbError: any) {
+          console.error("[WEBHOOK] Database error updating listing:", dbError);
+          throw dbError;
+        }
       }
 
       if (session?.metadata?.type === "order") {
