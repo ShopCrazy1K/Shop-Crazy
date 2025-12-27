@@ -64,8 +64,8 @@ export async function POST(request: Request) {
         listingId: listing.id,
         listingTitle: listing.title,
       },
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/listings/${listing.slug}?payment=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/listings/${listing.slug}?payment=cancelled`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://shopcrazymarket.com"}/listings/${listing.slug}?payment=success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://shopcrazymarket.com"}/listings/${listing.slug}?payment=cancelled`,
     });
 
     return NextResponse.json({

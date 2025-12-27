@@ -140,8 +140,8 @@ export async function POST(req: Request) {
         country,
         hasAdvertising: hasAdvertising.toString(),
       },
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/cart`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://shopcrazymarket.com"}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://shopcrazymarket.com"}/cart`,
     });
 
     return NextResponse.json({

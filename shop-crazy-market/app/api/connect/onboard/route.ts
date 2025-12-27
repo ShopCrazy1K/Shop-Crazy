@@ -57,8 +57,8 @@ export async function POST(req: Request) {
     // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/connect/refresh`,
-      return_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/connect/success`,
+      refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://shopcrazymarket.com"}/connect/refresh`,
+      return_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://shopcrazymarket.com"}/connect/success`,
       type: "account_onboarding",
     });
 

@@ -67,8 +67,8 @@ export async function POST(req: Request) {
       mode: "subscription",
       customer: customer.id,
       line_items: [{ price: LISTING_FEE_PRICE_ID, quantity: 1 }],
-      success_url: `${process.env.APP_URL}/listings/${listing.id}?fee=success`,
-      cancel_url: `${process.env.APP_URL}/listings/${listing.id}?fee=cancel`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "https://shopcrazymarket.com"}/listings/${listing.id}?fee=success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "https://shopcrazymarket.com"}/listings/${listing.id}?fee=cancel`,
       metadata: {
         type: "listing_fee",
         listingId: listing.id,

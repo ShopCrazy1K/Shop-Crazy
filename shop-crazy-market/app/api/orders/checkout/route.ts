@@ -94,8 +94,8 @@ export async function POST(req: Request) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.APP_URL}/orders/${order.id}?paid=1`,
-      cancel_url: `${process.env.APP_URL}/orders/${order.id}?canceled=1`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "https://shopcrazymarket.com"}/orders/${order.id}?paid=1`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "https://shopcrazymarket.com"}/orders/${order.id}?canceled=1`,
       metadata: {
         type: "order",
         orderId: order.id,
