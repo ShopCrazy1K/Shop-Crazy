@@ -453,7 +453,7 @@ export default function SellPage() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => router.push(`/product/${createdProduct.id}`)}
+                onClick={() => router.push(`/listings/${createdProduct}`)}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg"
               >
                 View Your Listing
