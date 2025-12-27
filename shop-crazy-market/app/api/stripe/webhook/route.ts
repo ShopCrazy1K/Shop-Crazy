@@ -84,15 +84,38 @@ export async function POST(req: NextRequest) {
       // Handle order payments
       if (session.metadata?.type === "order") {
         const orderId = session.metadata.orderId as string;
-        const paymentIntent = session.payment_intent as string;
+        const paymentIntent = typeof session.payment_intent === "string" 
+          ? session.payment_intent 
+          : session.payment_intent?.id || null;
 
-        await prisma.order.update({
-          where: { id: orderId },
-          data: {
-            stripePaymentIntent: paymentIntent ?? null,
-            paymentStatus: "paid",
-          },
+        console.log("[WEBHOOK] Processing order payment:", { 
+          orderId, 
+          paymentIntent,
+          sessionId: session.id,
+          amountTotal: session.amount_total,
         });
+
+        try {
+          const updated = await prisma.order.update({
+            where: { id: orderId },
+            data: {
+              stripePaymentIntent: paymentIntent,
+              paymentStatus: "paid",
+            },
+          });
+
+          console.log("[WEBHOOK] Order updated successfully:", {
+            orderId: updated.id,
+            paymentStatus: updated.paymentStatus,
+            total: updated.orderTotalCents,
+          });
+        } catch (error: any) {
+          console.error("[WEBHOOK] Error updating order:", {
+            orderId,
+            error: error.message,
+          });
+          throw error;
+        }
       }
     }
 

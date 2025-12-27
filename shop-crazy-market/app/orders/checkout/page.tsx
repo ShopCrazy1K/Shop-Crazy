@@ -59,6 +59,7 @@ function CheckoutContent() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": user.id, // Pass user ID for order creation
         },
         body: JSON.stringify({
           listingId: listing.id,

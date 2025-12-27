@@ -51,9 +51,13 @@ export async function POST(req: Request) {
       adsEnabled,
     });
 
+    // Get buyer ID from request (if authenticated)
+    const buyerId = req.headers.get("x-user-id") || null;
+
     // Create order record first (pending)
     const order = await prisma.order.create({
       data: {
+        userId: buyerId, // Buyer's user ID if authenticated
         buyerEmail: buyerEmail ?? null,
         sellerId: listing.sellerId,
         listingId: listing.id,
@@ -76,6 +80,8 @@ export async function POST(req: Request) {
 
         processingRule: breakdown.processingRule,
         adsEnabledAtSale: breakdown.adsEnabledAtSale,
+        
+        paymentStatus: "pending", // Will be updated to "paid" by webhook
       },
     });
 
