@@ -179,31 +179,41 @@ export default function SellPage() {
     for (const file of files) {
       try {
         console.log("[DIGITAL FILES] Uploading:", file.name);
-        const url = await handleFileUpload(file);
-        if (url) {
-          newUrls.push(url);
-          console.log("[DIGITAL FILES] Uploaded successfully:", url);
-        } else {
-          throw new Error("No URL returned from upload");
-        }
-      } catch (error: any) {
-        let errorMsg = error.message || `Failed to upload ${file.name}`;
         
-        // Try to extract more details from error response
-        if (error.response) {
-          try {
-            const errorData = await error.response.json();
-            if (errorData.details) {
-              errorMsg += `: ${errorData.details}`;
-            }
-            if (errorData.help) {
-              errorMsg += ` (${errorData.help})`;
-            }
-          } catch (e) {
-            // Ignore JSON parse errors
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: (() => {
+            const formData = new FormData();
+            formData.append("file", file);
+            return formData;
+          })(),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+          let errorMsg = errorData.error || `Failed to upload ${file.name}`;
+          
+          // Include details and help if available
+          if (errorData.details) {
+            errorMsg += `\n\nDetails: ${errorData.details}`;
           }
+          if (errorData.help) {
+            errorMsg += `\n\n${errorData.help}`;
+          }
+          
+          console.error("[DIGITAL FILES] Upload failed:", errorData);
+          throw new Error(errorMsg);
+        }
+
+        const uploaded = await response.json();
+        if (!uploaded.url) {
+          throw new Error("Upload succeeded but no URL returned");
         }
         
+        newUrls.push(uploaded.url);
+        console.log("[DIGITAL FILES] Uploaded successfully:", uploaded.url);
+      } catch (error: any) {
+        const errorMsg = error.message || `Failed to upload ${file.name}`;
         console.error("[DIGITAL FILES] Upload failed:", {
           message: errorMsg,
           error: error,
@@ -256,18 +266,35 @@ export default function SellPage() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to upload ${file.name}`);
+          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+          let errorMsg = errorData.error || `Failed to upload ${file.name}`;
+          
+          // Include details and help if available
+          if (errorData.details) {
+            errorMsg += `\n\nDetails: ${errorData.details}`;
+          }
+          if (errorData.help) {
+            errorMsg += `\n\n${errorData.help}`;
+          }
+          
+          console.error("[IMAGE UPLOAD] Upload failed:", errorData);
+          throw new Error(errorMsg);
         }
 
         const uploaded = await response.json();
+        if (!uploaded.url) {
+          throw new Error("Upload succeeded but no URL returned");
+        }
+        
         newImages.push({
           id: crypto.randomUUID(),
           url: uploaded.url,
           path: uploaded.path,
         });
       } catch (error: any) {
-        alert(`Failed to upload ${file.name}: ${error.message || "Unknown error"}`);
+        const errorMsg = error.message || `Failed to upload ${file.name}`;
+        console.error("[IMAGE UPLOAD] Error:", errorMsg);
+        alert(`Failed to upload ${file.name}:\n\n${errorMsg}`);
         setImageFiles((prev) => prev.filter(f => f !== file));
       }
     }
