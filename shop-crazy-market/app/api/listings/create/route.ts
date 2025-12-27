@@ -34,6 +34,15 @@ export async function POST(req: Request) {
     }
 
     // Create listing first (inactive until fee subscription active)
+    console.log("[LISTING CREATE] Creating listing with data:", {
+      sellerId,
+      title: data.title,
+      slug,
+      priceCents: data.priceCents,
+      imagesCount: data.images?.length || 0,
+      digitalFilesCount: data.digitalFiles?.length || 0,
+    });
+    
     const listing = await prisma.listing.create({
       data: {
         sellerId,
@@ -47,6 +56,8 @@ export async function POST(req: Request) {
         isActive: false,
       },
     });
+    
+    console.log("[LISTING CREATE] Listing created successfully:", listing.id);
 
     // Create Stripe customer (one per listing is fine; or you can reuse per seller)
     const customer = await stripe.customers.create({
