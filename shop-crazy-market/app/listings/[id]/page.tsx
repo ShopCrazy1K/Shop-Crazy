@@ -417,40 +417,56 @@ export default function ListingPage() {
           <div className="md:flex">
             {/* Images */}
             <div className="md:w-1/2">
-              {listing.images.length > 0 ? (
-                <div className="space-y-4">
-                  {/* Main Image */}
-                  <div className="aspect-square bg-gray-100 cursor-pointer" onClick={() => setSelectedImageIndex(0)}>
-                    <img
-                      src={listing.images[0]}
-                      alt={listing.title}
-                      className="w-full h-full object-contain hover:opacity-90 transition-opacity"
-                    />
-                  </div>
-                  {/* Thumbnail Gallery */}
-                  {listing.images.length > 1 && (
-                    <div className="grid grid-cols-4 gap-2">
-                      {listing.images.slice(0, 4).map((image: string, index: number) => (
-                        <div
-                          key={index}
-                          className="aspect-square bg-gray-100 cursor-pointer border-2 border-transparent hover:border-purple-500 rounded overflow-hidden"
-                          onClick={() => setSelectedImageIndex(index)}
-                        >
-                          <img
-                            src={image}
-                            alt={`${listing.title} - Image ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
+              {/* Combine images and image-type digital files */}
+              {(() => {
+                // Check if digital files are images
+                const imageDigitalFiles = listing.digitalFiles?.filter((url: string) => {
+                  const ext = url.split('.').pop()?.toLowerCase();
+                  return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
+                }) || [];
+                
+                // Combine regular images with image-type digital files
+                const allImages = [...listing.images, ...imageDigitalFiles];
+                
+                if (allImages.length > 0) {
+                  return (
+                    <div className="space-y-4">
+                      {/* Main Image */}
+                      <div className="aspect-square bg-gray-100 cursor-pointer" onClick={() => setSelectedImageIndex(0)}>
+                        <img
+                          src={allImages[0]}
+                          alt={listing.title}
+                          className="w-full h-full object-contain hover:opacity-90 transition-opacity"
+                        />
+                      </div>
+                      {/* Thumbnail Gallery */}
+                      {allImages.length > 1 && (
+                        <div className="grid grid-cols-4 gap-2">
+                          {allImages.slice(0, 4).map((image: string, index: number) => (
+                            <div
+                              key={index}
+                              className="aspect-square bg-gray-100 cursor-pointer border-2 border-transparent hover:border-purple-500 rounded overflow-hidden"
+                              onClick={() => setSelectedImageIndex(index)}
+                            >
+                              <img
+                                src={image}
+                                alt={`${listing.title} - Image ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                  <span className="text-gray-400">No image</span>
-                </div>
-              )}
+                  );
+                } else {
+                  return (
+                    <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                      <span className="text-gray-400">No image</span>
+                    </div>
+                  );
+                }
+              })()}
             </div>
 
             {/* Details */}
@@ -483,6 +499,50 @@ export default function ListingPage() {
                   )}
                 </p>
               </div>
+
+              {/* Digital Files Section */}
+              {listing.digitalFiles && listing.digitalFiles.length > 0 && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold mb-2">Digital Files</h2>
+                  <div className="space-y-2">
+                    {listing.digitalFiles.map((fileUrl: string, index: number) => {
+                      const fileName = fileUrl.split('/').pop() || `File ${index + 1}`;
+                      const ext = fileName.split('.').pop()?.toLowerCase();
+                      const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
+                      
+                      return (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {isImage ? (
+                              <img
+                                src={fileUrl}
+                                alt={fileName}
+                                className="w-12 h-12 object-cover rounded"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-purple-100 rounded flex items-center justify-center">
+                                <span className="text-2xl">📄</span>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{fileName}</p>
+                              <p className="text-xs text-gray-500 truncate">{fileUrl}</p>
+                            </div>
+                          </div>
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-3 px-3 py-1 text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded transition-colors"
+                          >
+                            View
+                          </a>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {listing.isActive && (
                 <Link
