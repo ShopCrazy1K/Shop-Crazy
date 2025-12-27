@@ -336,37 +336,7 @@ img, [class*="image"], [class*="Image"], .product-image, .user-image {
   z-index: 1;
 }
 
-/* Winter tree sway animation */
-/* Removed winter-tree-sway animation */
-  0%, 100% {
-    transform: rotate(-2deg) translateY(0);
-  }
-  50% {
-    transform: rotate(2deg) translateY(-3px);
-  }
-}
-
-/* Winter snowman bounce */
-@keyframes winter-snowman-bounce {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-6px) scale(1.03);
-  }
-}
-
-/* Icicle drip animation */
-@keyframes winter-icicle-drip {
-  0%, 100% {
-    transform: translateY(0);
-    opacity: 0.5;
-  }
-  50% {
-    transform: translateY(5px);
-    opacity: 0.8;
-  }
-}
+/* Winter tree, snowman, and icicle animations removed - only snow animations remain */
 
 /* Make main content areas white/light for winter theme */
 [data-theme="winter-snow"] .bg-white,
