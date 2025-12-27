@@ -27,7 +27,7 @@ interface Product {
   id: string;
   title: string;
   price: number;
-  images: string;
+  images: string | string[];
   category?: string;
   type?: string;
   shop?: {
