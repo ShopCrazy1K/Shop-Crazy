@@ -6,6 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 import { categories } from "@/lib/categories";
 import { LISTING_FEE_PER_MONTH } from "@/lib/fees";
+import ImageReorderGrid from "@/components/ImageReorderGrid";
+
+type ImageItem = { id: string; url: string; path?: string };
 
 interface FormData {
   title: string;
@@ -44,7 +47,7 @@ export default function SellPage() {
   // Image files state (for physical products only)
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
+  const [images, setImages] = useState<ImageItem[]>([]);
   const [imageUrls, setImageUrls] = useState<string>(""); // Manual URLs
 
   // Load saved form data from localStorage
@@ -235,7 +238,7 @@ export default function SellPage() {
     setImageFiles((prev) => [...prev, ...files]);
     setUploadingImages(true);
 
-    const newUrls: string[] = [];
+    const newImages: ImageItem[] = [];
     for (const file of files) {
       if (file.size > 5 * 1024 * 1024) {
         alert(`${file.name} is too large. Max size is 5MB.`);
@@ -243,15 +246,33 @@ export default function SellPage() {
         continue;
       }
       try {
-        const url = await handleFileUpload(file);
-        newUrls.push(url);
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: (() => {
+            const formData = new FormData();
+            formData.append("file", file);
+            return formData;
+          })(),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to upload ${file.name}`);
+        }
+
+        const uploaded = await response.json();
+        newImages.push({
+          id: crypto.randomUUID(),
+          url: uploaded.url,
+          path: uploaded.path,
+        });
       } catch (error: any) {
         alert(`Failed to upload ${file.name}: ${error.message || "Unknown error"}`);
         setImageFiles((prev) => prev.filter(f => f !== file));
       }
     }
 
-    setUploadedImageUrls((prev) => [...prev, ...newUrls]);
+    setImages((prev) => [...prev, ...newImages]);
     setUploadingImages(false);
     e.target.value = ""; // Clear input
   }
@@ -290,9 +311,10 @@ export default function SellPage() {
         // For digital products: digital files are the images
         finalImages = uploadedDigitalFileUrls;
       } else {
-        // For physical products: combine uploaded images and manual URLs
+        // For physical products: use ordered images (path or url) and manual URLs
+        const imagePathsInOrder = images.map((img) => img.path ?? img.url);
         finalImages = [
-          ...uploadedImageUrls,
+          ...imagePathsInOrder,
           ...(imageUrls ? imageUrls.split(",").map(url => url.trim()).filter(Boolean) : [])
         ];
       }
@@ -352,7 +374,7 @@ export default function SellPage() {
     setDigitalFiles([]);
     setUploadedDigitalFileUrls([]);
     setImageFiles([]);
-    setUploadedImageUrls([]);
+    setImages([]);
     setImageUrls("");
     setFormData({
       title: "",
@@ -768,30 +790,9 @@ export default function SellPage() {
                   </div>
                 )}
 
-                {uploadedImageUrls.length > 0 && (
+                {images.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold text-gray-700">
-                      Uploaded Images ({uploadedImageUrls.length}):
-                    </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {uploadedImageUrls.map((url, idx) => (
-                        <div key={idx} className="relative group">
-                          <img
-                            src={url}
-                            alt={`Uploaded ${idx + 1}`}
-                            className="w-full h-24 object-cover rounded-lg border-2 border-green-200 shadow-sm"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setUploadedImageUrls(uploadedImageUrls.filter((_, i) => i !== idx))}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                            title="Remove image"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                    <ImageReorderGrid items={images} onChange={setImages} maxImages={10} />
                   </div>
                 )}
 
