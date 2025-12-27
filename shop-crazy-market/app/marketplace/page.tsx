@@ -59,29 +59,24 @@ function MarketplaceContent() {
 
   async function fetchListings() {
     try {
+      // Build query string
+      let url = "/api/listings?";
+      if (selectedCategory !== "all") {
+        url += `category=${encodeURIComponent(selectedCategory)}&`;
+      }
+      if (searchQuery) {
+        url += `search=${encodeURIComponent(searchQuery)}&`;
+      }
+      // Ensure only active listings are fetched for guest users
+      url += `isActive=true&`;
+
       // Fetch from listings API (guest users will only see active listings)
-      const response = await fetch("/api/listings");
+      const response = await fetch(url);
       if (response.ok) {
         const listings: Listing[] = await response.json();
         
-        // Filter by search query if provided
+        // Filter by type (digital vs physical based on digitalFiles) - done client-side
         let filtered = listings;
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          filtered = listings.filter(listing => 
-            listing.title.toLowerCase().includes(query) ||
-            listing.description.toLowerCase().includes(query)
-          );
-        }
-        
-        // Filter by category
-        if (selectedCategory !== "all") {
-          filtered = filtered.filter(listing => {
-            return listing.category === selectedCategory;
-          });
-        }
-        
-        // Filter by type (digital vs physical based on digitalFiles)
         if (selectedType !== "all") {
           filtered = filtered.filter(listing => {
             if (selectedType === "DIGITAL") {
