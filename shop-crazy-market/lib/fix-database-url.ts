@@ -23,8 +23,13 @@ export function fixDatabaseUrl(url: string | undefined): string {
   return url;
 }
 
-// Fix DATABASE_URL on module load
-if (typeof process !== 'undefined' && process.env.DATABASE_URL) {
+// Fix DATABASE_URL on module load (only if it exists and we're not in build mode)
+// During build, DATABASE_URL might not be available, so we skip this
+if (
+  typeof process !== 'undefined' && 
+  process.env.DATABASE_URL && 
+  process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV
+) {
   try {
     const fixed = fixDatabaseUrl(process.env.DATABASE_URL);
     if (fixed !== process.env.DATABASE_URL) {
@@ -32,6 +37,7 @@ if (typeof process !== 'undefined' && process.env.DATABASE_URL) {
       console.log('✅ Fixed DATABASE_URL encoding (encoded # as %23)');
     }
   } catch (error) {
+    // Don't throw during module load - just log
     console.error('Error fixing DATABASE_URL:', error);
   }
 }
