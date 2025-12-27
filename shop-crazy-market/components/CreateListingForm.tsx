@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import ImageReorderGrid from "@/components/ImageReorderGrid";
+import { categories } from "@/lib/categories";
 
 type ImageItem = { id: string; url: string; path?: string };
 
