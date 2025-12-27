@@ -16,6 +16,9 @@
     "setup:postgres": "bash scripts/setup-postgres.sh"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@prisma/client": "^5.7.1",
     "@supabase/supabase-js": "^2.89.0",
     "@types/nodemailer": "^7.0.4",
