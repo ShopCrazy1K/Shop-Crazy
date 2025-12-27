@@ -39,13 +39,12 @@ export default function CategoryPage() {
       
       // For "digital-products" category, show all digital listings (regardless of category field)
       // For other categories, filter by category field
+      // Note: We fetch all active listings and filter client-side for digital-products
+      // because we need to check digitalFiles which isn't filterable via API category param
       let url = `/api/listings?isActive=true`;
       
-      if (slug === "digital-products") {
-        // Special case: digital-products category should show all digital listings
-        // We'll filter client-side by type
-      } else {
-        // Filter by category slug
+      if (slug !== "digital-products") {
+        // Filter by category slug for non-digital categories
         url += `&category=${encodeURIComponent(slug)}`;
       }
       
