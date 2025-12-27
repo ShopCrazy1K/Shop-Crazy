@@ -201,19 +201,45 @@ export default function ListingPage() {
     };
   }, [listingId, feeStatus]);
 
-  // Auto-activate on payment success (only after listing is loaded)
+  // Auto-activate on payment success (only after listing is loaded and not already active)
   useEffect(() => {
     if (!listing || loading) return; // Wait for listing to load first
+    if (listing.isActive) {
+      console.log("[LISTING PAGE] Listing already active, skipping activation");
+      return; // Don't activate if already active
+    }
     
     const p = new URLSearchParams(window.location.search);
     // Handle both "payment=success" and "fee=success" query parameters
-    if (p.get("payment") === "success" || p.get("fee") === "success") {
+    const hasSuccessParam = p.get("payment") === "success" || p.get("fee") === "success";
+    
+    if (hasSuccessParam) {
       console.log("[LISTING PAGE] Payment success detected, activating listing...");
       fetch(`/api/listings/${listingId}/activate-from-stripe`, { method: "POST" })
         .then((res) => {
           console.log("[LISTING PAGE] Activation response:", res.status);
           if (res.ok) {
-            window.location.reload();
+            // Refresh the listing data instead of reloading the whole page
+            console.log("[LISTING PAGE] Activation successful, refreshing listing data...");
+            fetch(`/api/listings/${listingId}`)
+              .then((refreshRes) => {
+                if (refreshRes.ok) {
+                  return refreshRes.json();
+                }
+                throw new Error(`Failed to refresh: ${refreshRes.status}`);
+              })
+              .then((refreshData) => {
+                console.log("[LISTING PAGE] Listing refreshed, isActive:", refreshData.isActive);
+                setListing(refreshData);
+                // Remove the query parameter to prevent re-activation
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, '', newUrl);
+              })
+              .catch((err) => {
+                console.error("[LISTING PAGE] Error refreshing listing:", err);
+                // Fallback to page reload only if refresh fails
+                window.location.reload();
+              });
           }
         })
         .catch((err) => {
