@@ -381,9 +381,23 @@ export default function SellPage() {
       }
 
       const result = await response.json();
-      setCreatedProduct(result.listing || result);
-      setShowSuccess(true);
-      setLoading(false);
+      
+      // If there's a checkout URL, redirect to Stripe checkout for listing fee
+      if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+        return; // Don't show success message, user is going to checkout
+      }
+      
+      // Otherwise, show success and allow viewing the listing
+      if (result.listingId) {
+        setCreatedProduct(result.listingId);
+        setShowSuccess(true);
+        setLoading(false);
+      } else {
+        setCreatedProduct(result.listing || result);
+        setShowSuccess(true);
+        setLoading(false);
+      }
       
       // Clear saved form data
       if (typeof window !== 'undefined') {
