@@ -78,14 +78,15 @@ function OrderContent() {
 
   // Auto-check payment status if order is pending and we just came from checkout
   useEffect(() => {
-    if (order && order.paymentStatus === "pending" && paid === "1") {
-      // Wait 2 seconds then check payment status automatically
+    if (order && order.paymentStatus === "pending" && paid === "1" && user) {
+      // Wait 3 seconds then check payment status automatically (give webhook time to process)
       const timer = setTimeout(() => {
         checkPaymentStatus();
-      }, 2000);
+      }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [order, paid]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order, paid, user]);
 
   if (authLoading || loading) {
     return (
