@@ -16,6 +16,7 @@ export default function CreateListingForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [category, setCategory] = useState("");
   const [images, setImages] = useState<ImageItem[]>([]);
   const [digitalFiles, setDigitalFiles] = useState<ImageItem[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -126,6 +127,7 @@ export default function CreateListingForm() {
         title,
         description,
         priceCents: priceInCents,
+        category: category || undefined,
         images: imageUrls.length > 0 ? imageUrls : [],
         ...(finalDigitalFiles && { digitalFiles: finalDigitalFiles }),
         sellerId: user.id,
@@ -190,6 +192,24 @@ export default function CreateListingForm() {
           className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
           required
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Category
+        </label>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+        >
+          <option value="">Select a category (optional)</option>
+          {categories.map((cat) => (
+            <option key={cat.slug} value={cat.slug}>
+              {cat.emoji} {cat.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>

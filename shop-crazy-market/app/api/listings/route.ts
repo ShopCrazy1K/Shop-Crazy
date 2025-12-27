@@ -55,6 +55,7 @@ export async function POST(request: Request) {
         slug: slug,
         priceCents: data.priceCents,
         currency: data.currency ?? "usd",
+        category: data.category ?? null,
         images: data.images ?? [],
         digitalFiles: data.digitalFiles ?? [],
         isActive: false,
