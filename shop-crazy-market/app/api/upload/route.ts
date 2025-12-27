@@ -105,12 +105,11 @@ export async function POST(request: Request) {
     if (uploadError) {
       console.error("[UPLOAD] Supabase upload error:", {
         message: uploadError.message,
-        statusCode: uploadError.statusCode,
         error: uploadError,
       });
       
       // Provide specific error messages
-      if (uploadError.message?.includes("Bucket not found") || uploadError.statusCode === "404") {
+      if (uploadError.message?.includes("Bucket not found") || uploadError.message?.includes("404")) {
         return NextResponse.json(
           { 
             error: `Storage bucket "${bucket}" not found. Please create it in Supabase Storage.`,
@@ -135,7 +134,6 @@ export async function POST(request: Request) {
         { 
           error: "Failed to upload file to storage",
           details: uploadError.message || String(uploadError),
-          statusCode: uploadError.statusCode,
         },
         { status: 500 }
       );
