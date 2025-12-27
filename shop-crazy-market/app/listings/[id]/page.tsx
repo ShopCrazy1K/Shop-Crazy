@@ -38,6 +38,19 @@ export default function ListingPage() {
       try {
         const response = await fetch(`/api/listings/${listingId}`);
         if (!response.ok) {
+          // If listing not found and we just paid, wait a bit for webhook to process
+          if (feeStatus === "success") {
+            console.log("Listing not found yet, waiting for webhook...");
+            // Wait 2 seconds and retry
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const retryResponse = await fetch(`/api/listings/${listingId}`);
+            if (retryResponse.ok) {
+              const data = await retryResponse.json();
+              setListing(data);
+              setLoading(false);
+              return;
+            }
+          }
           throw new Error("Listing not found");
         }
         const data = await response.json();
@@ -52,7 +65,7 @@ export default function ListingPage() {
     if (listingId) {
       fetchListing();
     }
-  }, [listingId]);
+  }, [listingId, feeStatus]);
 
   if (loading) {
     return (
