@@ -132,15 +132,15 @@ export default async function AdminOrders() {
                   </td>
                   <td className="p-4 text-center">{o.items.length || 1}</td>
                   <td className="p-4 text-center font-bold">
-                    ${((o.orderTotalCents || o.total || 0) / 100).toFixed(2)}
+                    ${((o.orderTotalCents || 0) / 100).toFixed(2)}
                   </td>
                   <td className="p-4 text-center">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(
-                        o.paymentStatus || o.status || "pending"
+                        o.paymentStatus || "pending"
                       )}`}
                     >
-                      {o.paymentStatus || o.status || "pending"}
+                      {o.paymentStatus || "pending"}
                     </span>
                   </td>
                   <td className="p-4 text-center text-sm text-gray-500">
