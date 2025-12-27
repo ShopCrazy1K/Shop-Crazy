@@ -44,8 +44,26 @@ export async function POST(req: Request) {
         // Check if this is a listing fee subscription
         if (session.mode === "subscription" && session.metadata?.listingId) {
           await handleListingFeePayment(session);
-        } else {
-          // Regular product purchase
+        } 
+        // Check if this is a marketplace order (has type: "order" in metadata)
+        else if (session.metadata?.type === "order") {
+          const orderId = session.metadata.orderId as string;
+          const paymentIntent = session.payment_intent as string;
+          
+          console.log("[WEBHOOK] Processing order payment:", { orderId, paymentIntent });
+          
+          await prisma.order.update({
+            where: { id: orderId },
+            data: {
+              stripePaymentIntent: paymentIntent ?? null,
+              paymentStatus: "paid",
+            },
+          });
+          
+          console.log("[WEBHOOK] Order updated to paid:", orderId);
+        } 
+        else {
+          // Legacy product purchase
           await handleCheckoutSessionCompleted(session);
         }
         break;
