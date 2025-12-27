@@ -165,7 +165,7 @@ main, [role="main"], .main-content {
   text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
   animation: snowflake-fall linear infinite;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
 }
 
 /* 🎊 NEW YEAR'S THEME ENHANCEMENTS */
@@ -322,7 +322,7 @@ main, [role="main"], .main-content {
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(255, 255, 255, 0.6);
   animation: winter-snowflake-fall linear infinite;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
   filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.8));
 }
 
@@ -345,7 +345,7 @@ main, [role="main"], .main-content {
   text-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
   animation: winter-particle-fall linear infinite;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
 }
 
 /* Winter tree, snowman, and icicle animations removed - only snow animations remain */
