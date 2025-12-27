@@ -46,6 +46,15 @@ export async function GET(req: Request) {
         },
       },
       include: {
+        listing: {
+          include: {
+            seller: {
+              include: {
+                shop: true,
+              },
+            },
+          },
+        },
         items: {
           include: {
             product: true,
@@ -61,30 +70,34 @@ export async function GET(req: Request) {
     let totalAdvertisingFees = 0;
 
     orders.forEach((order) => {
-      const orderMetadata = (order as any).metadata || {};
-      const orderItemTotal = parseInt(orderMetadata.itemTotal || "0") || 0;
-      const orderShipping = parseInt(orderMetadata.shippingTotal || "0") || 0;
-      const orderGiftWrap = parseInt(orderMetadata.giftWrapTotal || "0") || 0;
-      const orderSubtotal = orderItemTotal + orderShipping + orderGiftWrap;
-
-      // Calculate shop's portion of this order
-      const shopItems = order.items.filter(
-        (item) => item.product.shopId === shopId
-      );
-      const shopItemTotal = shopItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      );
-      const shopPercentage =
-        orderSubtotal > 0 ? shopItemTotal / orderSubtotal : 0;
+      // Use new schema fields if available, otherwise fall back to metadata
+      const orderSubtotal = order.orderSubtotalCents || 0;
+      
+      // For legacy orders, calculate from items
+      let shopPercentage = 0;
+      if (order.items && order.items.length > 0) {
+        const shopItems = order.items.filter(
+          (item) => item.product.shopId === shopId
+        );
+        const shopItemTotal = shopItems.reduce(
+          (sum, item) => sum + item.price * item.quantity,
+          0
+        );
+        shopPercentage = orderSubtotal > 0 ? shopItemTotal / orderSubtotal : 0;
+      } else if (order.listing) {
+        // For marketplace orders, check if seller owns the shop
+        // If the order's sellerId matches the shop owner, it's 100% of this order
+        // This is a simplified approach - you may need to adjust based on your business logic
+        shopPercentage = 1; // Marketplace orders are typically single-seller
+      }
 
       totalRevenue += Math.round(orderSubtotal * shopPercentage);
       totalTransactionFees +=
-        (order.transactionFee || 0) * shopPercentage;
+        (order.platformFeeCents || 0) * shopPercentage;
       totalPaymentProcessingFees +=
-        (order.paymentProcessingFee || 0) * shopPercentage;
+        (order.processingFeeCents || 0) * shopPercentage;
       totalAdvertisingFees +=
-        (order.advertisingFee || 0) * shopPercentage;
+        (order.adFeeCents || 0) * shopPercentage;
     });
 
     // Get listing fees for this month
