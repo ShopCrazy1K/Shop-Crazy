@@ -35,22 +35,66 @@ export default function CategoryPage() {
 
   async function fetchProducts() {
     try {
-      // Fetch all listings (category filtering not yet implemented in Listing model)
-      const response = await fetch(`/api/listings`);
+      setLoading(true);
+      
+      // For "digital-products" category, show all digital listings (regardless of category field)
+      // For other categories, filter by category field
+      let url = `/api/listings?isActive=true`;
+      
+      if (slug === "digital-products") {
+        // Special case: digital-products category should show all digital listings
+        // We'll filter client-side by type
+      } else {
+        // Filter by category slug
+        url += `&category=${encodeURIComponent(slug)}`;
+      }
+      
+      const response = await fetch(url);
       if (response.ok) {
         const listings = await response.json();
+        
         // Transform listings to product format
-        const transformed: Product[] = listings.map((listing: any) => ({
-          id: listing.id,
-          title: listing.title,
-          description: listing.description,
-          price: listing.priceCents,
-          images: listing.images,
-          type: listing.digitalFiles && listing.digitalFiles.length > 0 ? "DIGITAL" : "PHYSICAL",
-          shop: {
-            name: listing.seller?.username || listing.seller?.email || "Unknown",
-          },
-        }));
+        let transformed: Product[] = listings.map((listing: any) => {
+          // Normalize images to always be an array
+          let normalizedImages: string[] = [];
+          if (listing.images) {
+            if (Array.isArray(listing.images)) {
+              normalizedImages = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
+            } else {
+              const imagesValue = listing.images as any;
+              if (typeof imagesValue === 'string' && imagesValue.trim()) {
+                normalizedImages = [imagesValue];
+              }
+            }
+          }
+          
+          // Check if digital files are images and use as fallback
+          const imageDigitalFiles = listing.digitalFiles?.filter((url: string) => {
+            const ext = url.split('.').pop()?.toLowerCase();
+            return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
+          }) || [];
+          
+          const finalImages = normalizedImages.length > 0 ? normalizedImages : imageDigitalFiles;
+          
+          return {
+            id: listing.id,
+            title: listing.title,
+            description: listing.description,
+            price: listing.priceCents,
+            images: finalImages,
+            category: listing.category || "",
+            type: listing.digitalFiles && listing.digitalFiles.length > 0 ? "DIGITAL" : "PHYSICAL",
+            shop: {
+              name: listing.seller?.username || listing.seller?.email || "Unknown",
+            },
+          };
+        });
+        
+        // For "digital-products" category, filter to only show digital listings
+        if (slug === "digital-products") {
+          transformed = transformed.filter(product => product.type === "DIGITAL");
+        }
+        
         setProducts(transformed);
       }
     } catch (error) {
