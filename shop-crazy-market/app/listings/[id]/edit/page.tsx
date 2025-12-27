@@ -271,7 +271,7 @@ export default function EditListingPage() {
                   onChange={handleDigitalFileChange}
                   disabled={uploadingFiles}
                   className="hidden"
-                  accept=".pdf,.zip,.rar,.7z,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.epub,.mobi"
+                  accept=".pdf,.zip,.rar,.7z,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.epub,.mobi,.png,.jpg,.jpeg,.gif,.webp"
                 />
                 <label
                   htmlFor="digitalFileUpload"

@@ -218,12 +218,12 @@ function MarketplaceContent() {
           {products.map((product) => (
             <Link key={product.id} href={`/listings/${product.id}`}>
               <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
-                <div className="h-32 bg-gray-200 relative">
+                <div className="h-48 bg-gray-200 relative">
                   {product.images && Array.isArray(product.images) && product.images[0] ? (
                     <img
                       src={product.images[0]}
                       alt={product.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">

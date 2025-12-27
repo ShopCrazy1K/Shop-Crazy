@@ -28,6 +28,7 @@ export default function ListingPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const listingId = params.id as string;
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const feeStatus = searchParams.get("fee");
 
   // Handle "new" route - redirect to create page
