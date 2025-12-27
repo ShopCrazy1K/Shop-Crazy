@@ -5,6 +5,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import BottomNav from "@/components/BottomNav";
 import ChristmasDecorations from "@/components/ChristmasDecorations";
 import NewYearDecorations from "@/components/NewYearDecorations";
+import WinterDecorations from "@/components/WinterDecorations";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <CartProvider>
                 <ChristmasDecorations />
                 <NewYearDecorations />
+                <WinterDecorations />
                 <div className="pb-20">{children}</div>
                 <BottomNav />
               </CartProvider>

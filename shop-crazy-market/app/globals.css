@@ -328,3 +328,114 @@ img, [class*="image"], [class*="Image"], .product-image, .user-image {
   }
 }
 
+/* ❄️ WINTER SNOW THEME ENHANCEMENTS */
+[data-theme="winter-snow"] {
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 25%, #dbeafe 50%, #ffffff 75%, #eff6ff 100%) !important;
+  background-size: 400% 400%;
+  animation: winter-gradient 20s ease infinite;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Override Tailwind classes for Winter theme */
+[data-theme="winter-snow"].bg-gradient-to-br,
+[data-theme="winter-snow"].bg-blue-50 {
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 25%, #dbeafe 50%, #ffffff 75%, #eff6ff 100%) !important;
+  background-size: 400% 400% !important;
+  animation: winter-gradient 20s ease infinite !important;
+}
+
+@keyframes winter-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Winter snowflake falling animation */
+@keyframes winter-snowflake-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+[data-theme="winter-snow"] .winter-snowflake {
+  position: fixed;
+  top: -50px;
+  color: white;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(255, 255, 255, 0.6);
+  animation: winter-snowflake-fall linear infinite;
+  pointer-events: none;
+  z-index: 1;
+  filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.8));
+}
+
+/* Smaller snow particles */
+@keyframes winter-particle-fall {
+  0% {
+    transform: translateY(-100vh);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+[data-theme="winter-snow"] .winter-snow-particle {
+  position: fixed;
+  top: -50px;
+  color: white;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+  animation: winter-particle-fall linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Winter tree sway animation */
+@keyframes winter-tree-sway {
+  0%, 100% {
+    transform: rotate(-2deg) translateY(0);
+  }
+  50% {
+    transform: rotate(2deg) translateY(-3px);
+  }
+}
+
+/* Winter snowman bounce */
+@keyframes winter-snowman-bounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.03);
+  }
+}
+
+/* Icicle drip animation */
+@keyframes winter-icicle-drip {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(5px);
+    opacity: 0.8;
+  }
+}
+
+/* Make main content areas white/light for winter theme */
+[data-theme="winter-snow"] .bg-white,
+[data-theme="winter-snow"] .bg-gray-50 {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px);
+}
+
+[data-theme="winter-snow"] .bg-gray-100 {
+  background: rgba(249, 250, 251, 0.9) !important;
+}
+

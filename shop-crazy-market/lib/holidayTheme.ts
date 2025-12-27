@@ -23,9 +23,20 @@ export function getHolidayTheme(): HolidayTheme | null {
     };
   }
 
-  // 🎄 CHRISTMAS (Dec 1–30) - Extended to full month except New Year's Eve
-  // Note: This overrides the winter theme for December
-  if (month === 12 && day < 31) {
+  // ❄️ WINTER SNOW THEME (Dec 26-30) - After Christmas, before New Year's
+  if (month === 12 && day >= 26 && day < 31) {
+    return {
+      name: "winter-snow",
+      bg: "bg-gradient-to-br from-blue-50 via-white to-blue-100",
+      accent: "text-blue-800",
+      font: "font-sans",
+      animation: "animate-snow-fall",
+    };
+  }
+
+  // 🎄 CHRISTMAS (Dec 1–25) - Extended to full month except late December
+  // Note: This overrides the winter theme for early December
+  if (month === 12 && day <= 25) {
     return {
       name: "christmas-toon",
       bg: "bg-gradient-to-br from-red-200 via-red-100 to-green-200",
