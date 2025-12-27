@@ -77,12 +77,15 @@ export default function ListingPage() {
           }
         }, 8000); // 8 second timeout for fetch
         
+        console.log("[LISTING PAGE] Starting fetch to:", `/api/listings/${listingId}`);
         const response = await fetch(`/api/listings/${listingId}`, {
           signal: controller.signal,
+          cache: 'no-store',
           headers: {
             'Content-Type': 'application/json',
           },
         });
+        console.log("[LISTING PAGE] Fetch completed, status:", response.status);
         
         clearTimeout(fetchTimeout);
         
@@ -136,8 +139,17 @@ export default function ListingPage() {
           throw new Error(errorData.error || errorData.message || "Listing not found");
         }
         
-        const data = await response.json();
-        console.log("[LISTING PAGE] Listing fetched:", data.id, "isActive:", data.isActive);
+        let data;
+        try {
+          const text = await response.text();
+          console.log("[LISTING PAGE] Response text length:", text.length);
+          data = JSON.parse(text);
+          console.log("[LISTING PAGE] Listing fetched:", data.id, "isActive:", data.isActive);
+        } catch (parseError) {
+          console.error("[LISTING PAGE] Failed to parse JSON:", parseError);
+          throw new Error("Failed to parse server response");
+        }
+        
         if (isMounted) {
           setListing(data);
           setLoading(false);
