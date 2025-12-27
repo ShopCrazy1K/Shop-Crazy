@@ -415,7 +415,7 @@ export default function SellPage() {
           </div>
         )}
 
-        {connectionStatus === "connected" && (
+        {connectionStatus === "connected" && user?.role === "ADMIN" && (
           <div className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
             <p className="text-sm text-green-700 flex items-center">
               <span className="mr-2">✅</span>
