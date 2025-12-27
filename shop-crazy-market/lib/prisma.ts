@@ -59,10 +59,21 @@ if (process.env.DATABASE_URL) {
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
+// Configure Prisma to work with PgBouncer (disable prepared statements)
+const prismaConfig: any = {
+  log: ["error"],
+};
+
+// Add connection string with pgbouncer parameter if not already present
+let databaseUrl = process.env.DATABASE_URL || "";
+if (databaseUrl && !databaseUrl.includes("pgbouncer=true")) {
+  // Add pgbouncer=true to disable prepared statements
+  const separator = databaseUrl.includes("?") ? "&" : "?";
+  process.env.DATABASE_URL = `${databaseUrl}${separator}pgbouncer=true`;
+}
+
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({
-    log: ["error"],
-  });
+  new PrismaClient(prismaConfig);
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
