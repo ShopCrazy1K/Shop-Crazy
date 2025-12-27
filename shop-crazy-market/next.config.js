@@ -3,7 +3,10 @@
 if (process.env.DATABASE_URL) {
   let url = process.env.DATABASE_URL;
   
-  // Step 1: Remove query parameters and hash fragments (Prisma doesn't accept these)
+  // Check if pgbouncer parameter exists before cleaning
+  const hasPgbouncer = url.includes('pgbouncer=true');
+  
+  // Step 1: Remove query parameters and hash fragments (but we'll add pgbouncer back if needed)
   url = url.split('?')[0].split('#')[0];
   
   // Step 2: Remove surrounding quotes and whitespace
@@ -45,10 +48,15 @@ if (process.env.DATABASE_URL) {
     }
   }
   
-  // Step 5: Update the environment variable
+  // Step 5: Add pgbouncer=true if it was present or if we're using pooler
+  if (hasPgbouncer || url.includes('pooler.supabase.com')) {
+    url = `${url}?pgbouncer=true`;
+  }
+  
+  // Step 6: Update the environment variable
   if (url !== process.env.DATABASE_URL) {
     process.env.DATABASE_URL = url;
-    console.log('✅ Fixed DATABASE_URL in next.config.js (removed query params, encoded special chars)');
+    console.log('✅ Fixed DATABASE_URL in next.config.js (removed query params, encoded special chars, added pgbouncer)');
   }
 }
 
