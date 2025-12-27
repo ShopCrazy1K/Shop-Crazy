@@ -184,6 +184,63 @@ export default function ListingPage() {
             </p>
           </div>
         )}
+        
+        {!listing.isActive && feeStatus === "success" && (
+          <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
+            <p className="text-yellow-700">
+              ⚠️ Payment received but listing activation is pending. This usually takes a few seconds.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`/api/listings/${listingId}/activate`, {
+                      method: "POST",
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.isActive) {
+                      // Refresh the listing
+                      const listingResponse = await fetch(`/api/listings/${listingId}`);
+                      if (listingResponse.ok) {
+                        const listingData = await listingResponse.json();
+                        setListing(listingData);
+                        alert("✅ Listing is now active!");
+                      }
+                    } else {
+                      alert(data.message || "Listing activation is still processing. Please wait a moment.");
+                    }
+                  } catch (err) {
+                    alert("Error activating listing. Please try refreshing the page.");
+                  }
+                }}
+                className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
+              >
+                Activate Now
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`/api/listings/${listingId}`);
+                    if (response.ok) {
+                      const data = await response.json();
+                      setListing(data);
+                      if (data.isActive) {
+                        alert("✅ Listing is now active!");
+                      } else {
+                        alert("Listing is still processing. Please wait a moment and try again.");
+                      }
+                    }
+                  } catch (err) {
+                    alert("Error refreshing listing status");
+                  }
+                }}
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Refresh Status
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="md:flex">
