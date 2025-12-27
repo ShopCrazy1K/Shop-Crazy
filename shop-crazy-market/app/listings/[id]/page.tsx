@@ -79,14 +79,26 @@ export default function ListingPage() {
         
         const response = await fetch(`/api/listings/${listingId}`, {
           signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
         
         clearTimeout(fetchTimeout);
         
         console.log("[LISTING PAGE] Response status:", response.status);
+        console.log("[LISTING PAGE] Response ok:", response.ok);
         
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+          let errorData: any = {};
+          try {
+            const text = await response.text();
+            console.log("[LISTING PAGE] Error response text:", text);
+            errorData = text ? JSON.parse(text) : {};
+          } catch (parseError) {
+            console.error("[LISTING PAGE] Failed to parse error response:", parseError);
+            errorData = { error: `Server error (${response.status})` };
+          }
           console.error("[LISTING PAGE] Error response:", errorData);
           
           if (!isMounted) return;
@@ -133,17 +145,26 @@ export default function ListingPage() {
       } catch (err: any) {
         clearTimeout(fetchTimeout);
         console.error("[LISTING PAGE] Fetch error:", err);
+        console.error("[LISTING PAGE] Error name:", err.name);
+        console.error("[LISTING PAGE] Error message:", err.message);
+        console.error("[LISTING PAGE] Error stack:", err.stack);
         if (!isMounted) return;
         
+        let errorMessage = "Failed to load listing. Please try refreshing the page.";
+        
         if (err.name === 'AbortError') {
-          setError("Request timed out after 8 seconds. The server may be experiencing issues. Please try refreshing the page.");
+          errorMessage = "Request timed out after 8 seconds. The server may be experiencing issues. Please try refreshing the page.";
         } else if (err.message?.includes("prepared statement")) {
-          setError("Database connection issue. Please try refreshing the page.");
+          errorMessage = "Database connection issue. Please try refreshing the page.";
         } else if (err.message?.includes("DATABASE_URL") || err.message?.includes("Database configuration")) {
-          setError("Database configuration error. The server needs to be reconfigured. Please contact support.");
-        } else {
-          setError(err.message || "Failed to load listing. Please try refreshing the page.");
+          errorMessage = "Database configuration error. The server needs to be reconfigured. Please contact support.";
+        } else if (err.message) {
+          errorMessage = err.message;
+        } else if (err.toString) {
+          errorMessage = err.toString();
         }
+        
+        setError(errorMessage);
         setLoading(false);
       }
     }
@@ -175,10 +196,20 @@ export default function ListingPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <p className="text-gray-600 mb-2">Loading listing...</p>
           <p className="text-gray-500 text-sm mb-4">This may take a few seconds.</p>
+          <p className="text-gray-400 text-xs mb-4">Listing ID: {listingId}</p>
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-left">
               <p className="text-red-600 text-sm font-semibold mb-2">Error:</p>
-              <p className="text-red-500 text-sm">{error}</p>
+              <p className="text-red-500 text-sm break-words">{error}</p>
+              <button
+                onClick={() => {
+                  // Test the API endpoint directly
+                  window.open(`/api/listings/${listingId}`, '_blank');
+                }}
+                className="mt-2 text-xs text-red-600 underline"
+              >
+                Test API endpoint
+              </button>
             </div>
           )}
           <div className="flex gap-3 justify-center">
@@ -197,6 +228,16 @@ export default function ListingPage() {
               className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors"
             >
               Back to Create
+            </button>
+          </div>
+          <div className="mt-4">
+            <button
+              onClick={() => {
+                window.open(`/api/check-runtime-env`, '_blank');
+              }}
+              className="text-xs text-gray-500 underline"
+            >
+              Check Runtime Environment
             </button>
           </div>
         </div>
