@@ -33,10 +33,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if fee already paid
-    if (listing.feePaid) {
+    // Check if fee already paid (subscription is active)
+    if (listing.isActive && listing.feeSubscriptionStatus === "active") {
       return NextResponse.json(
-        { error: "Listing fee has already been paid" },
+        { error: "Listing fee subscription is already active" },
         { status: 400 }
       );
     }
