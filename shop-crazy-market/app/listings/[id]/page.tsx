@@ -191,15 +191,26 @@ export default function ListingPage() {
     };
   }, [listingId, feeStatus]);
 
-  // Auto-activate on payment success
+  // Auto-activate on payment success (only after listing is loaded)
   useEffect(() => {
+    if (!listing || loading) return; // Wait for listing to load first
+    
     const p = new URLSearchParams(window.location.search);
     // Handle both "payment=success" and "fee=success" query parameters
     if (p.get("payment") === "success" || p.get("fee") === "success") {
+      console.log("[LISTING PAGE] Payment success detected, activating listing...");
       fetch(`/api/listings/${listingId}/activate-from-stripe`, { method: "POST" })
-        .then(() => window.location.reload());
+        .then((res) => {
+          console.log("[LISTING PAGE] Activation response:", res.status);
+          if (res.ok) {
+            window.location.reload();
+          }
+        })
+        .catch((err) => {
+          console.error("[LISTING PAGE] Activation error:", err);
+        });
     }
-  }, [listingId]);
+  }, [listingId, listing, loading]);
 
   if (loading) {
     return (
