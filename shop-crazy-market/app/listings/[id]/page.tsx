@@ -65,14 +65,16 @@ export default function ListingPage() {
       }
 
       console.log("[LISTING PAGE] Fetching listing:", listingId);
+      console.log("[LISTING PAGE] Component mounted:", isMounted);
       
       try {
         // Add AbortController for timeout
         const controller = new AbortController();
         fetchTimeout = setTimeout(() => {
+          console.error("[LISTING PAGE] Fetch timeout after 8 seconds");
           controller.abort();
           if (isMounted) {
-            setError("Request timed out. The server may be experiencing issues. Please try refreshing the page.");
+            setError("Request timed out after 8 seconds. The server may be experiencing issues. Please try refreshing the page.");
             setLoading(false);
           }
         }, 8000); // 8 second timeout for fetch
@@ -132,6 +134,7 @@ export default function ListingPage() {
         
         const data = await response.json();
         console.log("[LISTING PAGE] Listing fetched:", data.id, "isActive:", data.isActive);
+        console.log("[LISTING PAGE] Component still mounted:", isMounted);
         
         if (!data || !data.id) {
           throw new Error("Invalid listing data received");
@@ -139,8 +142,14 @@ export default function ListingPage() {
         
         if (isMounted) {
           console.log("[LISTING PAGE] Setting listing state and stopping loading");
-          setListing(data);
-          setLoading(false);
+          // Use setTimeout to ensure state update happens
+          setTimeout(() => {
+            if (isMounted) {
+              setListing(data);
+              setLoading(false);
+              console.log("[LISTING PAGE] State updated successfully");
+            }
+          }, 0);
         } else {
           console.log("[LISTING PAGE] Component unmounted, not updating state");
         }
