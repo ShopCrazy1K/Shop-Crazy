@@ -151,7 +151,8 @@ export default function ListingPage() {
     
     return () => {
       isMounted = false;
-      if (fetchTimeout !== undefined) {
+      // Cleanup: clear timeout if it was set
+      if (typeof fetchTimeout !== 'undefined' && fetchTimeout) {
         clearTimeout(fetchTimeout);
       }
     };
