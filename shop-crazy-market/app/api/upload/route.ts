@@ -42,20 +42,52 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check Supabase environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("[UPLOAD] Missing Supabase environment variables:", {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseServiceKey,
+      });
+      return NextResponse.json(
+        { 
+          error: "Supabase Storage not configured. Missing environment variables.",
+          details: "Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel.",
+        },
+        { status: 500 }
+      );
+    }
+
     // Determine bucket based on file type
     const bucket = isImage ? "product-images" : "digital-files";
-    const supabase = getSupabaseAdmin();
+    
+    let supabase;
+    try {
+      supabase = getSupabaseAdmin();
+    } catch (error: any) {
+      console.error("[UPLOAD] Failed to create Supabase client:", error);
+      return NextResponse.json(
+        { 
+          error: "Failed to initialize Supabase client",
+          details: error.message,
+        },
+        { status: 500 }
+      );
+    }
 
-    // Generate unique filename
+    // Generate unique filename (path should NOT include bucket name)
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 15);
     const fileExt = file.name.split('.').pop() || 'bin';
     const fileName = `${timestamp}-${randomStr}.${fileExt}`;
-    const filePath = `${bucket}/${fileName}`;
+    const filePath = fileName; // Just the filename, not bucket/filename
 
     console.log("[UPLOAD] Uploading to Supabase Storage:", {
       bucket,
       filePath,
+      supabaseUrl: supabaseUrl?.substring(0, 30) + "...",
     });
 
     // Convert File to ArrayBuffer then to Buffer
@@ -71,23 +103,39 @@ export async function POST(request: Request) {
       });
 
     if (uploadError) {
-      console.error("[UPLOAD] Supabase upload error:", uploadError);
+      console.error("[UPLOAD] Supabase upload error:", {
+        message: uploadError.message,
+        statusCode: uploadError.statusCode,
+        error: uploadError,
+      });
       
-      // If bucket doesn't exist, provide helpful error
-      if (uploadError.message?.includes("Bucket not found")) {
+      // Provide specific error messages
+      if (uploadError.message?.includes("Bucket not found") || uploadError.statusCode === "404") {
         return NextResponse.json(
           { 
             error: `Storage bucket "${bucket}" not found. Please create it in Supabase Storage.`,
             details: uploadError.message,
+            help: `Go to: https://supabase.com/dashboard/project/hbufjpxdzmygjnbfsniu/storage/buckets and create bucket "${bucket}"`,
           },
           { status: 400 }
+        );
+      }
+      
+      if (uploadError.message?.includes("JWT") || uploadError.message?.includes("Invalid API key")) {
+        return NextResponse.json(
+          { 
+            error: "Invalid Supabase API key. Please check your SUPABASE_SERVICE_ROLE_KEY.",
+            details: uploadError.message,
+          },
+          { status: 401 }
         );
       }
       
       return NextResponse.json(
         { 
           error: "Failed to upload file to storage",
-          details: uploadError.message,
+          details: uploadError.message || String(uploadError),
+          statusCode: uploadError.statusCode,
         },
         { status: 500 }
       );
