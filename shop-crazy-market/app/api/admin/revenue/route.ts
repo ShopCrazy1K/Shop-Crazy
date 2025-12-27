@@ -8,11 +8,16 @@ export async function GET() {
     // Get all completed orders
     const orders = await prisma.order.findMany({
       where: {
-        status: {
-          in: ["PAID", "SHIPPED", "COMPLETED"],
+        paymentStatus: {
+          in: ["paid"],
         },
       },
       include: {
+        listing: {
+          select: {
+            title: true,
+          },
+        },
         items: {
           include: {
             product: {
@@ -35,14 +40,14 @@ export async function GET() {
     });
 
     // Calculate total revenue
-    const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+    const totalRevenue = orders.reduce((sum, order) => sum + (order.orderTotalCents || 0), 0);
 
     // Calculate this month's revenue
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const thisMonthRevenue = orders
       .filter((order) => new Date(order.createdAt) >= startOfMonth)
-      .reduce((sum, order) => sum + order.total, 0);
+      .reduce((sum, order) => sum + (order.orderTotalCents || 0), 0);
 
     // Calculate average order value
     const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
@@ -62,7 +67,7 @@ export async function GET() {
           const orderDate = new Date(order.createdAt);
           return orderDate >= monthStart && orderDate <= monthEnd;
         })
-        .reduce((sum, order) => sum + order.total, 0);
+        .reduce((sum, order) => sum + (order.orderTotalCents || 0), 0);
 
       monthlyRevenue.push({
         month: date.toLocaleDateString("en-US", { month: "short" }),
@@ -70,14 +75,23 @@ export async function GET() {
       });
     }
 
-    // Revenue by zone
+    // Revenue by zone (using listing or items if available)
     const zoneRevenueMap = new Map<string, number>();
     orders.forEach((order) => {
-      order.items.forEach((item) => {
-        const zone = item.product.zone;
+      // Try to get zone from listing first, then fall back to items
+      if (order.listing) {
+        // For new schema, we might not have zone directly on listing
+        // Use order total for now
+        const zone = "MARKETPLACE"; // Default zone for marketplace orders
         const current = zoneRevenueMap.get(zone) || 0;
-        zoneRevenueMap.set(zone, current + item.price * item.quantity);
-      });
+        zoneRevenueMap.set(zone, current + (order.orderTotalCents || 0));
+      } else if (order.items && order.items.length > 0) {
+        order.items.forEach((item) => {
+          const zone = item.product?.zone || "UNKNOWN";
+          const current = zoneRevenueMap.get(zone) || 0;
+          zoneRevenueMap.set(zone, current + item.price * item.quantity);
+        });
+      }
     });
 
     const zoneRevenue = Array.from(zoneRevenueMap.entries())
@@ -96,12 +110,12 @@ export async function GET() {
 
     // Recent transactions (last 10)
     const recentTransactions = orders.slice(0, 10).map((order) => {
-      // Get the primary zone from the first item
-      const primaryZone = order.items[0]?.product.zone || "UNKNOWN";
+      // Get the primary zone from listing or first item
+      const primaryZone = order.items?.[0]?.product?.zone || "MARKETPLACE";
       return {
         id: order.id.slice(0, 8),
-        user: order.user.username || order.user.email,
-        total: order.total / 100, // Convert cents to dollars
+        user: order.buyerEmail || order.user?.username || order.user?.email || "Guest",
+        total: (order.orderTotalCents || 0) / 100, // Convert cents to dollars
         zone: primaryZone,
       };
     });
