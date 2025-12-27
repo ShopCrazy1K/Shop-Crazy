@@ -12,19 +12,8 @@ export function getHolidayTheme(): HolidayTheme | null {
   const day = today.getDate();
   const year = today.getFullYear();
 
-  // 🎊 NEW YEAR'S (Dec 31 - Jan 2, 2026)
-  if ((month === 12 && day === 31) || (month === 1 && day <= 2 && year <= 2026)) {
-    return {
-      name: "new-year",
-      bg: "bg-gradient-to-br from-purple-900 via-indigo-900 to-black",
-      accent: "text-yellow-300",
-      font: "font-neon",
-      animation: "animate-sparkle",
-    };
-  }
-
-  // ❄️ WINTER SNOW THEME (Dec 26-30) - After Christmas, before New Year's
-  if (month === 12 && day >= 26 && day < 31) {
+  // ❄️ WINTER SNOW THEME (Dec 26 - Jan 2) - After Christmas, through New Year's
+  if ((month === 12 && day >= 26) || (month === 1 && day <= 2)) {
     return {
       name: "winter-snow",
       bg: "bg-gradient-to-br from-blue-50 via-white to-blue-100",

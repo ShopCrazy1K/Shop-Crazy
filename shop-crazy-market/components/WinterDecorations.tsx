@@ -84,65 +84,6 @@ export default function WinterDecorations() {
     <>
       {snowflakes}
       {snowParticles}
-      {/* Snow-covered trees */}
-      <div
-        className="fixed bottom-32 left-10 text-4xl opacity-70 pointer-events-none"
-        style={{
-          animation: "winter-tree-sway 4s ease-in-out infinite",
-          zIndex: 1,
-          filter: "drop-shadow(0 2px 4px rgba(255, 255, 255, 0.5))",
-        }}
-      >
-        🌲
-      </div>
-      <div
-        className="fixed top-40 right-16 text-3xl opacity-60 pointer-events-none"
-        style={{
-          animation: "winter-tree-sway 4.5s ease-in-out infinite",
-          zIndex: 1,
-          filter: "drop-shadow(0 2px 4px rgba(255, 255, 255, 0.5))",
-        }}
-      >
-        🌲
-      </div>
-      {/* Snowmen */}
-      <div
-        className="fixed bottom-40 right-16 text-3xl opacity-70 pointer-events-none"
-        style={{
-          animation: "winter-snowman-bounce 3s ease-in-out infinite",
-          zIndex: 1,
-        }}
-      >
-        ⛄
-      </div>
-      <div
-        className="fixed top-60 left-20 text-2xl opacity-60 pointer-events-none"
-        style={{
-          animation: "winter-snowman-bounce 3.5s ease-in-out infinite",
-          zIndex: 1,
-        }}
-      >
-        ⛄
-      </div>
-      {/* Icicles */}
-      <div
-        className="fixed top-20 left-1/4 text-2xl opacity-50 pointer-events-none"
-        style={{
-          animation: "winter-icicle-drip 2s ease-in-out infinite",
-          zIndex: 1,
-        }}
-      >
-        🧊
-      </div>
-      <div
-        className="fixed top-32 right-1/4 text-xl opacity-40 pointer-events-none"
-        style={{
-          animation: "winter-icicle-drip 2.5s ease-in-out infinite",
-          zIndex: 1,
-        }}
-      >
-        🧊
-      </div>
     </>
   );
 }

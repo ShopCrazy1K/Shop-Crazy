@@ -62,44 +62,6 @@ export default function ChristmasDecorations() {
   return (
     <>
       {snowflakes}
-      {/* Additional Christmas trees in different positions - lower z-index to stay behind images */}
-      <div
-        className="fixed bottom-32 left-10 text-4xl opacity-60 pointer-events-none"
-        style={{
-          animation: "tree-sway 3.5s ease-in-out infinite",
-          zIndex: 1,
-        }}
-      >
-        🎄
-      </div>
-      <div
-        className="fixed top-40 right-16 text-3xl opacity-50 pointer-events-none"
-        style={{
-          animation: "tree-sway 4s ease-in-out infinite",
-          zIndex: 1,
-        }}
-      >
-        🎄
-      </div>
-      {/* Additional snowmen - lower z-index */}
-      <div
-        className="fixed bottom-40 right-16 text-3xl opacity-60 pointer-events-none"
-        style={{
-          animation: "snowman-bounce 2.5s ease-in-out infinite",
-          zIndex: 1,
-        }}
-      >
-        ⛄
-      </div>
-      <div
-        className="fixed top-60 left-20 text-2xl opacity-50 pointer-events-none"
-        style={{
-          animation: "snowman-bounce 3s ease-in-out infinite",
-          zIndex: 1,
-        }}
-      >
-        ⛄
-      </div>
     </>
   );
 }
