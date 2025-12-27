@@ -88,6 +88,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const isActive = searchParams.get("isActive");
     const userId = searchParams.get("userId") || request.headers.get("x-user-id");
+    const search = searchParams.get("search") || searchParams.get("q");
     
     const where: any = {};
     
@@ -101,6 +102,14 @@ export async function GET(request: Request) {
       where.isActive = isActive === "true";
     }
     // If userId exists and isActive is not specified, show all listings (user can see their own inactive ones)
+    
+    // Add search filter if provided
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
     
     const listings = await prisma.listing.findMany({
       where,

@@ -46,10 +46,19 @@ export default function SearchBar({ className = "" }: { className?: string }) {
     setLoading(true);
     setIsOpen(true);
     try {
-      const response = await fetch(`/api/products/search?q=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/listings?search=${encodeURIComponent(query)}`);
       if (response.ok) {
-        const data = await response.json();
-        setResults(data.slice(0, 8)); // Limit to 8 results
+        const listings = await response.json();
+        // Transform listings to search result format
+        const transformed: SearchResult[] = listings.slice(0, 8).map((listing: any) => ({
+          id: listing.id,
+          title: listing.title,
+          price: listing.priceCents,
+          shop: {
+            name: listing.seller?.username || listing.seller?.email || "Unknown",
+          },
+        }));
+        setResults(transformed);
       }
     } catch (error) {
       console.error("Search error:", error);
@@ -109,7 +118,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
                 {results.map((product) => (
                   <Link
                     key={product.id}
-                    href={`/product/${product.id}`}
+                    href={`/listings/${product.id}`}
                     onClick={handleResultClick}
                     className="block p-4 hover:bg-purple-50 transition-colors"
                   >
