@@ -75,17 +75,38 @@ function MarketplaceContent() {
       if (response.ok) {
         const listings: Listing[] = await response.json();
         
+        console.log("[MARKETPLACE] Fetched listings:", listings.length);
+        console.log("[MARKETPLACE] Selected type:", selectedType);
+        console.log("[MARKETPLACE] Sample listing:", listings[0] ? {
+          id: listings[0].id,
+          title: listings[0].title,
+          digitalFiles: listings[0].digitalFiles,
+          digitalFilesType: typeof listings[0].digitalFiles,
+          digitalFilesIsArray: Array.isArray(listings[0].digitalFiles),
+          digitalFilesLength: Array.isArray(listings[0].digitalFiles) ? listings[0].digitalFiles.length : "N/A"
+        } : "No listings");
+        
         // Filter by type (digital vs physical based on digitalFiles) - done client-side
         let filtered = listings;
         if (selectedType !== "all") {
+          console.log("[MARKETPLACE] Filtering by type:", selectedType, "Total listings:", listings.length);
           filtered = filtered.filter(listing => {
+            const hasDigitalFiles = listing.digitalFiles && 
+              ((Array.isArray(listing.digitalFiles) && listing.digitalFiles.length > 0) ||
+               (typeof listing.digitalFiles === 'string' && listing.digitalFiles.trim().length > 0));
+            
             if (selectedType === "DIGITAL") {
-              return listing.digitalFiles && listing.digitalFiles.length > 0;
+              const isDigital = hasDigitalFiles;
+              if (isDigital) {
+                console.log("[MARKETPLACE] Digital listing found:", listing.id, listing.title, "digitalFiles:", listing.digitalFiles);
+              }
+              return isDigital;
             } else if (selectedType === "PHYSICAL") {
-              return !listing.digitalFiles || listing.digitalFiles.length === 0;
+              return !hasDigitalFiles;
             }
             return true;
           });
+          console.log("[MARKETPLACE] After filter:", filtered.length, selectedType, "listings");
         }
         
         // Transform Listing to Product format for ProductCard
@@ -118,7 +139,13 @@ function MarketplaceContent() {
             title: listing.title,
             price: listing.priceCents,
             images: images,
-            type: listing.digitalFiles && listing.digitalFiles.length > 0 ? "DIGITAL" : "PHYSICAL",
+            type: (() => {
+              const digitalFiles = listing.digitalFiles;
+              const hasDigitalFiles = digitalFiles && 
+                ((Array.isArray(digitalFiles) && digitalFiles.length > 0) ||
+                 (typeof digitalFiles === 'string' && digitalFiles.trim().length > 0));
+              return hasDigitalFiles ? "DIGITAL" : "PHYSICAL";
+            })(),
             shop: {
               name: listing.seller.username || listing.seller.email,
             },
