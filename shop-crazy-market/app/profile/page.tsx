@@ -69,12 +69,22 @@ export default function ProfilePage() {
         setStats((prev) => ({ ...prev, favorites: favorites.length }));
       }
 
-      // Fetch listings count
-      const listingsRes = await fetch(`/api/products/my-listings?userId=${user?.id}`);
+      // Fetch listings count (both Listing and Product models)
+      const [listingsRes, productsRes] = await Promise.all([
+        fetch(`/api/listings/my-listings?userId=${user?.id}`),
+        fetch(`/api/products/my-listings?userId=${user?.id}`),
+      ]);
+      
+      let totalListings = 0;
       if (listingsRes.ok) {
-        const data = await listingsRes.json();
-        setStats((prev) => ({ ...prev, listings: data.count || 0 }));
+        const listingsData = await listingsRes.json();
+        totalListings += listingsData.count || 0;
       }
+      if (productsRes.ok) {
+        const productsData = await productsRes.json();
+        totalListings += productsData.count || 0;
+      }
+      setStats((prev) => ({ ...prev, listings: totalListings }));
     } catch (error) {
       console.error("Error fetching stats:", error);
     }
