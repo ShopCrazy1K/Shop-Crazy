@@ -90,16 +90,37 @@ function MarketplaceContent() {
         }
         
         // Transform Listing to Product format for ProductCard
-        const transformed: Product[] = filtered.slice(0, 20).map(listing => ({
-          id: listing.id,
-          title: listing.title,
-          price: listing.priceCents,
-          images: listing.images,
-          type: listing.digitalFiles && listing.digitalFiles.length > 0 ? "DIGITAL" : "PHYSICAL",
-          shop: {
-            name: listing.seller.username || listing.seller.email,
-          },
-        }));
+        const transformed: Product[] = filtered.slice(0, 20).map(listing => {
+          // Ensure images is always an array
+          let images: string[] = [];
+          if (listing.images) {
+            if (Array.isArray(listing.images)) {
+              images = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
+            } else if (typeof listing.images === 'string' && listing.images.trim()) {
+              images = [listing.images];
+            }
+          }
+          
+          // If no images but has image-type digital files, use those
+          if (images.length === 0 && listing.digitalFiles) {
+            const imageDigitalFiles = listing.digitalFiles.filter((url: string) => {
+              const ext = url.split('.').pop()?.toLowerCase();
+              return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
+            });
+            images = imageDigitalFiles;
+          }
+          
+          return {
+            id: listing.id,
+            title: listing.title,
+            price: listing.priceCents,
+            images: images,
+            type: listing.digitalFiles && listing.digitalFiles.length > 0 ? "DIGITAL" : "PHYSICAL",
+            shop: {
+              name: listing.seller.username || listing.seller.email,
+            },
+          };
+        });
         
         setProducts(transformed);
       }
