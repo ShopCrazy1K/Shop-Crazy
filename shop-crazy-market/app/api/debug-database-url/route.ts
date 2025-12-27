@@ -90,20 +90,23 @@ export async function GET() {
       
       try {
         const { prisma } = await import("@/lib/prisma");
-        // Try a simple query to test actual connection
-        await prisma.$queryRaw`SELECT 1 as test`;
+        // Use a simple Prisma query instead of $queryRaw to avoid PgBouncer prepared statement issues
+        // This tests the connection without using prepared statements
+        await prisma.$executeRawUnsafe('SELECT 1');
         prismaTest = {
           tested: true,
           success: true,
           message: "Prisma connection successful",
         };
       } catch (prismaError: any) {
+        const errorMsg = prismaError.message || String(prismaError);
         prismaTest = {
           tested: true,
           success: false,
-          error: prismaError.message || String(prismaError),
-          includesPattern: prismaError.message?.includes('pattern') || prismaError.message?.includes('expected'),
-          isAuthError: prismaError.message?.includes('authentication') || prismaError.message?.includes('credentials'),
+          error: errorMsg,
+          includesPattern: errorMsg.includes('pattern') || errorMsg.includes('expected'),
+          isAuthError: errorMsg.includes('authentication') || errorMsg.includes('credentials'),
+          isPreparedStatementError: errorMsg.includes('prepared statement') || errorMsg.includes('42P05'),
         };
       } finally {
         // Restore original URL
