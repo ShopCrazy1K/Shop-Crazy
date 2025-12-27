@@ -53,6 +53,16 @@ export default function CategoryPage() {
       if (response.ok) {
         const listings = await response.json();
         
+        console.log("[CATEGORY PAGE] Fetched listings:", listings.length);
+        console.log("[CATEGORY PAGE] Slug:", slug);
+        if (slug === "digital-products") {
+          const digitalListings = listings.filter((l: any) => l.digitalFiles && l.digitalFiles.length > 0);
+          console.log("[CATEGORY PAGE] Digital listings found:", digitalListings.length);
+          digitalListings.forEach((l: any) => {
+            console.log("[CATEGORY PAGE] Digital listing:", l.id, l.title, "digitalFiles:", l.digitalFiles?.length);
+          });
+        }
+        
         // Transform listings to product format
         let transformed: Product[] = listings.map((listing: any) => {
           // Normalize images to always be an array
@@ -83,7 +93,11 @@ export default function CategoryPage() {
             price: listing.priceCents,
             images: finalImages,
             category: listing.category || "",
-            type: listing.digitalFiles && listing.digitalFiles.length > 0 ? "DIGITAL" : "PHYSICAL",
+            type: (() => {
+              const hasDigitalFiles = listing.digitalFiles && Array.isArray(listing.digitalFiles) && listing.digitalFiles.length > 0;
+              console.log("[CATEGORY PAGE] Listing", listing.id, "digitalFiles:", listing.digitalFiles, "hasDigitalFiles:", hasDigitalFiles);
+              return hasDigitalFiles ? "DIGITAL" : "PHYSICAL";
+            })(),
             shop: {
               name: listing.seller?.username || listing.seller?.email || "Unknown",
             },
@@ -92,7 +106,13 @@ export default function CategoryPage() {
         
         // For "digital-products" category, filter to only show digital listings
         if (slug === "digital-products") {
-          transformed = transformed.filter(product => product.type === "DIGITAL");
+          console.log("[CATEGORY PAGE] Before filter:", transformed.length, "products");
+          transformed = transformed.filter(product => {
+            const isDigital = product.type === "DIGITAL";
+            console.log("[CATEGORY PAGE] Product:", product.id, product.title, "type:", product.type, "isDigital:", isDigital);
+            return isDigital;
+          });
+          console.log("[CATEGORY PAGE] After filter:", transformed.length, "digital products");
         }
         
         setProducts(transformed);
