@@ -135,8 +135,13 @@ export default function ListingPage() {
         {feeStatus === "success" && (
           <div className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
             <p className="text-green-700">
-              ✅ Payment successful! Your listing is now active.
+              ✅ Payment successful! {listing.isActive ? "Your listing is now active." : "Processing activation..."}
             </p>
+            {!listing.isActive && (
+              <p className="text-sm text-green-600 mt-2">
+                If your listing doesn't activate within a few seconds, please refresh the page.
+              </p>
+            )}
           </div>
         )}
         {feeStatus === "cancel" && (
@@ -148,7 +153,7 @@ export default function ListingPage() {
         )}
 
         {/* Listing Status */}
-        {!listing.isActive && (
+        {!listing.isActive && feeStatus !== "success" && (
           <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
             <p className="text-red-700">
               ⚠️ This listing is inactive. Please complete payment to activate it.

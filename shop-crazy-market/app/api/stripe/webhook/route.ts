@@ -29,14 +29,32 @@ export async function POST(req: Request) {
         const subscriptionId = session.subscription as string;
         const customerId = session.customer as string;
 
-        // Mark listing subscription stored; actual "active" comes from subscription status below
+        console.log("[WEBHOOK] checkout.session.completed for listing_fee:", { listingId, subscriptionId, customerId });
+
+        // Fetch the subscription to check its status
+        let subscriptionStatus = "pending";
+        if (subscriptionId) {
+          try {
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            subscriptionStatus = subscription.status;
+            console.log("[WEBHOOK] Subscription status:", subscriptionStatus);
+          } catch (err: any) {
+            console.error("[WEBHOOK] Error fetching subscription:", err);
+          }
+        }
+
+        // Update listing with subscription info and activate if subscription is active
         await prisma.listing.update({
           where: { id: listingId },
           data: {
             feeSubscriptionId: subscriptionId,
             feeCustomerId: customerId,
+            feeSubscriptionStatus: subscriptionStatus,
+            isActive: subscriptionStatus === "active", // Activate immediately if subscription is active
           },
         });
+
+        console.log("[WEBHOOK] Listing updated:", { listingId, isActive: subscriptionStatus === "active" });
       }
 
       if (session?.metadata?.type === "order") {
