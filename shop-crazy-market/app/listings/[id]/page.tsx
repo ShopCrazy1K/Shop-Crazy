@@ -55,7 +55,7 @@ export default function ListingPage() {
 
   useEffect(() => {
     let isMounted = true;
-    let fetchTimeout: NodeJS.Timeout | undefined;
+    let fetchTimeout: NodeJS.Timeout | undefined = undefined;
     
     async function fetchListing() {
       if (!listingId) {
@@ -150,7 +150,9 @@ export default function ListingPage() {
     
     return () => {
       isMounted = false;
-      if (fetchTimeout) clearTimeout(fetchTimeout);
+      if (fetchTimeout !== undefined) {
+        clearTimeout(fetchTimeout);
+      }
     };
   }, [listingId, feeStatus]);
 
