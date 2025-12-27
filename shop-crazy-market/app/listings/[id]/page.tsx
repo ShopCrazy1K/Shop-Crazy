@@ -55,6 +55,7 @@ export default function ListingPage() {
 
   useEffect(() => {
     let isMounted = true;
+    // Initialize timeout variable to avoid TypeScript "used before assigned" error
     let fetchTimeout: NodeJS.Timeout | undefined = undefined;
     
     async function fetchListing() {
