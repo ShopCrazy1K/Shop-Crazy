@@ -54,6 +54,10 @@ export default function ListingPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+    let fetchTimeout: NodeJS.Timeout;
+    
     async function fetchListing() {
       if (!listingId) {
         setError("No listing ID provided");
@@ -63,23 +67,22 @@ export default function ListingPage() {
 
       console.log("[LISTING PAGE] Fetching listing:", listingId);
       
-      // Add timeout to prevent infinite loading
-      const timeoutId = setTimeout(() => {
-        setError("Request timed out. Please try refreshing the page.");
-        setLoading(false);
-      }, 10000); // 10 second timeout
-      
       try {
         // Add AbortController for timeout
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000); // 8 second timeout for fetch
+        fetchTimeout = setTimeout(() => {
+          controller.abort();
+          if (isMounted) {
+            setError("Request timed out. The server may be experiencing issues. Please try refreshing the page.");
+            setLoading(false);
+          }
+        }, 8000); // 8 second timeout for fetch
         
         const response = await fetch(`/api/listings/${listingId}`, {
           signal: controller.signal,
         });
         
-        clearTimeout(timeout);
-        clearTimeout(timeoutId);
+        clearTimeout(fetchTimeout);
         
         console.log("[LISTING PAGE] Response status:", response.status);
         
@@ -87,43 +90,70 @@ export default function ListingPage() {
           const errorData = await response.json().catch(() => ({}));
           console.error("[LISTING PAGE] Error response:", errorData);
           
+          if (!isMounted) return;
+          
           // If listing not found and we just paid, wait a bit for webhook to process
           if (feeStatus === "success") {
             console.log("[LISTING PAGE] Listing not found yet, waiting for webhook...");
-            // Wait 2 seconds and retry
+            // Wait 2 seconds and retry once
             await new Promise(resolve => setTimeout(resolve, 2000));
+            if (!isMounted) return;
+            
             const retryController = new AbortController();
             const retryTimeout = setTimeout(() => retryController.abort(), 8000);
-            const retryResponse = await fetch(`/api/listings/${listingId}`, {
-              signal: retryController.signal,
-            });
-            clearTimeout(retryTimeout);
-            if (retryResponse.ok) {
-              const data = await retryResponse.json();
-              setListing(data);
-              setLoading(false);
-              return;
+            try {
+              const retryResponse = await fetch(`/api/listings/${listingId}`, {
+                signal: retryController.signal,
+              });
+              clearTimeout(retryTimeout);
+              if (retryResponse.ok) {
+                const retryData = await retryResponse.json();
+                if (isMounted) {
+                  setListing(retryData);
+                  setLoading(false);
+                }
+                return;
+              }
+            } catch (retryErr: any) {
+              clearTimeout(retryTimeout);
+              if (!isMounted) return;
+              console.error("[LISTING PAGE] Retry failed:", retryErr);
             }
           }
-          throw new Error(errorData.error || "Listing not found");
+          
+          if (!isMounted) return;
+          throw new Error(errorData.error || errorData.message || "Listing not found");
         }
+        
         const data = await response.json();
         console.log("[LISTING PAGE] Listing fetched:", data.id, "isActive:", data.isActive);
-        setListing(data);
-      } catch (err: any) {
-        clearTimeout(timeoutId);
-        console.error("[LISTING PAGE] Fetch error:", err);
-        if (err.name === 'AbortError') {
-          setError("Request timed out. The server may be experiencing issues. Please try again.");
-        } else {
-          setError(err.message || "Failed to load listing");
+        if (isMounted) {
+          setListing(data);
+          setLoading(false);
         }
-      } finally {
+      } catch (err: any) {
+        clearTimeout(fetchTimeout);
+        console.error("[LISTING PAGE] Fetch error:", err);
+        if (!isMounted) return;
+        
+        if (err.name === 'AbortError') {
+          setError("Request timed out. The server may be experiencing issues. Please try refreshing the page.");
+        } else if (err.message?.includes("prepared statement")) {
+          setError("Database connection issue. Please try refreshing the page.");
+        } else {
+          setError(err.message || "Failed to load listing. Please try refreshing the page.");
+        }
         setLoading(false);
       }
     }
 
     fetchListing();
+    
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+      if (fetchTimeout) clearTimeout(fetchTimeout);
+    };
   }, [listingId, feeStatus]);
 
   // Auto-activate on payment success
