@@ -21,6 +21,15 @@ export async function POST(req: Request) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
+        listing: {
+          include: {
+            seller: {
+              include: {
+                shop: true,
+              },
+            },
+          },
+        },
         items: {
           include: {
             product: {
@@ -40,14 +49,59 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get fee breakdown from order (now stored directly in order fields)
-    const transactionFee = order.transactionFee || 0;
-    const paymentProcessingFee = order.paymentProcessingFee || 0;
-    const advertisingFee = order.advertisingFee || 0;
+    // Check if this is a marketplace order (new schema) or shop order (legacy)
+    if (order.listing) {
+      // Marketplace order - seller payout is already calculated
+      const seller = order.listing.seller;
+      const stripeAccountId = seller.shop?.stripeAccountId;
+
+      if (!stripeAccountId) {
+        return NextResponse.json(
+          { error: "Seller has no Stripe Connect account" },
+          { status: 400 }
+        );
+      }
+
+      // Transfer the seller payout directly
+      const transfer = await stripe.transfers.create({
+        amount: order.sellerPayoutCents,
+        currency: order.currency || "usd",
+        destination: stripeAccountId,
+        metadata: {
+          orderId: order.id,
+          listingId: order.listingId,
+          sellerId: order.sellerId,
+          platformFee: order.platformFeeCents.toString(),
+          adFee: order.adFeeCents.toString(),
+          processingFee: order.processingFeeCents.toString(),
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        transfers: [{
+          sellerId: order.sellerId,
+          transferId: transfer.id,
+          amount: order.sellerPayoutCents,
+          fees: {
+            platformFee: order.platformFeeCents,
+            adFee: order.adFeeCents,
+            processingFee: order.processingFeeCents,
+            total: order.feesTotalCents,
+          },
+        }],
+      });
+    }
+
+    // Legacy shop-based order handling
+    // Get fee breakdown from order (using new field names with fallback)
+    const transactionFee = order.platformFeeCents || 0;
+    const paymentProcessingFee = order.processingFeeCents || 0;
+    const advertisingFee = order.adFeeCents || 0;
     
-    // Get shipping from metadata if available
+    // Get shipping from order fields or metadata
+    const orderShippingTotal = order.shippingCents || 0;
     const orderMetadata = (order.metadata as any) || {};
-    const orderShippingTotal = parseInt(orderMetadata.shippingTotal || "0") || 0;
 
     // Group items by shop to calculate per-shop payouts
     const shopTotals = new Map<string, { itemTotal: number; shippingTotal: number }>();
@@ -84,9 +138,9 @@ export async function POST(req: Request) {
 
     // Calculate and transfer funds to each shop
     const transfers = [];
-    const itemTotal = parseInt(orderMetadata.itemTotal || "0") || 0;
-    const giftWrapTotal = parseInt(orderMetadata.giftWrapTotal || "0") || 0;
-    const totalSubtotal = itemTotal + orderShippingTotal + giftWrapTotal;
+    const itemTotal = order.itemsSubtotalCents || parseInt(orderMetadata.itemTotal || "0") || 0;
+    const giftWrapTotal = order.giftWrapCents || parseInt(orderMetadata.giftWrapTotal || "0") || 0;
+    const totalSubtotal = order.orderSubtotalCents || (itemTotal + orderShippingTotal + giftWrapTotal);
 
     for (const [shopId, totals] of Array.from(shopTotals.entries())) {
       const stripeAccountId = shopAccountIds.get(shopId);
