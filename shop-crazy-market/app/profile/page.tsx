@@ -297,15 +297,30 @@ export default function ProfilePage() {
                 className="bg-white rounded-lg shadow-md p-4 sm:p-6 hover:shadow-lg transition-shadow"
               >
                 <div className="flex flex-col sm:flex-row gap-4">
-                  {listing.images && listing.images.length > 0 && (
+                  {listing.images && Array.isArray(listing.images) && listing.images.length > 0 ? (
                     <div className="w-full sm:w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                       <img
                         src={listing.images[0]}
                         alt={listing.title}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Hide image if it fails to load
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                     </div>
-                  )}
+                  ) : listing.images && typeof listing.images === 'string' ? (
+                    <div className="w-full sm:w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                      <img
+                        src={listing.images}
+                        alt={listing.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  ) : null}
                   <div className="flex-1">
                     <h3 className="text-lg sm:text-xl font-semibold mb-2">{listing.title}</h3>
                     <p className="text-gray-600 text-sm mb-2 line-clamp-2">{listing.description}</p>
