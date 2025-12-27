@@ -4,7 +4,10 @@ import { PrismaClient } from "@prisma/client";
 function cleanDatabaseUrl(url: string | undefined): string | undefined {
   if (!url) return url;
   
-  // Remove query parameters and hash fragments
+  // Check if pgbouncer parameter exists before cleaning
+  const hasPgbouncer = url.includes('pgbouncer=true');
+  
+  // Remove query parameters and hash fragments (but we'll add pgbouncer back)
   let cleaned = url.split('?')[0].split('#')[0];
   
   // Remove surrounding quotes and whitespace
@@ -46,34 +49,29 @@ function cleanDatabaseUrl(url: string | undefined): string | undefined {
     }
   }
   
+  // Add pgbouncer=true if it was present or if we're using pooler
+  if (hasPgbouncer || cleaned.includes('pooler.supabase.com')) {
+    const separator = cleaned.includes('?') ? '&' : '?';
+    cleaned = `${cleaned}${separator}pgbouncer=true`;
+  }
+  
   return cleaned;
 }
 
 // Clean DATABASE_URL at runtime
 if (process.env.DATABASE_URL) {
   const cleaned = cleanDatabaseUrl(process.env.DATABASE_URL);
-  if (cleaned && cleaned !== process.env.DATABASE_URL) {
+  if (cleaned) {
     process.env.DATABASE_URL = cleaned;
   }
 }
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-// Configure Prisma to work with PgBouncer (disable prepared statements)
-const prismaConfig: any = {
-  log: ["error"],
-};
-
-// Add connection string with pgbouncer parameter if not already present
-let databaseUrl = process.env.DATABASE_URL || "";
-if (databaseUrl && !databaseUrl.includes("pgbouncer=true")) {
-  // Add pgbouncer=true to disable prepared statements
-  const separator = databaseUrl.includes("?") ? "&" : "?";
-  process.env.DATABASE_URL = `${databaseUrl}${separator}pgbouncer=true`;
-}
-
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient(prismaConfig);
+  new PrismaClient({
+    log: ["error"],
+  });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
