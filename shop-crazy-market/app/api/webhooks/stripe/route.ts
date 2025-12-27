@@ -344,22 +344,29 @@ async function handleDispute(dispute: Stripe.Dispute) {
 async function handleListingFeePayment(session: Stripe.Checkout.Session) {
   try {
     const listingId = session.metadata?.listingId;
+    const subscriptionId = session.subscription as string;
+    const customerId = session.customer as string;
     
     if (!listingId) {
       console.error("No listingId in session metadata");
       return;
     }
 
-    // Update listing to activate it (subscription is active)
+    // Update listing to store subscription details and activate it
     await prisma.listing.update({
       where: { id: listingId },
       data: {
-        isActive: true,
+        feeSubscriptionId: subscriptionId || null,
+        feeCustomerId: customerId || null,
         feeSubscriptionStatus: "active",
+        isActive: true,
       },
     });
 
-    console.log(`Listing ${listingId} fee paid and activated`);
+    console.log(`Listing ${listingId} fee paid and activated`, {
+      subscriptionId,
+      customerId,
+    });
   } catch (error: any) {
     console.error("Error handling listing fee payment:", error);
     throw error;
