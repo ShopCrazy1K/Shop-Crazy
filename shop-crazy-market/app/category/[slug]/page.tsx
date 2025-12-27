@@ -35,13 +35,26 @@ export default function CategoryPage() {
 
   async function fetchProducts() {
     try {
-      const response = await fetch(`/api/products?category=${slug}`);
+      // Fetch all listings (category filtering not yet implemented in Listing model)
+      const response = await fetch(`/api/listings`);
       if (response.ok) {
-        const data = await response.json();
-        setProducts(data);
+        const listings = await response.json();
+        // Transform listings to product format
+        const transformed: Product[] = listings.map((listing: any) => ({
+          id: listing.id,
+          title: listing.title,
+          description: listing.description,
+          price: listing.priceCents,
+          images: listing.images,
+          type: listing.digitalFiles && listing.digitalFiles.length > 0 ? "DIGITAL" : "PHYSICAL",
+          shop: {
+            name: listing.seller?.username || listing.seller?.email || "Unknown",
+          },
+        }));
+        setProducts(transformed);
       }
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error("Error fetching listings:", error);
     } finally {
       setLoading(false);
     }
@@ -102,7 +115,35 @@ export default function CategoryPage() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <Link key={product.id} href={`/listings/${product.id}`}>
+              <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
+                <div className="h-32 bg-gray-200 relative">
+                  {product.images && Array.isArray(product.images) && product.images[0] ? (
+                    <img
+                      src={product.images[0]}
+                      alt={product.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      📦
+                    </div>
+                  )}
+                  {product.type === "DIGITAL" && (
+                    <div className="absolute top-2 right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">
+                      💾 Digital
+                    </div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <h3 className="font-bold truncate text-sm">{product.title}</h3>
+                  {product.shop && (
+                    <p className="text-xs text-gray-500 truncate">{product.shop.name}</p>
+                  )}
+                  <p className="text-lg font-bold text-purple-600 mt-1">${(product.price / 100).toFixed(2)}</p>
+                </div>
+              </div>
+            </Link>
           ))}
         </div>
       )}
