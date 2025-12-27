@@ -81,12 +81,22 @@ export default function ListingPage() {
         
         console.log("[LISTING PAGE] Starting fetch to:", `/api/listings/${listingId}`);
         const startTime = Date.now();
-        const response = await fetch(`/api/listings/${listingId}`, {
+        
+        // Use absolute URL to avoid any routing issues
+        const apiUrl = `/api/listings/${listingId}`;
+        console.log("[LISTING PAGE] Fetch URL:", apiUrl);
+        
+        const response = await fetch(apiUrl, {
           signal: controller.signal,
           cache: 'no-store',
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
         });
+        
         const fetchTime = Date.now() - startTime;
-        console.log("[LISTING PAGE] Fetch completed in", fetchTime, "ms, status:", response.status);
+        console.log("[LISTING PAGE] Fetch completed in", fetchTime, "ms, status:", response.status, "ok:", response.ok);
         
         clearTimeout(fetchTimeout);
         
