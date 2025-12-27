@@ -191,6 +191,7 @@ export async function PUT(req: NextRequest, context: Ctx) {
         title: body.title,
         description: body.description,
         priceCents: body.priceCents,
+        category: body.category || null,
         images: body.images || [],
         digitalFiles: body.digitalFiles || [],
       },
