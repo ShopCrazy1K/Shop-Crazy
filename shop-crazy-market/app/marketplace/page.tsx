@@ -7,6 +7,22 @@ import ProductCard from "@/components/ProductCard";
 import { categories } from "@/lib/categories";
 import SearchBar from "@/components/SearchBar";
 
+interface Listing {
+  id: string;
+  title: string;
+  description: string;
+  priceCents: number;
+  currency: string;
+  images: string[];
+  digitalFiles: string[];
+  isActive: boolean;
+  seller: {
+    id: string;
+    email: string;
+    username: string | null;
+  };
+}
+
 interface Product {
   id: string;
   title: string;
@@ -38,29 +54,57 @@ function MarketplaceContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    fetchProducts();
+    fetchListings();
   }, [selectedCategory, selectedType, searchQuery]);
 
-  async function fetchProducts() {
+  async function fetchListings() {
     try {
-      let url = "/api/products?";
-      if (selectedCategory !== "all") {
-        url += `category=${selectedCategory}&`;
-      }
-      if (selectedType !== "all") {
-        url += `type=${selectedType}&`;
-      }
-      if (searchQuery) {
-        url += `search=${encodeURIComponent(searchQuery)}&`;
-      }
-
-      const response = await fetch(url);
+      // Fetch from listings API (guest users will only see active listings)
+      const response = await fetch("/api/listings");
       if (response.ok) {
-        const data = await response.json();
-        setProducts(data.slice(0, 20)); // Limit to 20 for mobile
+        const listings: Listing[] = await response.json();
+        
+        // Filter by search query if provided
+        let filtered = listings;
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          filtered = listings.filter(listing => 
+            listing.title.toLowerCase().includes(query) ||
+            listing.description.toLowerCase().includes(query)
+          );
+        }
+        
+        // Filter by category (if we add category to Listing model later)
+        // For now, we'll skip category filtering as Listing doesn't have category field
+        
+        // Filter by type (digital vs physical based on digitalFiles)
+        if (selectedType !== "all") {
+          filtered = filtered.filter(listing => {
+            if (selectedType === "DIGITAL") {
+              return listing.digitalFiles && listing.digitalFiles.length > 0;
+            } else if (selectedType === "PHYSICAL") {
+              return !listing.digitalFiles || listing.digitalFiles.length === 0;
+            }
+            return true;
+          });
+        }
+        
+        // Transform Listing to Product format for ProductCard
+        const transformed: Product[] = filtered.slice(0, 20).map(listing => ({
+          id: listing.id,
+          title: listing.title,
+          price: listing.priceCents,
+          images: listing.images,
+          type: listing.digitalFiles && listing.digitalFiles.length > 0 ? "DIGITAL" : "PHYSICAL",
+          shop: {
+            name: listing.seller.username || listing.seller.email,
+          },
+        }));
+        
+        setProducts(transformed);
       }
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error("Error fetching listings:", error);
     } finally {
       setLoading(false);
     }
@@ -172,7 +216,35 @@ function MarketplaceContent() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <Link key={product.id} href={`/listings/${product.id}`}>
+              <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
+                <div className="h-32 bg-gray-200 relative">
+                  {product.images && Array.isArray(product.images) && product.images[0] ? (
+                    <img
+                      src={product.images[0]}
+                      alt={product.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      📦
+                    </div>
+                  )}
+                  {product.type === "DIGITAL" && (
+                    <div className="absolute top-2 right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">
+                      💾 Digital
+                    </div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <h3 className="font-bold truncate text-sm">{product.title}</h3>
+                  {product.shop && (
+                    <p className="text-xs text-gray-500 truncate">{product.shop.name}</p>
+                  )}
+                  <p className="text-lg font-bold text-purple-600 mt-1">${(product.price / 100).toFixed(2)}</p>
+                </div>
+              </div>
+            </Link>
           ))}
         </div>
       )}
