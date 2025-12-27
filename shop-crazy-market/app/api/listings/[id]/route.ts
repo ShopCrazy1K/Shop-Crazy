@@ -10,7 +10,10 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function GET(req: NextRequest, context: Ctx) {
   try {
     const { id } = await context.params;
-    console.log("[API LISTINGS ID] Fetching listing with ID:", id);
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId") || req.headers.get("x-user-id");
+    
+    console.log("[API LISTINGS ID] Fetching listing with ID:", id, "userId:", userId || "guest");
     
     // Check if DATABASE_URL is available
     if (!process.env.DATABASE_URL) {
@@ -84,16 +87,35 @@ export async function GET(req: NextRequest, context: Ctx) {
       
       if (listingBySlug) {
         console.log("[API LISTINGS ID] Found listing by slug:", listingBySlug.id);
-        return NextResponse.json(listingBySlug);
+        listing = listingBySlug;
+      } else {
+        return NextResponse.json(
+          { error: "Listing not found" },
+          { status: 404 }
+        );
       }
-      
+    }
+
+    // For guest users (no userId), only show active listings
+    // For authenticated users, show all listings (they can see their own inactive listings)
+    if (!userId && !listing.isActive) {
+      console.log("[API LISTINGS ID] Guest user trying to access inactive listing:", listing.id);
       return NextResponse.json(
         { error: "Listing not found" },
         { status: 404 }
       );
     }
 
-    console.log("[API LISTINGS ID] Listing found:", listing.id);
+    // If user is authenticated but not the owner, only show active listings
+    if (userId && listing.sellerId !== userId && !listing.isActive) {
+      console.log("[API LISTINGS ID] Non-owner trying to access inactive listing:", listing.id);
+      return NextResponse.json(
+        { error: "Listing not found" },
+        { status: 404 }
+      );
+    }
+
+    console.log("[API LISTINGS ID] Listing found:", listing.id, "isActive:", listing.isActive);
     return NextResponse.json(listing);
   } catch (error: any) {
     console.error("[API LISTINGS ID] Error fetching listing:", error);
