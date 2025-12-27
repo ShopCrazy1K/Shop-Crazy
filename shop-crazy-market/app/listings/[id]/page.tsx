@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Listing {
   id: string;
@@ -27,8 +28,11 @@ export default function ListingPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
   const listingId = params.id as string;
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const feeStatus = searchParams.get("fee");
 
   // Handle "new" route - redirect to create page
@@ -248,6 +252,64 @@ export default function ListingPage() {
         });
     }
   }, [listingId, listing, loading]);
+
+  // Check favorite status when listing loads
+  useEffect(() => {
+    if (listing && user) {
+      checkFavoriteStatus();
+    }
+  }, [listing, user]);
+
+  // Check favorite status
+  async function checkFavoriteStatus() {
+    if (!user || !listingId) return;
+    try {
+      const response = await fetch(`/api/listings/${listingId}/favorite?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setIsFavorited(data.isFavorited || false);
+      }
+    } catch (error) {
+      console.error("Error checking favorite status:", error);
+    }
+  }
+
+  // Toggle favorite
+  async function toggleFavorite() {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    setFavoriteLoading(true);
+    try {
+      if (isFavorited) {
+        // Remove from favorites
+        const response = await fetch(`/api/listings/${listingId}/favorite?userId=${user.id}`, {
+          method: "DELETE",
+        });
+        if (response.ok) {
+          setIsFavorited(false);
+        }
+      } else {
+        // Add to favorites
+        const response = await fetch(`/api/listings/${listingId}/favorite`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId: user.id }),
+        });
+        if (response.ok) {
+          setIsFavorited(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -497,7 +559,33 @@ export default function ListingPage() {
 
             {/* Details */}
             <div className="md:w-1/2 p-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">{listing.title}</h1>
+              <div className="flex items-start justify-between mb-4">
+                <h1 className="text-3xl font-bold text-gray-900 flex-1">{listing.title}</h1>
+                {/* Favorite Button */}
+                {user && (
+                  <button
+                    onClick={toggleFavorite}
+                    disabled={favoriteLoading}
+                    className={`ml-4 p-2 rounded-full transition-colors ${
+                      isFavorited
+                        ? "bg-red-100 text-red-600 hover:bg-red-200"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    } disabled:opacity-50`}
+                    aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                    title={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    {isFavorited ? (
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
               
               <div className="mb-6">
                 <p className="text-4xl font-bold text-purple-600 mb-2">

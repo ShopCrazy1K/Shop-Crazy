@@ -74,8 +74,12 @@ function MarketplaceContent() {
           );
         }
         
-        // Filter by category (if we add category to Listing model later)
-        // For now, we'll skip category filtering as Listing doesn't have category field
+        // Filter by category
+        if (selectedCategory !== "all") {
+          filtered = filtered.filter(listing => {
+            return listing.category === selectedCategory;
+          });
+        }
         
         // Filter by type (digital vs physical based on digitalFiles)
         if (selectedType !== "all") {

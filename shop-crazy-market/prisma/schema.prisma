@@ -155,6 +155,7 @@ model Listing {
   slug        String @unique
   priceCents  Int    @default(0)
   currency    String @default("usd")
+  category    String? // Category slug: "shop-4-us", "game-zone", etc.
 
   // Digital files / assets (store URLs or storage keys)
   digitalFiles String[] @default([])
