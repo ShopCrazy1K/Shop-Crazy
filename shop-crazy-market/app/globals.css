@@ -361,3 +361,211 @@ main, [role="main"], .main-content {
   background: rgba(249, 250, 251, 0.9) !important;
 }
 
+/* 🎨 90s NICKELODEON MARKETPLACE BACKGROUND */
+.marketplace-90s-bg {
+  position: relative;
+  min-height: 100vh;
+  background: 
+    /* Base gradient - bright 90s colors */
+    linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 25%, #ffe66d 50%, #ff6b9d 75%, #c44569 100%),
+    /* Splatter pattern overlay */
+    radial-gradient(circle at 20% 30%, rgba(255, 107, 107, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(78, 205, 196, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(255, 230, 109, 0.2) 0%, transparent 60%),
+    /* Diagonal stripes */
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(255, 107, 107, 0.1) 10px,
+      rgba(255, 107, 107, 0.1) 20px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 10px,
+      rgba(78, 205, 196, 0.1) 10px,
+      rgba(78, 205, 196, 0.1) 20px
+    );
+  background-size: 200% 200%, 100% 100%, 100% 100%, 100% 100%, 50px 50px, 50px 50px;
+  animation: nick-gradient-shift 15s ease infinite;
+  overflow: hidden;
+}
+
+@keyframes nick-gradient-shift {
+  0%, 100% { background-position: 0% 50%, 0% 0%, 100% 100%, 50% 50%, 0% 0%, 0% 0%; }
+  50% { background-position: 100% 50%, 100% 100%, 0% 0%, 50% 50%, 50px 50px, 50px 50px; }
+}
+
+/* Graffiti text styles */
+.graffiti-text {
+  position: absolute;
+  font-family: 'Bungee', 'Luckiest Guy', cursive;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.15);
+  text-shadow: 
+    3px 3px 0px rgba(0, 0, 0, 0.3),
+    -2px -2px 0px rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  transform-origin: center;
+  animation: graffiti-float 20s ease-in-out infinite;
+}
+
+.graffiti-text:nth-child(1) {
+  top: 5%;
+  left: 5%;
+  font-size: clamp(3rem, 8vw, 8rem);
+  transform: rotate(-15deg);
+  animation-delay: 0s;
+}
+
+.graffiti-text:nth-child(2) {
+  top: 15%;
+  right: 10%;
+  font-size: clamp(2.5rem, 6vw, 6rem);
+  transform: rotate(12deg);
+  animation-delay: -5s;
+  color: rgba(255, 230, 109, 0.12);
+}
+
+.graffiti-text:nth-child(3) {
+  bottom: 20%;
+  left: 8%;
+  font-size: clamp(2rem, 5vw, 5rem);
+  transform: rotate(-8deg);
+  animation-delay: -10s;
+  color: rgba(78, 205, 196, 0.12);
+}
+
+.graffiti-text:nth-child(4) {
+  bottom: 10%;
+  right: 5%;
+  font-size: clamp(3.5rem, 9vw, 9rem);
+  transform: rotate(18deg);
+  animation-delay: -15s;
+  color: rgba(255, 107, 157, 0.12);
+}
+
+.graffiti-text:nth-child(5) {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-5deg);
+  font-size: clamp(4rem, 10vw, 10rem);
+  animation-delay: -7s;
+  color: rgba(196, 69, 105, 0.1);
+}
+
+.graffiti-text:nth-child(6) {
+  top: 30%;
+  left: 30%;
+  font-size: clamp(2rem, 5vw, 5rem);
+  transform: rotate(25deg);
+  animation-delay: -12s;
+  color: rgba(255, 107, 107, 0.1);
+}
+
+.graffiti-text:nth-child(7) {
+  bottom: 30%;
+  right: 25%;
+  font-size: clamp(2.5rem, 6vw, 6rem);
+  transform: rotate(-20deg);
+  animation-delay: -3s;
+  color: rgba(78, 205, 196, 0.1);
+}
+
+@keyframes graffiti-float {
+  0%, 100% {
+    transform: translateY(0) rotate(var(--rotate, 0deg));
+    opacity: 0.15;
+  }
+  50% {
+    transform: translateY(-20px) rotate(calc(var(--rotate, 0deg) + 5deg));
+    opacity: 0.2;
+  }
+}
+
+/* Splatter effects */
+.marketplace-90s-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 15% 25%, rgba(255, 107, 107, 0.2) 0%, transparent 30%),
+    radial-gradient(circle at 85% 75%, rgba(78, 205, 196, 0.2) 0%, transparent 30%),
+    radial-gradient(circle at 50% 10%, rgba(255, 230, 109, 0.15) 0%, transparent 25%),
+    radial-gradient(circle at 20% 80%, rgba(255, 107, 157, 0.2) 0%, transparent 35%),
+    radial-gradient(circle at 80% 20%, rgba(196, 69, 105, 0.15) 0%, transparent 30%);
+  pointer-events: none;
+  z-index: 0;
+  animation: splatter-pulse 8s ease-in-out infinite;
+}
+
+@keyframes splatter-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+/* Content overlay - ensure readability */
+.marketplace-90s-content {
+  position: relative;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 2rem;
+  margin: 1rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.marketplace-90s-content > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Product cards with 90s flair */
+.marketplace-90s-bg .bg-white {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 3px solid;
+  border-image: linear-gradient(45deg, #ff6b6b, #4ecdc4, #ffe66d, #ff6b9d) 1;
+  box-shadow: 
+    0 4px 15px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(255, 107, 107, 0.3),
+    inset 0 0 10px rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.marketplace-90s-bg .bg-white:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.3),
+    0 0 30px rgba(78, 205, 196, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.6);
+}
+
+/* Buttons with 90s style */
+.marketplace-90s-bg button {
+  background: linear-gradient(135deg, #ff6b6b, #ff6b9d) !important;
+  border: 3px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 
+    0 4px 15px rgba(0, 0, 0, 0.3),
+    inset 0 0 10px rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.marketplace-90s-bg button:hover {
+  transform: scale(1.05);
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
+.marketplace-90s-bg button.bg-purple-600 {
+  background: linear-gradient(135deg, #7c3aed, #a855f7) !important;
+}
+
