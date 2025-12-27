@@ -1,16 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function POST(req: NextRequest, context: Ctx) {
   try {
-    const body = await req.json();
-    const images = body?.images as string[] | undefined;
+    const { id } = await context.params;
+
+    const body = await req.json().catch(() => ({}));
+    const images = body?.images as unknown;
 
     if (!Array.isArray(images) || images.some((x) => typeof x !== "string" || !x.trim())) {
       return NextResponse.json(
@@ -21,7 +22,7 @@ export async function POST(
 
     // Verify listing exists
     const existingListing = await prisma.listing.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { id: true },
     });
 
@@ -33,7 +34,7 @@ export async function POST(
     }
 
     const listing = await prisma.listing.update({
-      where: { id: params.id },
+      where: { id },
       data: { images },
       select: { id: true, images: true },
     });
