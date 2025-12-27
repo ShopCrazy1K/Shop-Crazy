@@ -88,10 +88,11 @@ export default function OrdersPage() {
               Array.isArray(order.listing.digitalFiles) && 
               order.listing.digitalFiles.length > 0;
             const isPaid = order.paymentStatus === "paid";
-            const imageUrl = Array.isArray(order.listing.images) && order.listing.images.length > 0
-              ? order.listing.images[0]
-              : typeof order.listing.images === 'string' && order.listing.images.trim()
-                ? order.listing.images
+            const imagesValue = order.listing.images as any;
+            const imageUrl = Array.isArray(imagesValue) && imagesValue.length > 0
+              ? imagesValue[0]
+              : typeof imagesValue === 'string' && imagesValue.trim()
+                ? imagesValue
                 : null;
             
             return (
