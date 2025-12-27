@@ -9,7 +9,19 @@ export function getSupabaseAdmin() {
     throw new Error('Missing Supabase environment variables');
   }
 
-  return createClient(supabaseUrl, supabaseServiceKey);
+  // Validate JWT format (basic check - should start with eyJ and have 3 parts)
+  const trimmedKey = supabaseServiceKey.trim();
+  const jwtParts = trimmedKey.split('.');
+  
+  if (jwtParts.length !== 3) {
+    throw new Error(`Invalid Supabase API key format. Expected JWT with 3 parts, got ${jwtParts.length}. Please check SUPABASE_SERVICE_ROLE_KEY in Vercel.`);
+  }
+
+  if (!trimmedKey.startsWith('eyJ')) {
+    throw new Error('Invalid Supabase API key format. JWT should start with "eyJ". Please check SUPABASE_SERVICE_ROLE_KEY in Vercel.');
+  }
+
+  return createClient(supabaseUrl, trimmedKey);
 }
 
 // Client-side Supabase client (uses anon key)

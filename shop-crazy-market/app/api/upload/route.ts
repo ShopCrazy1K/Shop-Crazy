@@ -68,6 +68,19 @@ export async function POST(request: Request) {
       supabase = getSupabaseAdmin();
     } catch (error: any) {
       console.error("[UPLOAD] Failed to create Supabase client:", error);
+      
+      // Provide specific help for JWT errors
+      if (error.message?.includes("JWT") || error.message?.includes("key format")) {
+        return NextResponse.json(
+          { 
+            error: "Invalid Supabase API key",
+            details: error.message,
+            help: "Please check your SUPABASE_SERVICE_ROLE_KEY in Vercel. Get it from: Supabase Dashboard → Settings → API → Service Role Key (starts with 'eyJ...')",
+          },
+          { status: 500 }
+        );
+      }
+      
       return NextResponse.json(
         { 
           error: "Failed to initialize Supabase client",
