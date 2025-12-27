@@ -87,19 +87,44 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const isActive = searchParams.get("isActive");
+    const userId = searchParams.get("userId") || request.headers.get("x-user-id");
     
     const where: any = {};
     
-    if (isActive !== null) {
+    // For guest users (no userId), default to only active listings
+    // For authenticated users, respect the isActive parameter or show all
+    if (!userId) {
+      // Guest users can only see active listings
+      where.isActive = true;
+    } else if (isActive !== null) {
+      // Authenticated users can filter by isActive if specified
       where.isActive = isActive === "true";
     }
+    // If userId exists and isActive is not specified, show all listings (user can see their own inactive ones)
     
     const listings = await prisma.listing.findMany({
       where,
+      include: {
+        seller: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: "desc",
       },
     });
+    
+    // If user is authenticated, filter out inactive listings that don't belong to them
+    if (userId) {
+      const filteredListings = listings.filter(listing => 
+        listing.isActive || listing.sellerId === userId
+      );
+      return NextResponse.json(filteredListings);
+    }
     
     return NextResponse.json(listings);
   } catch (error: any) {
