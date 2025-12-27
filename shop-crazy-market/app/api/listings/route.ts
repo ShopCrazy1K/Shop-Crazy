@@ -40,14 +40,16 @@ export async function POST(request: Request) {
     // Create listing
     const listing = await prisma.listing.create({
       data: {
-        sellerId,
+        seller: {
+          connect: { id: sellerId },
+        },
         title: data.title,
         description: data.description,
-        slug,
+        slug: slug,
         priceCents: data.priceCents,
         currency: data.currency ?? "usd",
         images: data.images ?? [],
-        digitalFiles: data.digitalFiles,
+        digitalFiles: data.digitalFiles ?? [],
         isActive: false,
       },
       select: { id: true },
