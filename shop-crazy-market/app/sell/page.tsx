@@ -133,40 +133,77 @@ export default function SellPage() {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      console.log("[UPLOAD] Starting upload for file:", file.name, file.size, file.type);
+      
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to upload ${file.name}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        console.error("[UPLOAD] Upload failed:", errorData);
+        throw new Error(errorData.error || errorData.message || `Failed to upload ${file.name}`);
+      }
+
+      const data = await response.json();
+      console.log("[UPLOAD] Upload successful:", data.url);
+      
+      if (!data.url) {
+        throw new Error("Upload succeeded but no URL returned");
+      }
+      
+      return data.url;
+    } catch (error: any) {
+      console.error("[UPLOAD] Upload error:", error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.url;
   }
 
   async function handleDigitalFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
+    console.log("[DIGITAL FILES] Starting upload for", files.length, "file(s)");
     setDigitalFiles((prev) => [...prev, ...files]);
     setUploadingDigitalFiles(true);
+    setError(""); // Clear previous errors
 
     const newUrls: string[] = [];
+    const errors: string[] = [];
+    
     for (const file of files) {
       try {
+        console.log("[DIGITAL FILES] Uploading:", file.name);
         const url = await handleFileUpload(file);
-        newUrls.push(url);
+        if (url) {
+          newUrls.push(url);
+          console.log("[DIGITAL FILES] Uploaded successfully:", url);
+        } else {
+          throw new Error("No URL returned from upload");
+        }
       } catch (error: any) {
-        alert(`Failed to upload ${file.name}: ${error.message || "Unknown error"}`);
+        const errorMsg = error.message || `Failed to upload ${file.name}`;
+        console.error("[DIGITAL FILES] Upload failed:", errorMsg);
+        errors.push(errorMsg);
         // Remove failed file from list
         setDigitalFiles((prev) => prev.filter(f => f !== file));
       }
     }
 
-    setUploadedDigitalFileUrls((prev) => [...prev, ...newUrls]);
+    if (errors.length > 0) {
+      setError(`Upload errors: ${errors.join(", ")}`);
+    }
+
+    if (newUrls.length > 0) {
+      setUploadedDigitalFileUrls((prev) => {
+        const updated = [...prev, ...newUrls];
+        console.log("[DIGITAL FILES] Total uploaded URLs:", updated.length);
+        return updated;
+      });
+    }
+
     setUploadingDigitalFiles(false);
     e.target.value = ""; // Clear input
   }
