@@ -56,6 +56,13 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     <div
       className={`${theme.bg} ${theme.font} min-h-screen transition-all duration-700`}
       data-theme={theme.name}
+      style={{
+        // Force background for winter theme
+        ...(theme.name === "winter-snow" && {
+          background: "linear-gradient(135deg, #eff6ff 0%, #ffffff 25%, #dbeafe 50%, #ffffff 75%, #eff6ff 100%)",
+          backgroundSize: "400% 400%",
+        }),
+      }}
     >
       {children}
     </div>
