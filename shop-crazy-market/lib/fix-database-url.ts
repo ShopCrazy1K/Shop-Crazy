@@ -23,13 +23,9 @@ export function fixDatabaseUrl(url: string | undefined): string {
   return url;
 }
 
-// Fix DATABASE_URL on module load (only if it exists and we're not in build mode)
-// During build, DATABASE_URL might not be available, so we skip this
-if (
-  typeof process !== 'undefined' && 
-  process.env.DATABASE_URL && 
-  process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV
-) {
+// Fix DATABASE_URL on module load (only if it exists)
+// This runs at module load time, so we wrap it in try-catch to avoid breaking builds
+if (typeof process !== 'undefined' && process.env.DATABASE_URL) {
   try {
     const fixed = fixDatabaseUrl(process.env.DATABASE_URL);
     if (fixed !== process.env.DATABASE_URL) {
