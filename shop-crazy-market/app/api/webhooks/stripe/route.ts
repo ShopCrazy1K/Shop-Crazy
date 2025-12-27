@@ -109,78 +109,113 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     }
 
     const userId = session.metadata.userId;
-    const total = session.amount_total || 0;
+    const totalCents = session.amount_total || 0;
     const paymentIntentId = session.payment_intent as string;
 
     // Extract fee breakdown from session metadata
-    const feeMetadata = {
-      itemTotal: session.metadata.itemTotal || "0",
-      shippingTotal: session.metadata.shippingTotal || "0",
-      giftWrapTotal: session.metadata.giftWrapTotal || "0",
-      transactionFee: session.metadata.transactionFee || "0",
-      paymentProcessingFee: session.metadata.paymentProcessingFee || "0",
-      advertisingFee: session.metadata.advertisingFee || "0",
-      sellerPayout: session.metadata.sellerPayout || "0",
-      country: session.metadata.country || "US",
-      hasAdvertising: session.metadata.hasAdvertising === "true",
-    };
+    const itemsSubtotalCents = parseInt(session.metadata.itemTotal || "0");
+    const shippingCents = parseInt(session.metadata.shippingTotal || "0");
+    const giftWrapCents = parseInt(session.metadata.giftWrapTotal || "0");
+    const taxCents = parseInt(session.metadata.taxCents || "0");
+    const orderSubtotalCents = itemsSubtotalCents + shippingCents + giftWrapCents;
+    const orderTotalCents = orderSubtotalCents + taxCents;
+
+    const platformFeeCents = parseInt(session.metadata.transactionFee || session.metadata.platformFeeCents || "0");
+    const processingFeeCents = parseInt(session.metadata.paymentProcessingFee || session.metadata.processingFeeCents || "0");
+    const adFeeCents = parseInt(session.metadata.advertisingFee || session.metadata.adFeeCents || "0");
+    const feesTotalCents = platformFeeCents + processingFeeCents + adFeeCents;
+    const sellerPayoutCents = parseInt(session.metadata.sellerPayout || session.metadata.sellerPayoutCents || "0");
+
+    // Check if this is a marketplace order (has listingId) or legacy shop order
+    const listingId = session.metadata.listingId;
+    const sellerId = session.metadata.sellerId;
 
     // Create order in database
-    const order = await prisma.order.create({
-      data: {
-        userId,
-        status: "PAID",
-        total,
-        paymentIntentId,
-        stripeSessionId: session.id,
-        metadata: feeMetadata as any,
-        transactionFee: parseInt(feeMetadata.transactionFee),
-        paymentProcessingFee: parseInt(feeMetadata.paymentProcessingFee),
-        advertisingFee: parseInt(feeMetadata.advertisingFee),
-        sellerPayout: parseInt(feeMetadata.sellerPayout),
-        items: {
-          create: await Promise.all(
-            lineItems.data.map(async (item) => {
-              // Try to get product ID from metadata or find by name
-              const productName = item.description || (item.price?.product as any)?.name || "";
-              const productIdFromMetadata = (item.price?.product as any)?.metadata?.productId;
-              
-              let dbProduct;
-              
-              if (productIdFromMetadata) {
-                dbProduct = await prisma.product.findUnique({
-                  where: { id: productIdFromMetadata },
-                });
-              }
-              
-              if (!dbProduct && productName) {
-                dbProduct = await prisma.product.findFirst({
-                  where: {
-                    title: {
-                      contains: productName,
-                    },
+    const orderData: any = {
+      userId: userId || null,
+      buyerEmail: session.customer_email || null,
+      paymentStatus: "paid",
+      orderTotalCents: orderTotalCents || totalCents,
+      stripeSessionId: session.id,
+      stripePaymentIntent: paymentIntentId,
+      itemsSubtotalCents,
+      shippingCents,
+      giftWrapCents,
+      taxCents,
+      orderSubtotalCents,
+      platformFeeCents,
+      processingFeeCents,
+      adFeeCents,
+      feesTotalCents,
+      sellerPayoutCents,
+      processingRule: session.metadata.processingRule || null,
+      adsEnabledAtSale: session.metadata.hasAdvertising === "true" || session.metadata.adsEnabledAtSale === "true",
+    };
+
+    // Add marketplace order fields if this is a listing order
+    if (listingId && sellerId) {
+      orderData.listingId = listingId;
+      orderData.sellerId = sellerId;
+      orderData.currency = session.metadata.currency || "usd";
+    }
+
+    // Only create items for legacy shop orders (not marketplace orders)
+    if (!listingId && lineItems.data.length > 0) {
+      orderData.items = {
+        create: await Promise.all(
+          lineItems.data.map(async (item) => {
+            // Try to get product ID from metadata or find by name
+            const productName = item.description || (item.price?.product as any)?.name || "";
+            const productIdFromMetadata = (item.price?.product as any)?.metadata?.productId;
+            
+            let dbProduct;
+            
+            if (productIdFromMetadata) {
+              dbProduct = await prisma.product.findUnique({
+                where: { id: productIdFromMetadata },
+              });
+            }
+            
+            if (!dbProduct && productName) {
+              dbProduct = await prisma.product.findFirst({
+                where: {
+                  title: {
+                    contains: productName,
                   },
-                });
-              }
+                },
+              });
+            }
 
-              if (!dbProduct) {
-                console.error(`Product not found: ${productName}`);
-                throw new Error(`Product not found: ${productName}`);
-              }
+            if (!dbProduct) {
+              console.error(`Product not found: ${productName}`);
+              throw new Error(`Product not found: ${productName}`);
+            }
 
-              return {
-                productId: dbProduct.id,
-                quantity: item.quantity || 1,
-                price: item.price?.unit_amount || 0,
-              };
-            })
-          ),
-        },
-      },
+            return {
+              productId: dbProduct.id,
+              quantity: item.quantity || 1,
+              price: item.price?.unit_amount || 0,
+            };
+          })
+        ),
+      };
+    }
+
+    const order = await prisma.order.create({
+      data: orderData,
       include: {
         items: {
           include: {
             product: true,
+          },
+        },
+        listing: {
+          include: {
+            seller: {
+              include: {
+                shop: true,
+              },
+            },
           },
         },
       },
@@ -188,48 +223,49 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
     console.log("Order created:", order.id, "Payment Intent:", paymentIntentId);
 
-    // Create fee transaction records for each shop in the order
-    const shopIds = new Set(order.items.map((item) => item.product.shopId));
-    
-    for (const shopId of Array.from(shopIds)) {
-      const shopItems = order.items.filter((item) => item.product.shopId === shopId);
-      const shopItemTotal = shopItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      const orderSubtotal = parseInt(feeMetadata.itemTotal) + parseInt(feeMetadata.shippingTotal) + parseInt(feeMetadata.giftWrapTotal);
-      const shopPercentage = orderSubtotal > 0 ? shopItemTotal / orderSubtotal : 0;
+    // Create fee transaction records (only for legacy shop orders with items)
+    if (order.items && order.items.length > 0) {
+      const shopIds = new Set(order.items.map((item) => item.product.shopId));
+      
+      for (const shopId of Array.from(shopIds)) {
+        const shopItems = order.items.filter((item) => item.product.shopId === shopId);
+        const shopItemTotal = shopItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const shopPercentage = orderSubtotalCents > 0 ? shopItemTotal / orderSubtotalCents : 0;
 
-      await Promise.all([
-        prisma.feeTransaction.create({
-          data: {
-            orderId: order.id,
-            shopId,
-            type: "transaction",
-            amount: Math.round(parseInt(feeMetadata.transactionFee) * shopPercentage),
-            description: `Transaction fee for order ${order.id}`,
-          },
-        }),
-        prisma.feeTransaction.create({
-          data: {
-            orderId: order.id,
-            shopId,
-            type: "payment_processing",
-            amount: Math.round(parseInt(feeMetadata.paymentProcessingFee) * shopPercentage),
-            description: `Payment processing fee for order ${order.id}`,
-          },
-        }),
-        ...(parseInt(feeMetadata.advertisingFee) > 0
-          ? [
-              prisma.feeTransaction.create({
-                data: {
-                  orderId: order.id,
-                  shopId,
-                  type: "advertising",
-                  amount: Math.round(parseInt(feeMetadata.advertisingFee) * shopPercentage),
-                  description: `Advertising fee for order ${order.id}`,
-                },
-              }),
-            ]
-          : []),
-      ]);
+        await Promise.all([
+          prisma.feeTransaction.create({
+            data: {
+              orderId: order.id,
+              shopId,
+              type: "transaction",
+              amount: Math.round(platformFeeCents * shopPercentage),
+              description: `Transaction fee for order ${order.id}`,
+            },
+          }),
+          prisma.feeTransaction.create({
+            data: {
+              orderId: order.id,
+              shopId,
+              type: "payment_processing",
+              amount: Math.round(processingFeeCents * shopPercentage),
+              description: `Payment processing fee for order ${order.id}`,
+            },
+          }),
+          ...(adFeeCents > 0
+            ? [
+                prisma.feeTransaction.create({
+                  data: {
+                    orderId: order.id,
+                    shopId,
+                    type: "advertising",
+                    amount: Math.round(adFeeCents * shopPercentage),
+                    description: `Advertising fee for order ${order.id}`,
+                  },
+                }),
+              ]
+            : []),
+        ]);
+      }
     }
 
     // Trigger seller payout after order is created
@@ -290,8 +326,12 @@ async function handleRefund(charge: Stripe.Charge) {
   // Find order by payment intent
   const paymentIntentId = charge.payment_intent as string;
   
-  // Update order status to refunded
-  // Note: You may want to add a refunds table or update order status
+  // Update order payment status to refunded
+  await prisma.order.updateMany({
+    where: { stripePaymentIntent: paymentIntentId },
+    data: { paymentStatus: "refunded" },
+  });
+  
   console.log("Refund processed for charge:", charge.id);
 }
 
