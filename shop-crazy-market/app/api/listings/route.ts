@@ -118,21 +118,52 @@ export async function GET(request: Request) {
       ];
     }
     
-    const listings = await prisma.listing.findMany({
-      where,
-      include: {
-        seller: {
-          select: {
-            id: true,
-            email: true,
-            username: true,
+    let listings;
+    try {
+      listings = await prisma.listing.findMany({
+        where,
+        include: {
+          seller: {
+            select: {
+              id: true,
+              email: true,
+              username: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+    } catch (error: any) {
+      // If error is about missing category column, try query without category filter
+      if (error.message?.includes("category") || error.message?.includes("Unknown column")) {
+        console.log("[API LISTINGS] Category column not found, retrying without category filter");
+        const whereWithoutCategory = { ...where };
+        delete whereWithoutCategory.category;
+        listings = await prisma.listing.findMany({
+          where: whereWithoutCategory,
+          include: {
+            seller: {
+              select: {
+                id: true,
+                email: true,
+                username: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+        // Filter by category in memory if needed
+        if (category && category !== "all" && listings) {
+          listings = listings.filter((listing: any) => listing.category === category);
+        }
+      } else {
+        throw error;
+      }
+    }
     
     // If user is authenticated, filter out inactive listings that don't belong to them
     if (userId) {
