@@ -29,7 +29,6 @@ export default function ListingPage() {
   const router = useRouter();
   const listingId = params.id as string;
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const feeStatus = searchParams.get("fee");
 
   // Handle "new" route - redirect to create page
@@ -419,12 +418,33 @@ export default function ListingPage() {
             {/* Images */}
             <div className="md:w-1/2">
               {listing.images.length > 0 ? (
-                <div className="aspect-square bg-gray-100">
-                  <img
-                    src={listing.images[0]}
-                    alt={listing.title}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="space-y-4">
+                  {/* Main Image */}
+                  <div className="aspect-square bg-gray-100 cursor-pointer" onClick={() => setSelectedImageIndex(0)}>
+                    <img
+                      src={listing.images[0]}
+                      alt={listing.title}
+                      className="w-full h-full object-contain hover:opacity-90 transition-opacity"
+                    />
+                  </div>
+                  {/* Thumbnail Gallery */}
+                  {listing.images.length > 1 && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {listing.images.slice(0, 4).map((image: string, index: number) => (
+                        <div
+                          key={index}
+                          className="aspect-square bg-gray-100 cursor-pointer border-2 border-transparent hover:border-purple-500 rounded overflow-hidden"
+                          onClick={() => setSelectedImageIndex(index)}
+                        >
+                          <img
+                            src={image}
+                            alt={`${listing.title} - Image ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="aspect-square bg-gray-100 flex items-center justify-center">
