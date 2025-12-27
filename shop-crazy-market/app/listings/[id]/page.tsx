@@ -224,6 +224,7 @@ export default function ListingPage() {
           <p className="text-gray-600 mb-2">Loading listing...</p>
           <p className="text-gray-500 text-sm mb-4">This may take a few seconds.</p>
           <p className="text-gray-400 text-xs mb-4">Listing ID: {listingId}</p>
+          <p className="text-gray-400 text-xs mb-4">Check browser console (F12) for logs</p>
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-left">
               <p className="text-red-600 text-sm font-semibold mb-2">Error:</p>
