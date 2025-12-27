@@ -26,9 +26,12 @@ export async function POST(request: Request) {
     // Check if user has purchased this product
     const hasPurchased = await prisma.order.findFirst({
       where: {
-        userId,
-        status: {
-          in: ["PAID", "COMPLETED"],
+        OR: [
+          { userId: userId },
+          { buyerEmail: userId }, // Support email-based lookup
+        ],
+        paymentStatus: {
+          in: ["paid"],
         },
         items: {
           some: {
