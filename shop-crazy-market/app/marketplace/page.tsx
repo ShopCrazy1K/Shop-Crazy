@@ -91,14 +91,15 @@ function MarketplaceContent() {
         if (selectedType !== "all") {
           console.log("[MARKETPLACE] Filtering by type:", selectedType, "Total listings:", listings.length);
           filtered = filtered.filter(listing => {
-            const hasDigitalFiles = listing.digitalFiles && 
-              ((Array.isArray(listing.digitalFiles) && listing.digitalFiles.length > 0) ||
-               (typeof listing.digitalFiles === 'string' && listing.digitalFiles.trim().length > 0));
+            const digitalFilesValue = listing.digitalFiles as any;
+            const hasDigitalFiles = digitalFilesValue && 
+              ((Array.isArray(digitalFilesValue) && digitalFilesValue.length > 0) ||
+               (typeof digitalFilesValue === 'string' && digitalFilesValue.trim().length > 0));
             
             if (selectedType === "DIGITAL") {
               const isDigital = hasDigitalFiles;
               if (isDigital) {
-                console.log("[MARKETPLACE] Digital listing found:", listing.id, listing.title, "digitalFiles:", listing.digitalFiles);
+                console.log("[MARKETPLACE] Digital listing found:", listing.id, listing.title, "digitalFiles:", digitalFilesValue);
               }
               return isDigital;
             } else if (selectedType === "PHYSICAL") {
@@ -140,10 +141,10 @@ function MarketplaceContent() {
             price: listing.priceCents,
             images: images,
             type: (() => {
-              const digitalFiles = listing.digitalFiles;
-              const hasDigitalFiles = digitalFiles && 
-                ((Array.isArray(digitalFiles) && digitalFiles.length > 0) ||
-                 (typeof digitalFiles === 'string' && digitalFiles.trim().length > 0));
+              const digitalFilesValue = listing.digitalFiles as any;
+              const hasDigitalFiles = digitalFilesValue && 
+                ((Array.isArray(digitalFilesValue) && digitalFilesValue.length > 0) ||
+                 (typeof digitalFilesValue === 'string' && digitalFilesValue.trim().length > 0));
               return hasDigitalFiles ? "DIGITAL" : "PHYSICAL";
             })(),
             shop: {
