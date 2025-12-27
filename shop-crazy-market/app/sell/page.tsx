@@ -497,7 +497,8 @@ export default function SellPage() {
                     : createdProduct?.id || createdProduct?.listingId || String(createdProduct);
                   console.log("[VIEW LISTING] Listing ID:", listingId, "Type:", typeof listingId);
                   if (listingId) {
-                    router.push(`/listings/${listingId}`);
+                    // Redirect to listing page immediately
+                    window.location.href = `/listings/${listingId}`;
                   } else {
                     console.error('[VIEW LISTING] No listing ID found:', createdProduct);
                     alert('Listing ID not found. Please check your listings.');

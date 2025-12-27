@@ -134,27 +134,23 @@ export default function ListingPage() {
         
         const data = await response.json();
         console.log("[LISTING PAGE] Listing fetched:", data.id, "isActive:", data.isActive);
-        console.log("[LISTING PAGE] Component still mounted:", isMounted);
         
         if (!data || !data.id) {
           throw new Error("Invalid listing data received");
         }
         
+        // Update state - use functional update to ensure it works
         if (isMounted) {
           console.log("[LISTING PAGE] Setting listing state and stopping loading");
-          // Update state directly - React should handle this
-          setListing(data);
-          setLoading(false);
-          console.log("[LISTING PAGE] State update called");
-          
-          // Double-check after a brief delay
-          setTimeout(() => {
-            if (isMounted && !listing) {
-              console.warn("[LISTING PAGE] State not updated after 100ms, forcing update");
-              setListing(data);
-              setLoading(false);
-            }
-          }, 100);
+          setListing((prev) => {
+            console.log("[LISTING PAGE] setListing called, prev:", prev);
+            return data;
+          });
+          setLoading((prev) => {
+            console.log("[LISTING PAGE] setLoading(false) called, prev:", prev);
+            return false;
+          });
+          console.log("[LISTING PAGE] State updates called");
         } else {
           console.log("[LISTING PAGE] Component unmounted, not updating state");
         }
