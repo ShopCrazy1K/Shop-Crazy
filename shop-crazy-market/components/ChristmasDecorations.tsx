@@ -51,7 +51,7 @@ export default function ChristmasDecorations() {
           animationDuration: `${5 + Math.random() * 10}s`,
           fontSize: `${10 + Math.random() * 10}px`,
           pointerEvents: 'none',
-          zIndex: 1,
+          zIndex: 0,
         }}
       >
         ❄️

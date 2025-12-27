@@ -51,7 +51,7 @@ export default function WinterDecorations() {
           animationDuration: `${5 + Math.random() * 10}s`,
           fontSize: `${12 + Math.random() * 15}px`,
           pointerEvents: 'none',
-          zIndex: 1,
+          zIndex: 0,
         }}
       >
         ❄️
@@ -72,7 +72,7 @@ export default function WinterDecorations() {
           animationDuration: `${3 + Math.random() * 5}s`,
           fontSize: `${8 + Math.random() * 6}px`,
           pointerEvents: 'none',
-          zIndex: 1,
+          zIndex: 0,
         }}
       >
         •

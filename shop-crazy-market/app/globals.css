@@ -126,10 +126,22 @@
 
 /* Christmas tree and snowman animations removed - only snow animations remain */
 
-/* Ensure images are above decorations */
+/* Ensure images and content are above decorations */
 img, [class*="image"], [class*="Image"], .product-image, .user-image {
   position: relative;
   z-index: 20 !important;
+}
+
+/* Ensure main content is above snow animations */
+main, [role="main"], .main-content {
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure cards and interactive elements are above background */
+.bg-white, .bg-gray-50, .bg-gray-100, [class*="card"], [class*="Card"], button, a, input, textarea, select {
+  position: relative;
+  z-index: 10;
 }
 
 /* Snowflakes falling */
