@@ -142,14 +142,19 @@ export default function ListingPage() {
         
         if (isMounted) {
           console.log("[LISTING PAGE] Setting listing state and stopping loading");
-          // Use setTimeout to ensure state update happens
+          // Update state directly - React should handle this
+          setListing(data);
+          setLoading(false);
+          console.log("[LISTING PAGE] State update called");
+          
+          // Double-check after a brief delay
           setTimeout(() => {
-            if (isMounted) {
+            if (isMounted && !listing) {
+              console.warn("[LISTING PAGE] State not updated after 100ms, forcing update");
               setListing(data);
               setLoading(false);
-              console.log("[LISTING PAGE] State updated successfully");
             }
-          }, 0);
+          }, 100);
         } else {
           console.log("[LISTING PAGE] Component unmounted, not updating state");
         }
