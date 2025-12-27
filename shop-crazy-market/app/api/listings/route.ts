@@ -37,12 +37,10 @@ export async function POST(request: Request) {
       slug = `${baseSlug}-${i++}`;
     }
 
-    // Create listing
+    // Create listing (using unchecked input to avoid TypeScript issues)
     const listing = await prisma.listing.create({
       data: {
-        seller: {
-          connect: { id: sellerId },
-        },
+        sellerId: sellerId,
         title: data.title,
         description: data.description,
         slug: slug,
@@ -51,7 +49,7 @@ export async function POST(request: Request) {
         images: data.images ?? [],
         digitalFiles: data.digitalFiles ?? [],
         isActive: false,
-      },
+      } as any,
       select: { id: true },
     });
     
