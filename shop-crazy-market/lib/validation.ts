@@ -94,7 +94,7 @@ export const createListingSchema = z.object({
   priceCents: z.coerce.number().int().nonnegative().max(10_000_000),
   currency: z.string().optional().default("usd"),
   images: z.array(z.string().min(1)).optional().default([]),
-  // ✅ Accept keys OR URLs
+  // ✅ Accept keys OR URLs - required, must have at least 1
   digitalFiles: z.array(fileKeyOrUrl).min(1, "Upload at least 1 digital file"),
 });
 

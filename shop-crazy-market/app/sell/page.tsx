@@ -240,33 +240,42 @@ export default function SellPage() {
         ];
       }
 
-      // Create the listing
-      const response = await fetch("/api/products", {
+      // Create the listing using new listings API
+      const response = await fetch("/api/listings/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...formData,
-          price: priceInCents,
-          quantity: parseInt(formData.quantity) || 1,
+          title: formData.title,
+          description: formData.description,
+          priceCents: priceInCents,
+          currency: "usd",
           images: finalImages,
-          digitalFileUrls: formData.type === "DIGITAL" ? uploadedDigitalFileUrls : undefined,
-          zone: "SHOP_4_US",
-          userId: user?.id,
+          // digitalFiles is required - ensure we have uploaded files for digital products
+          digitalFiles: formData.type === "DIGITAL" ? uploadedDigitalFileUrls : [],
+          sellerId: user?.id,
         }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        const errorMessage = data.error || "Failed to create listing";
-        setError(errorMessage + (data.details ? `\n\n${data.details}` : ''));
+        const errorMessage = data.message || data.error || "Failed to create listing";
+        // Handle field errors from validation
+        if (data.fieldErrors) {
+          const fieldErrorMessages = Object.entries(data.fieldErrors)
+            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+            .join('\n');
+          setError(errorMessage + '\n\n' + fieldErrorMessages);
+        } else {
+          setError(errorMessage + (data.details ? `\n\n${data.details}` : ''));
+        }
         setLoading(false);
         return;
       }
 
-      const product = await response.json();
-      setCreatedProduct(product);
+      const result = await response.json();
+      setCreatedProduct(result.listing || result);
       setShowSuccess(true);
       setLoading(false);
       
