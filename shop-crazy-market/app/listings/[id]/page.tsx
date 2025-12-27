@@ -35,12 +35,25 @@ export default function ListingPage() {
 
   useEffect(() => {
     async function fetchListing() {
+      if (!listingId) {
+        setError("No listing ID provided");
+        setLoading(false);
+        return;
+      }
+
+      console.log("[LISTING PAGE] Fetching listing:", listingId);
+      
       try {
         const response = await fetch(`/api/listings/${listingId}`);
+        console.log("[LISTING PAGE] Response status:", response.status);
+        
         if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("[LISTING PAGE] Error response:", errorData);
+          
           // If listing not found and we just paid, wait a bit for webhook to process
           if (feeStatus === "success") {
-            console.log("Listing not found yet, waiting for webhook...");
+            console.log("[LISTING PAGE] Listing not found yet, waiting for webhook...");
             // Wait 2 seconds and retry
             await new Promise(resolve => setTimeout(resolve, 2000));
             const retryResponse = await fetch(`/api/listings/${listingId}`);
@@ -51,20 +64,20 @@ export default function ListingPage() {
               return;
             }
           }
-          throw new Error("Listing not found");
+          throw new Error(errorData.error || "Listing not found");
         }
         const data = await response.json();
+        console.log("[LISTING PAGE] Listing fetched:", data.id);
         setListing(data);
       } catch (err: any) {
+        console.error("[LISTING PAGE] Fetch error:", err);
         setError(err.message || "Failed to load listing");
       } finally {
         setLoading(false);
       }
     }
 
-    if (listingId) {
-      fetchListing();
-    }
+    fetchListing();
   }, [listingId, feeStatus]);
 
   if (loading) {
