@@ -105,8 +105,50 @@ export async function GET(request: Request) {
     // Get all favorites for user
     const favorites = await prisma.favorite.findMany({
       where: { userId },
-      include: {
-        product: {
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    // Fetch both products and listings for favorites
+    const favoritesWithData = await Promise.all(
+      favorites.map(async (fav) => {
+        // Try to find as listing first
+        const listing = await prisma.listing.findUnique({
+          where: { id: fav.productId },
+          include: {
+            seller: {
+              select: {
+                id: true,
+                email: true,
+                username: true,
+              },
+            },
+          },
+        });
+
+        if (listing) {
+          // It's a listing
+          return {
+            ...fav,
+            type: "listing" as const,
+            listing: {
+              id: listing.id,
+              title: listing.title,
+              price: listing.priceCents,
+              images: listing.images || [],
+              category: listing.category,
+              type: listing.digitalFiles && listing.digitalFiles.length > 0 ? "DIGITAL" : "PHYSICAL",
+              shop: {
+                name: listing.seller.username || listing.seller.email,
+              },
+            },
+          };
+        }
+
+        // Try to find as product
+        const product = await prisma.product.findUnique({
+          where: { id: fav.productId },
           include: {
             shop: {
               select: {
@@ -114,29 +156,33 @@ export async function GET(request: Request) {
               },
             },
           },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        });
 
-    // Parse images for each product
-    const favoritesWithParsedImages = favorites.map((fav) => ({
-      ...fav,
-      product: {
-        ...fav.product,
-        images: (() => {
-          try {
-            return JSON.parse(fav.product.images || "[]");
-          } catch {
-            return [];
-          }
-        })(),
-      },
-    }));
+        if (product) {
+          // It's a product
+          return {
+            ...fav,
+            type: "product" as const,
+            product: {
+              ...product,
+              images: (() => {
+                try {
+                  return JSON.parse(product.images || "[]");
+                } catch {
+                  return [];
+                }
+              })(),
+            },
+          };
+        }
 
-    return NextResponse.json(favoritesWithParsedImages);
+        // Not found, return null to filter out
+        return null;
+      })
+    );
+
+    // Filter out nulls and return
+    return NextResponse.json(favoritesWithData.filter((fav) => fav !== null));
   } catch (error) {
     console.error("Error fetching favorites:", error);
     return NextResponse.json(
