@@ -39,8 +39,14 @@ export default function ProductCard({ product }: { product: Product }) {
   const imageUrl = images[0] || null;
   const price = `$${(product.price / 100).toFixed(2)}`;
 
+  // Determine the correct link based on whether it's a listing or product
+  // Listings use /listings/, products use /product/
+  const linkHref = product.id.startsWith('cm') || product.id.length > 20 
+    ? `/listings/${product.id}` 
+    : `/product/${product.id}`;
+  
   return (
-    <Link href={`/product/${product.id}`}>
+    <Link href={linkHref}>
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
         <div className="h-32 bg-gray-200 relative">
           {imageUrl ? (
