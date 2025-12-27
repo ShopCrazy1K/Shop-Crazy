@@ -337,7 +337,7 @@ img, [class*="image"], [class*="Image"], .product-image, .user-image {
 }
 
 /* Winter tree sway animation */
-@keyframes winter-tree-sway {
+/* Removed winter-tree-sway animation */
   0%, 100% {
     transform: rotate(-2deg) translateY(0);
   }
