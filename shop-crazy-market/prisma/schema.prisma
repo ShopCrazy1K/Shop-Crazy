@@ -17,22 +17,25 @@ datasource db {
 //////////////////////////////////////
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  username      String?
-  passwordHash  String   // Hashed password
-  role          String   @default("USER") // "USER" or "ADMIN"
+  id           String  @id @default(cuid())
+  email        String  @unique
+  username     String?
+  passwordHash String? // Hashed password (optional for OAuth users)
+  role         String  @default("USER") // "USER" or "ADMIN"
+  adsEnabled   Boolean @default(false) // seller opt-in for ad fee
 
   // Etsy-style relationships
-  shop          Shop?
-  orders        Order[]
-  reviews       Review[]
-  favorites     Favorite[]
-  messagesSent  Message[] @relation("SentMessages")
-  messagesRecv  Message[] @relation("ReceivedMessages")
+  shop         Shop?
+  orders       Order[]
+  reviews      Review[]
+  favorites    Favorite[]
+  messagesSent Message[]  @relation("SentMessages")
+  messagesRecv Message[]  @relation("ReceivedMessages")
+  listings     Listing[]
+  sellerOrders Order[]    @relation("SellerOrders")
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 //////////////////////////////////////
@@ -40,28 +43,28 @@ model User {
 //////////////////////////////////////
 
 model Shop {
-  id                String   @id @default(uuid())
-  name              String   @unique
-  description       String?
-  bannerUrl         String?
-  logoUrl           String?
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+  bannerUrl   String?
+  logoUrl     String?
 
-  ownerId           String   @unique
-  owner             User     @relation(fields: [ownerId], references: [id])
+  ownerId String @unique
+  owner   User   @relation(fields: [ownerId], references: [id])
 
-  stripeAccountId   String?
-  hasAdvertising    Boolean  @default(false)
+  stripeAccountId    String?
+  hasAdvertising     Boolean   @default(false)
   lastListingFeeDate DateTime?
 
-  products          Product[]
-  reviews           Review[]
-  listingFees       ListingFee[]
-  feeTransactions   FeeTransaction[]
+  products            Product[]
+  reviews             Review[]
+  listingFees         ListingFee[]
+  feeTransactions     FeeTransaction[]
   platformConnections PlatformConnection[]
-  sellerStrikes     SellerStrike[]
+  sellerStrikes       SellerStrike[]
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 //////////////////////////////////////
@@ -70,14 +73,14 @@ model Shop {
 
 model CopyrightReport {
   id            String   @id @default(uuid())
-  productId    String
-  product      Product  @relation(fields: [productId], references: [id])
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id])
   reporterEmail String
-  reason       String
-  status       String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED", "RESOLVED"
-  adminNotes   String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  reason        String
+  status        String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED", "RESOLVED"
+  adminNotes    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([productId])
   @@index([status])
@@ -85,15 +88,15 @@ model CopyrightReport {
 }
 
 model SellerStrike {
-  id        String   @id @default(uuid())
-  sellerId  String
-  shop      Shop     @relation(fields: [sellerId], references: [id])
-  reason    String
-  reportId  String?  // Link to CopyrightReport if applicable
-  status    String   @default("ACTIVE") // "ACTIVE", "APPEALED", "OVERTURNED", "UPHELD"
-  appealReason String? // Seller's appeal explanation
+  id                String    @id @default(uuid())
+  sellerId          String
+  shop              Shop      @relation(fields: [sellerId], references: [id])
+  reason            String
+  reportId          String? // Link to CopyrightReport if applicable
+  status            String    @default("ACTIVE") // "ACTIVE", "APPEALED", "OVERTURNED", "UPHELD"
+  appealReason      String? // Seller's appeal explanation
   appealSubmittedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt         DateTime  @default(now())
 
   @@index([sellerId])
   @@index([status])
@@ -104,37 +107,69 @@ model SellerStrike {
 //////////////////////////////////////
 
 model Product {
-  id          String   @id @default(uuid())
+  id          String @id @default(uuid())
   title       String
   description String
   price       Int
-  quantity    Int      @default(1)
-  images      String   // JSON array stored as string: ["url1", "url2"]
+  quantity    Int    @default(1)
+  images      String // JSON array stored as string: ["url1", "url2"]
 
-  zone        String   // "SHOP_4_US", "GAME_ZONE", "FRESH_OUT_WORLD"
-  category    String?  // Category slug: "shop-4-us", "game-zone", etc.
-  type        String   @default("PHYSICAL") // "PHYSICAL" or "DIGITAL"
-  condition   String   // "NEW" or "USED"
-  hidden      Boolean  @default(false) // Auto-hide products with multiple reports
+  zone      String // "SHOP_4_US", "GAME_ZONE", "FRESH_OUT_WORLD"
+  category  String? // Category slug: "shop-4-us", "game-zone", etc.
+  type      String  @default("PHYSICAL") // "PHYSICAL" or "DIGITAL"
+  condition String // "NEW" or "USED"
+  hidden    Boolean @default(false) // Auto-hide products with multiple reports
 
-  shopId      String
-  shop        Shop     @relation(fields: [shopId], references: [id])
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
 
   // Platform integration
   platformConnectionId String?
   platformConnection   PlatformConnection? @relation(fields: [platformConnectionId], references: [id])
-  externalProductId    String?  // ID from Shopify/Printify
-  syncEnabled          Boolean   @default(false)
-  lastSyncedAt        DateTime?
+  externalProductId    String? // ID from Shopify/Printify
+  syncEnabled          Boolean             @default(false)
+  lastSyncedAt         DateTime?
 
-  reviews     Review[]
-  orderItems  OrderItem[]
-  favorites   Favorite[]
-  listingFees ListingFee[]
+  reviews          Review[]
+  orderItems       OrderItem[]
+  favorites        Favorite[]
+  listingFees      ListingFee[]
   copyrightReports CopyrightReport[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+//////////////////////////////////////
+// LISTING
+//////////////////////////////////////
+
+model Listing {
+  id       String @id @default(cuid())
+  sellerId String
+  seller   User   @relation(fields: [sellerId], references: [id])
+
+  title       String
+  description String
+  slug        String @unique
+  priceCents  Int    @default(0)
+  currency    String @default("usd")
+
+  // Digital files / assets (store URLs or storage keys)
+  digitalFiles String[] @default([])
+  images       String[] @default([])
+
+  // Listing subscription fee state ($0.20/mo)
+  isActive              Boolean @default(false)
+  feeSubscriptionId     String?
+  feeSubscriptionStatus String? // active, past_due, canceled...
+  feeCustomerId         String?
+
+  // Orders for this listing
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 //////////////////////////////////////
@@ -142,38 +177,64 @@ model Product {
 //////////////////////////////////////
 
 model Order {
-  id                  String      @id @default(uuid())
-  userId              String
-  user                User        @relation(fields: [userId], references: [id])
+  id String @id @default(uuid())
 
-  status              String   @default("PENDING") // "PENDING", "PAID", "SHIPPED", "COMPLETED", "CANCELLED"
-  total               Int
+  buyerEmail String?
+  sellerId   String
+  seller     User    @relation("SellerOrders", fields: [sellerId], references: [id])
 
-  paymentIntentId     String?
-  stripeSessionId     String?
-  metadata            String?  // JSON stored as string
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id])
 
-  transactionFee      Int?
-  paymentProcessingFee Int?
-  advertisingFee       Int?
-  sellerPayout        Int?
+  currency String @default("usd")
 
-  items               OrderItem[]
-  feeTransactions     FeeTransaction[]
+  // Inputs
+  itemsSubtotalCents Int
+  shippingCents      Int @default(0)
+  giftWrapCents      Int @default(0)
+  taxCents           Int @default(0)
 
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  // Computed
+  orderSubtotalCents Int // items + shipping + gift wrap
+  orderTotalCents    Int // orderSubtotal + tax
+
+  // Fees (computed server-side)
+  platformFeeCents   Int @default(0) // 5% of orderSubtotal
+  adFeeCents         Int @default(0) // 15% of orderSubtotal if seller ads enabled
+  processingFeeCents Int @default(0) // your surcharge (rate + fixed)
+
+  feesTotalCents    Int @default(0)
+  sellerPayoutCents Int @default(0)
+
+  // Stripe
+  stripeSessionId     String? @unique
+  stripePaymentIntent String?
+
+  paymentStatus String @default("pending") // pending, paid, failed, refunded
+
+  // For audit/debug
+  processingRule   String? // e.g. "US_2%_20c"
+  adsEnabledAtSale Boolean @default(false)
+
+  // Legacy relations for backward compatibility with shop-based orders
+  userId          String?
+  user            User?            @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+  feeTransactions FeeTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OrderItem {
-  id          String   @id @default(uuid())
-  orderId     String
-  productId   String
-  quantity    Int
-  price       Int
+  id        String @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Int
 
-  order       Order     @relation(fields: [orderId], references: [id])
-  product     Product   @relation(fields: [productId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 }
 
 //////////////////////////////////////
@@ -181,20 +242,20 @@ model OrderItem {
 //////////////////////////////////////
 
 model Review {
-  id          String   @id @default(uuid())
-  rating      Int
-  comment     String?
+  id      String  @id @default(uuid())
+  rating  Int
+  comment String?
 
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  productId   String?
-  product     Product? @relation(fields: [productId], references: [id])
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
 
-  shopId      String?
-  shop        Shop?    @relation(fields: [shopId], references: [id])
+  shopId String?
+  shop   Shop?   @relation(fields: [shopId], references: [id])
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 //////////////////////////////////////
@@ -202,15 +263,15 @@ model Review {
 //////////////////////////////////////
 
 model Favorite {
-  id          String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([userId, productId])
 }
@@ -220,16 +281,16 @@ model Favorite {
 //////////////////////////////////////
 
 model Message {
-  id          String   @id @default(uuid())
-  content     String
+  id      String @id @default(uuid())
+  content String
 
-  senderId    String
-  receiverId  String
+  senderId   String
+  receiverId String
 
-  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
-  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  sender   User @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 //////////////////////////////////////
@@ -237,19 +298,19 @@ model Message {
 //////////////////////////////////////
 
 model ListingFee {
-  id          String   @id @default(uuid())
-  shopId      String
-  shop        Shop     @relation(fields: [shopId], references: [id])
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id])
-  amount      Int
-  month       Int
-  year        Int
-  paid        Boolean  @default(false)
-  paidAt      DateTime?
+  id              String    @id @default(uuid())
+  shopId          String
+  shop            Shop      @relation(fields: [shopId], references: [id])
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id])
+  amount          Int
+  month           Int
+  year            Int
+  paid            Boolean   @default(false)
+  paidAt          DateTime?
   stripeInvoiceId String?
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([shopId, productId, month, year])
   @@index([shopId, month, year])
@@ -260,17 +321,17 @@ model ListingFee {
 //////////////////////////////////////
 
 model FeeTransaction {
-  id          String   @id @default(uuid())
-  orderId     String?
-  order       Order?   @relation(fields: [orderId], references: [id])
-  shopId      String?
-  shop        Shop?    @relation(fields: [shopId], references: [id])
+  id      String  @id @default(uuid())
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+  shopId  String?
+  shop    Shop?   @relation(fields: [shopId], references: [id])
 
   type        String
   amount      Int
   description String?
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([shopId])
   @@index([orderId])
@@ -282,25 +343,24 @@ model FeeTransaction {
 //////////////////////////////////////
 
 model PlatformConnection {
-  id          String   @id @default(uuid())
-  shopId      String
-  shop        Shop     @relation(fields: [shopId], references: [id])
-  
-  platform    String   // "SHOPIFY" or "PRINTIFY"
-  accessToken String   // Encrypted OAuth token
-  storeName   String?  // Shopify store name or Printify shop name
-  storeUrl    String?  // Store URL
-  
-  isActive    Boolean  @default(true)
-  syncEnabled Boolean  @default(false)
-  
-  products    Product[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id     String @id @default(uuid())
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
+
+  platform    String // "SHOPIFY" or "PRINTIFY"
+  accessToken String // Encrypted OAuth token
+  storeName   String? // Shopify store name or Printify shop name
+  storeUrl    String? // Store URL
+
+  isActive    Boolean @default(true)
+  syncEnabled Boolean @default(false)
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([shopId, platform])
   @@index([shopId])
   @@index([platform])
 }
-

@@ -9,6 +9,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST(req: Request) {
   const body = await req.text();
   const headersList = await headers();
@@ -37,7 +40,27 @@ export async function POST(req: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutSessionCompleted(session);
+        
+        // Check if this is a listing fee subscription
+        if (session.mode === "subscription" && session.metadata?.listingId) {
+          await handleListingFeePayment(session);
+        } else {
+          // Regular product purchase
+          await handleCheckoutSessionCompleted(session);
+        }
+        break;
+      }
+
+      case "customer.subscription.created":
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        await handleSubscriptionUpdate(subscription);
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        await handleInvoicePaymentSucceeded(invoice);
         break;
       }
 
@@ -276,5 +299,89 @@ async function handleDispute(dispute: Stripe.Dispute) {
   // Log dispute for admin review
   console.log("Dispute created:", dispute.id);
   // You can create a dispute record in your database here
+}
+
+async function handleListingFeePayment(session: Stripe.Checkout.Session) {
+  try {
+    const listingId = session.metadata?.listingId;
+    
+    if (!listingId) {
+      console.error("No listingId in session metadata");
+      return;
+    }
+
+    // Update listing to mark fee as paid and activate it
+    await prisma.listing.update({
+      where: { id: listingId },
+      data: {
+        feePaid: true,
+        isActive: true,
+      },
+    });
+
+    console.log(`Listing ${listingId} fee paid and activated`);
+  } catch (error: any) {
+    console.error("Error handling listing fee payment:", error);
+    throw error;
+  }
+}
+
+async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
+  try {
+    // Get the listing ID from subscription metadata
+    const listingId = subscription.metadata?.listingId;
+    
+    if (!listingId) {
+      return; // Not a listing fee subscription
+    }
+
+    // Update listing based on subscription status
+    const isActive = subscription.status === "active" || subscription.status === "trialing";
+    
+    await prisma.listing.update({
+      where: { id: listingId },
+      data: {
+        isActive,
+        feePaid: isActive,
+      },
+    });
+
+    console.log(`Listing ${listingId} subscription updated: ${subscription.status}`);
+  } catch (error: any) {
+    console.error("Error handling subscription update:", error);
+    throw error;
+  }
+}
+
+async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
+  try {
+    // Get subscription from invoice
+    const subscriptionId = invoice.subscription as string;
+    
+    if (!subscriptionId) {
+      return; // Not a subscription invoice
+    }
+
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const listingId = subscription.metadata?.listingId;
+    
+    if (!listingId) {
+      return; // Not a listing fee subscription
+    }
+
+    // Ensure listing is active after successful payment
+    await prisma.listing.update({
+      where: { id: listingId },
+      data: {
+        feePaid: true,
+        isActive: true,
+      },
+    });
+
+    console.log(`Listing ${listingId} monthly fee paid successfully`);
+  } catch (error: any) {
+    console.error("Error handling invoice payment:", error);
+    throw error;
+  }
 }
 

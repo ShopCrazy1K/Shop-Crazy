@@ -28,7 +28,8 @@
     "react-dom": "18.2.0",
     "recharts": "^2.10.3",
     "resend": "^6.6.0",
-    "stripe": "^14.9.0"
+    "stripe": "^14.25.0",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

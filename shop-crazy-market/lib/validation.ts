@@ -4,6 +4,8 @@
  * For more complex validation, consider using Zod
  */
 
+import { z } from "zod";
+
 export function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
@@ -73,4 +75,23 @@ export function validateCheckoutItems(items: any[]): ValidationResult {
 
   return { valid: true };
 }
+
+// Listing validation
+export function slugify(input: string) {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export const createListingSchema = z.object({
+  title: z.string().min(2).max(120),
+  description: z.string().min(2).max(5000),
+  priceCents: z.coerce.number().int().nonnegative().max(10_000_000),
+  currency: z.string().min(3).max(6).default("usd").optional(),
+  images: z.array(z.string()).optional().default([]),
+  digitalFiles: z.array(z.string()).min(1, "At least 1 digital file required"),
+});
 

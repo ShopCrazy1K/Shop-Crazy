@@ -1,0 +1,30 @@
+✅ TRANSACTION POOLER AUTHENTICATION (Port 6543)
+
+For Supabase Transaction Pooler, you MUST use:
+
+Username Format: postgres.<PROJECT_REF>
+- ✅ CORRECT: postgres.hbufjpxdzmygjnbfsniu
+- ❌ WRONG: postgres (will fail authentication)
+
+Complete DATABASE_URL:
+postgresql://postgres.hbufjpxdzmygjnbfsniu:Gotjuiceicemanbaby1@aws-1-us-east-2.pooler.supabase.com:6543/postgres
+
+Key Components:
+- Username: postgres.hbufjpxdzmygjnbfsniu (MUST include project ref)
+- Password: Gotjuiceicemanbaby1
+- Host: aws-1-us-east-2.pooler.supabase.com
+- Port: 6543 (transaction pooler)
+- Database: /postgres
+
+⚠️ IMPORTANT:
+- NO query parameters (?pgbouncer=true&sslmode=require)
+- Username MUST be: postgres.hbufjpxdzmygjnbfsniu (not just postgres)
+- Port MUST be 6543 for transaction pooler
+
+Why Username Format Matters:
+- Transaction pooler (port 6543): Requires postgres.<PROJECT_REF>
+- Direct connection (port 5432): Uses just postgres
+
+Copy this EXACTLY into Vercel DATABASE_URL:
+postgresql://postgres.hbufjpxdzmygjnbfsniu:Gotjuiceicemanbaby1@aws-1-us-east-2.pooler.supabase.com:6543/postgres
+

@@ -1,5 +1,62 @@
 // Fee calculation utilities for Shop Crazy Market
 
+export type CountryCode = "US" | "CA" | "UK" | "AU" | "EU" | "DEFAULT";
+
+type ProcessingRule = {
+  rate: number;      // e.g. 0.02
+  fixedCents: number; // e.g. 20
+  label: string;
+};
+
+const PROCESSING_RULES: Record<CountryCode, ProcessingRule> = {
+  US: { rate: 0.02, fixedCents: 20, label: "US_2%_20c" },
+  CA: { rate: 0.025, fixedCents: 30, label: "CA_2.5%_30c" },
+  UK: { rate: 0.02, fixedCents: 25, label: "UK_2%_25p" }, // treat as "cents" in GBP minor units
+  AU: { rate: 0.022, fixedCents: 30, label: "AU_2.2%_30c" },
+  EU: { rate: 0.021, fixedCents: 25, label: "EU_2.1%_25c" },
+  DEFAULT: { rate: 0.02, fixedCents: 20, label: "DEFAULT_2%_20c" },
+};
+
+function roundToInt(n: number) {
+  return Math.round(n);
+}
+
+export function calcOrderBreakdown(args: {
+  itemsSubtotalCents: number;
+  shippingCents: number;
+  giftWrapCents: number;
+  taxCents: number;
+  country: CountryCode;
+  adsEnabled: boolean;
+}) {
+  const { itemsSubtotalCents, shippingCents, giftWrapCents, taxCents, country, adsEnabled } = args;
+
+  const orderSubtotalCents = itemsSubtotalCents + shippingCents + giftWrapCents;
+  const orderTotalCents = orderSubtotalCents + taxCents;
+
+  const platformFeeCents = roundToInt(orderSubtotalCents * 0.05);
+  const adFeeCents = adsEnabled ? roundToInt(orderSubtotalCents * 0.15) : 0;
+
+  const rule = PROCESSING_RULES[country] ?? PROCESSING_RULES.DEFAULT;
+  const processingFeeCents = roundToInt(orderTotalCents * rule.rate) + rule.fixedCents;
+
+  const feesTotalCents = platformFeeCents + adFeeCents + processingFeeCents;
+  const sellerPayoutCents = Math.max(0, orderTotalCents - feesTotalCents);
+
+  return {
+    orderSubtotalCents,
+    orderTotalCents,
+    platformFeeCents,
+    adFeeCents,
+    processingFeeCents,
+    feesTotalCents,
+    sellerPayoutCents,
+    processingRule: rule.label,
+    adsEnabledAtSale: adsEnabled,
+  };
+}
+
+// Legacy exports for backward compatibility
 export interface FeeBreakdown {
   itemTotal: number; // In cents
   shippingTotal: number; // In cents
