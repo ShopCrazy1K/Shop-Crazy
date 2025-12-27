@@ -116,10 +116,42 @@ export default function ProfilePage() {
     }
   }
 
-  async function handleDeleteProduct(productId: string) {
+  async function handleDeleteListing(listingId: string) {
     if (!user) return;
     
     if (!confirm("Are you sure you want to delete this listing? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/listings/${listingId}?userId=${user?.id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Remove the listing from the list
+        setMyListings((prev) => prev.filter((l) => l.id !== listingId));
+        // Update the listings count
+        setStats((prev) => ({ ...prev, listings: prev.listings - 1 }));
+        alert("Listing deleted successfully!");
+      } else {
+        alert(data.error || "Failed to delete listing");
+      }
+    } catch (error) {
+      console.error("Error deleting listing:", error);
+      alert("An error occurred while deleting the listing");
+    }
+  }
+
+  async function handleDeleteProduct(productId: string) {
+    if (!user) return;
+    
+    if (!confirm("Are you sure you want to delete this product? This action cannot be undone.")) {
       return;
     }
 
@@ -133,17 +165,17 @@ export default function ProfilePage() {
 
       if (response.ok) {
         // Remove the product from the list
-        setMyListings((prev) => prev.filter((p) => p.id !== productId));
+        setMyProducts((prev) => prev.filter((p) => p.id !== productId));
         // Update the listings count
         setStats((prev) => ({ ...prev, listings: prev.listings - 1 }));
-        alert("Listing deleted successfully!");
+        alert("Product deleted successfully!");
       } else {
         const data = await response.json();
-        alert(data.error || "Failed to delete listing");
+        alert(data.error || "Failed to delete product");
       }
     } catch (error) {
       console.error("Error deleting product:", error);
-      alert("An error occurred while deleting the listing");
+      alert("An error occurred while deleting the product");
     }
   }
 
