@@ -15,6 +15,7 @@ export default function EditListingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -63,6 +64,56 @@ export default function EditListingPage() {
       setError(err.message || "Failed to load listing");
       setLoading(false);
     }
+  }
+
+  async function handleFileUpload(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(errorData.error || `Failed to upload ${file.name}`);
+    }
+
+    const uploaded = await response.json();
+    if (!uploaded.url) {
+      throw new Error("Upload succeeded but no URL returned");
+    }
+
+    return uploaded.url;
+  }
+
+  async function handleDigitalFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploadingFiles(true);
+    const newUrls: string[] = [];
+
+    for (const file of files) {
+      try {
+        const url = await handleFileUpload(file);
+        newUrls.push(url);
+      } catch (error: any) {
+        alert(`Failed to upload ${file.name}: ${error.message}`);
+      }
+    }
+
+    setFormData({ ...formData, digitalFiles: [...formData.digitalFiles, ...newUrls] });
+    setUploadingFiles(false);
+    e.target.value = "";
+  }
+
+  function removeDigitalFile(index: number) {
+    setFormData({
+      ...formData,
+      digitalFiles: formData.digitalFiles.filter((_, i) => i !== index),
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -208,37 +259,107 @@ export default function EditListingPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Digital Files (URLs, one per line)
+                Digital Files
               </label>
-              <textarea
-                rows={4}
-                value={formData.digitalFiles.join("\n")}
-                onChange={(e) => {
-                  const urls = e.target.value.split("\n").filter(url => url.trim());
-                  setFormData({ ...formData, digitalFiles: urls });
-                }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="https://example.com/file1.pdf&#10;https://example.com/file2.zip"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Enter digital file URLs (PDFs, ZIPs, etc.), one per line. Leave empty for physical products.
-              </p>
+              
+              {/* File Upload */}
+              <div className="mb-4">
+                <input
+                  type="file"
+                  id="digitalFileUpload"
+                  multiple
+                  onChange={handleDigitalFileChange}
+                  disabled={uploadingFiles}
+                  className="hidden"
+                  accept=".pdf,.zip,.rar,.7z,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.epub,.mobi"
+                />
+                <label
+                  htmlFor="digitalFileUpload"
+                  className={`inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg cursor-pointer ${
+                    uploadingFiles
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-white text-gray-700 hover:bg-gray-50"
+                  } transition-colors`}
+                >
+                  <span className="mr-2">📁</span>
+                  {uploadingFiles ? "Uploading..." : "Upload Files"}
+                </label>
+                {uploadingFiles && (
+                  <p className="mt-2 text-sm text-blue-600">Uploading files, please wait...</p>
+                )}
+              </div>
+
+              {/* Current Digital Files */}
               {formData.digitalFiles.length > 0 && (
-                <div className="mt-2 p-3 bg-purple-50 rounded-lg">
-                  <p className="text-sm text-purple-700 font-semibold mb-1">
-                    💾 This listing is marked as DIGITAL ({formData.digitalFiles.length} file{formData.digitalFiles.length !== 1 ? 's' : ''})
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-semibold text-gray-700">
+                    Current Files ({formData.digitalFiles.length}):
                   </p>
+                  <div className="space-y-2">
+                    {formData.digitalFiles.map((url, index) => {
+                      const fileName = url.split('/').pop() || `File ${index + 1}`;
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {fileName}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">{url}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeDigitalFile(index)}
+                            className="ml-3 px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-2 p-3 bg-purple-50 rounded-lg">
+                    <p className="text-sm text-purple-700 font-semibold">
+                      💾 This listing is marked as DIGITAL ({formData.digitalFiles.length} file{formData.digitalFiles.length !== 1 ? 's' : ''})
+                    </p>
+                  </div>
                 </div>
               )}
+
+              {/* Manual URL Input (Alternative) */}
+              <div className="mt-4">
+                <details className="cursor-pointer">
+                  <summary className="text-sm text-gray-600 hover:text-gray-800">
+                    Or enter file URLs manually
+                  </summary>
+                  <div className="mt-2">
+                    <textarea
+                      rows={3}
+                      value={formData.digitalFiles.join("\n")}
+                      onChange={(e) => {
+                        const urls = e.target.value.split("\n").filter(url => url.trim());
+                        setFormData({ ...formData, digitalFiles: urls });
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="https://example.com/file1.pdf&#10;https://example.com/file2.zip"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Enter file URLs, one per line. Leave empty for physical products.
+                    </p>
+                  </div>
+                </details>
+              </div>
             </div>
 
             <div className="flex gap-4">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || uploadingFiles}
                 className="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {saving ? "Saving..." : "Save Changes"}
+                {saving ? "Saving..." : uploadingFiles ? "Uploading..." : "Save Changes"}
               </button>
               <Link
                 href={`/listings/${listingId}`}
