@@ -350,12 +350,12 @@ async function handleListingFeePayment(session: Stripe.Checkout.Session) {
       return;
     }
 
-    // Update listing to mark fee as paid and activate it
+    // Update listing to activate it (subscription is active)
     await prisma.listing.update({
       where: { id: listingId },
       data: {
-        feePaid: true,
         isActive: true,
+        feeSubscriptionStatus: "active",
       },
     });
 
@@ -382,7 +382,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       where: { id: listingId },
       data: {
         isActive,
-        feePaid: isActive,
+        feeSubscriptionStatus: subscription.status,
       },
     });
 
@@ -413,8 +413,8 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     await prisma.listing.update({
       where: { id: listingId },
       data: {
-        feePaid: true,
         isActive: true,
+        feeSubscriptionStatus: "active",
       },
     });
 
