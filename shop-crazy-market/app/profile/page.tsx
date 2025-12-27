@@ -38,6 +38,7 @@ export default function ProfilePage() {
     messages: 0,
   });
   const [myListings, setMyListings] = useState<any[]>([]);
+  const [myProducts, setMyProducts] = useState<any[]>([]);
   const [loadingListings, setLoadingListings] = useState(false);
 
   useEffect(() => {
@@ -83,10 +84,20 @@ export default function ProfilePage() {
     if (!user) return;
     setLoadingListings(true);
     try {
-      const response = await fetch(`/api/products/my-listings?userId=${user?.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMyListings(data.products || []);
+      // Fetch both Listing and Product records
+      const [listingsRes, productsRes] = await Promise.all([
+        fetch(`/api/listings/my-listings?userId=${user?.id}`),
+        fetch(`/api/products/my-listings?userId=${user?.id}`),
+      ]);
+      
+      if (listingsRes.ok) {
+        const listingsData = await listingsRes.json();
+        setMyListings(listingsData.listings || []);
+      }
+      
+      if (productsRes.ok) {
+        const productsData = await productsRes.json();
+        setMyProducts(productsData.products || []);
       }
     } catch (error) {
       console.error("Error fetching listings:", error);
@@ -237,7 +248,49 @@ export default function ProfilePage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
-            {myListings.map((product) => {
+            {/* Display Listing records */}
+            {myListings.map((listing) => (
+              <div
+                key={listing.id}
+                className="bg-white rounded-lg shadow-md p-4 sm:p-6 hover:shadow-lg transition-shadow"
+              >
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {listing.images && listing.images.length > 0 && (
+                    <div className="w-full sm:w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                      <img
+                        src={listing.images[0]}
+                        alt={listing.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <h3 className="text-lg sm:text-xl font-semibold mb-2">{listing.title}</h3>
+                    <p className="text-gray-600 text-sm mb-2 line-clamp-2">{listing.description}</p>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm">
+                      <span className="font-bold text-purple-600">
+                        ${(listing.priceCents / 100).toFixed(2)}
+                      </span>
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        listing.isActive 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {listing.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                      <Link
+                        href={`/listings/${listing.id}`}
+                        className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+                      >
+                        View →
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* Display Product records (legacy) */}
+            {myProducts.map((product) => {
               const productImages = parseImages(product.images);
               return (
                 <div
