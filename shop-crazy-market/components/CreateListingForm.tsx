@@ -128,6 +128,8 @@ export default function CreateListingForm() {
         sellerId: user.id,
       };
 
+      console.log("[CREATE LISTING FORM] Submitting payload:", payload);
+      
       const res = await fetch("/api/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -135,11 +137,25 @@ export default function CreateListingForm() {
       });
 
       const data = await res.json();
+      console.log("[CREATE LISTING FORM] API response:", data);
+
+      if (!res.ok) {
+        const errorMsg = data?.message || data?.error || `Server error: ${res.status}`;
+        let fieldErrorMessages = "";
+        if (data.fieldErrors) {
+          Object.entries(data.fieldErrors).forEach(([field, errors]) => {
+            fieldErrorMessages += `\n- ${field}: ${(errors as string[]).join(", ")}`;
+          });
+        }
+        setError(errorMsg + (fieldErrorMessages || ""));
+        return;
+      }
 
       if (data?.ok && data?.id) {
+        console.log("[CREATE LISTING FORM] Listing created, redirecting to:", `/listings/${data.id}`);
         router.push(`/listings/${data.id}`);
       } else {
-        setError(data?.message || "Could not create listing.");
+        setError(data?.message || "Could not create listing. No ID returned.");
       }
     } catch (err: any) {
       setError(err.message || "Failed to create listing");

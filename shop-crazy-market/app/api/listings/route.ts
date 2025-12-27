@@ -37,6 +37,15 @@ export async function POST(request: Request) {
       slug = `${baseSlug}-${i++}`;
     }
 
+    console.log("[API LISTINGS] Creating listing with data:", {
+      sellerId,
+      title: data.title,
+      slug,
+      priceCents: data.priceCents,
+      imagesCount: data.images?.length || 0,
+      digitalFilesCount: data.digitalFiles?.length || 0,
+    });
+
     // Create listing (using unchecked input to avoid TypeScript issues)
     const listing = await prisma.listing.create({
       data: {
@@ -52,6 +61,8 @@ export async function POST(request: Request) {
       } as any,
       select: { id: true },
     });
+    
+    console.log("[API LISTINGS] Listing created successfully:", listing.id);
     
     return NextResponse.json({ ok: true, id: listing.id }, { status: 201 });
   } catch (error: any) {
