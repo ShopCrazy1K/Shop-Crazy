@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
+import { categories } from "@/lib/categories";
 
 export default function EditListingPage() {
   const params = useParams();
@@ -21,6 +22,7 @@ export default function EditListingPage() {
     title: "",
     description: "",
     priceCents: 0,
+    category: "",
     images: [] as string[],
     digitalFiles: [] as string[],
   });
@@ -56,6 +58,7 @@ export default function EditListingPage() {
         title: data.title || "",
         description: data.description || "",
         priceCents: data.priceCents || 0,
+        category: data.category || "",
         images: data.images || [],
         digitalFiles: data.digitalFiles || [],
       });
@@ -236,6 +239,25 @@ export default function EditListingPage() {
                   placeholder="0.00"
                 />
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
+              <select
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="">Select a category (optional)</option>
+                {categories.map((cat) => (
+                  <option key={cat.slug} value={cat.slug}>
+                    {cat.emoji} {cat.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
