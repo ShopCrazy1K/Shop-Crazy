@@ -49,10 +49,11 @@ export async function POST(request: Request) {
         images: data.images ?? [],
         digitalFiles: data.digitalFiles,
         isActive: false,
-      } as any, // Type assertion to work around TypeScript cache issue
+      },
+      select: { id: true },
     });
     
-    return NextResponse.json({ ok: true, listing }, { status: 201 });
+    return NextResponse.json({ ok: true, id: listing.id }, { status: 201 });
   } catch (error: any) {
     console.error("Error creating listing:", error);
     

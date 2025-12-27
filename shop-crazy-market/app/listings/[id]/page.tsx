@@ -26,8 +26,28 @@ interface Listing {
 export default function ListingPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const listingId = params.id as string;
   const feeStatus = searchParams.get("fee");
+
+  // Handle "new" route - redirect to create page
+  useEffect(() => {
+    if (listingId === "new") {
+      router.replace("/listings/new");
+      return;
+    }
+  }, [listingId, router]);
+
+  if (listingId === "new" || !listingId || listingId.length < 10) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Create New Listing</h1>
+          <p className="text-gray-600 mb-6">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
   
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
