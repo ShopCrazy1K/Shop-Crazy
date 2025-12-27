@@ -295,6 +295,23 @@ export default function ProfilePage() {
                         View →
                       </Link>
                     </div>
+                    <div className="flex gap-2 mt-3">
+                      <Link
+                        href={`/listings/${listing.id}/edit`}
+                        className="flex-1 bg-blue-500 text-white text-center px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-600 transition-colors"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleDeleteListing(listing.id);
+                        }}
+                        className="flex-1 bg-red-500 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-red-600 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
