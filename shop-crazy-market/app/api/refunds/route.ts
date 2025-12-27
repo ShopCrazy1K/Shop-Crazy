@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     }
 
     // Get payment intent ID from order
-    const paymentIntentId = order.paymentIntentId;
+    const paymentIntentId = order.stripePaymentIntent;
 
     if (!paymentIntentId) {
       return NextResponse.json(
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     }
 
     // Create refund in Stripe
-    const refundAmount = amount || order.total;
+    const refundAmount = amount || order.orderTotalCents;
     const refund = await stripe.refunds.create({
       payment_intent: paymentIntentId,
       amount: refundAmount,
@@ -57,10 +57,10 @@ export async function POST(req: Request) {
       },
     });
 
-    // Update order status
+    // Update order payment status
     await prisma.order.update({
       where: { id: orderId },
-      data: { status: "CANCELLED" },
+      data: { paymentStatus: "refunded" },
     });
 
     return NextResponse.json({
@@ -90,13 +90,13 @@ export async function GET(req: Request) {
         where: { id: orderId },
       });
 
-      if (!order || !order.paymentIntentId) {
+      if (!order || !order.stripePaymentIntent) {
         return NextResponse.json([]);
       }
 
       // Fetch refunds from Stripe
       const refunds = await stripe.refunds.list({
-        payment_intent: order.paymentIntentId,
+        payment_intent: order.stripePaymentIntent,
         limit: 100,
       });
 
@@ -122,7 +122,7 @@ export async function GET(req: Request) {
           dispute.payment_intent as string
         );
         const order = await prisma.order.findFirst({
-          where: { paymentIntentId: paymentIntent.id },
+          where: { stripePaymentIntent: paymentIntent.id },
         });
         return {
           id: dispute.id,
