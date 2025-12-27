@@ -94,14 +94,13 @@ export async function POST(req: Request) {
     }
 
     // Legacy shop-based order handling
-    // Get fee breakdown from order (using new field names with fallback)
+    // Get fee breakdown from order (using new field names)
     const transactionFee = order.platformFeeCents || 0;
     const paymentProcessingFee = order.processingFeeCents || 0;
     const advertisingFee = order.adFeeCents || 0;
     
-    // Get shipping from order fields or metadata
+    // Get shipping from order fields
     const orderShippingTotal = order.shippingCents || 0;
-    const orderMetadata = (order.metadata as any) || {};
 
     // Group items by shop to calculate per-shop payouts
     const shopTotals = new Map<string, { itemTotal: number; shippingTotal: number }>();
@@ -138,8 +137,8 @@ export async function POST(req: Request) {
 
     // Calculate and transfer funds to each shop
     const transfers = [];
-    const itemTotal = order.itemsSubtotalCents || parseInt(orderMetadata.itemTotal || "0") || 0;
-    const giftWrapTotal = order.giftWrapCents || parseInt(orderMetadata.giftWrapTotal || "0") || 0;
+    const itemTotal = order.itemsSubtotalCents || 0;
+    const giftWrapTotal = order.giftWrapCents || 0;
     const totalSubtotal = order.orderSubtotalCents || (itemTotal + orderShippingTotal + giftWrapTotal);
 
     for (const [shopId, totals] of Array.from(shopTotals.entries())) {
