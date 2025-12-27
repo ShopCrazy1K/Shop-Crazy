@@ -24,6 +24,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // Check if user has a password (OAuth users don't have passwordHash)
+    if (!user.passwordHash) {
+      return NextResponse.json(
+        { error: "This account was created with social login. Please use social login to sign in." },
+        { status: 401 }
+      );
+    }
+
     // Verify password
     const isValid = await verifyPassword(password, user.passwordHash);
     if (!isValid) {
