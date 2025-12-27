@@ -130,10 +130,15 @@ export async function POST(request: Request) {
         );
       }
       
+      // Log full error for debugging
+      console.error("[UPLOAD] Full error object:", JSON.stringify(uploadError, null, 2));
+      
       return NextResponse.json(
         { 
           error: "Failed to upload file to storage",
           details: uploadError.message || String(uploadError),
+          errorType: uploadError.name || "Unknown",
+          fullError: process.env.NODE_ENV === 'development' ? uploadError : undefined,
         },
         { status: 500 }
       );

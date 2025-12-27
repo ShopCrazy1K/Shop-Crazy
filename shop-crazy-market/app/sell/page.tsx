@@ -184,8 +184,28 @@ export default function SellPage() {
           throw new Error("No URL returned from upload");
         }
       } catch (error: any) {
-        const errorMsg = error.message || `Failed to upload ${file.name}`;
-        console.error("[DIGITAL FILES] Upload failed:", errorMsg);
+        let errorMsg = error.message || `Failed to upload ${file.name}`;
+        
+        // Try to extract more details from error response
+        if (error.response) {
+          try {
+            const errorData = await error.response.json();
+            if (errorData.details) {
+              errorMsg += `: ${errorData.details}`;
+            }
+            if (errorData.help) {
+              errorMsg += ` (${errorData.help})`;
+            }
+          } catch (e) {
+            // Ignore JSON parse errors
+          }
+        }
+        
+        console.error("[DIGITAL FILES] Upload failed:", {
+          message: errorMsg,
+          error: error,
+          file: file.name,
+        });
         errors.push(errorMsg);
         // Remove failed file from list
         setDigitalFiles((prev) => prev.filter(f => f !== file));
