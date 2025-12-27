@@ -143,16 +143,30 @@ export default function ListingPage() {
         try {
           const text = await response.text();
           console.log("[LISTING PAGE] Response text length:", text.length);
+          console.log("[LISTING PAGE] Response text preview:", text.substring(0, 200));
+          
+          if (!text || text.trim() === '') {
+            throw new Error("Empty response from server");
+          }
+          
           data = JSON.parse(text);
           console.log("[LISTING PAGE] Listing fetched:", data.id, "isActive:", data.isActive);
-        } catch (parseError) {
+          
+          if (!data || !data.id) {
+            throw new Error("Invalid listing data received");
+          }
+        } catch (parseError: any) {
           console.error("[LISTING PAGE] Failed to parse JSON:", parseError);
-          throw new Error("Failed to parse server response");
+          console.error("[LISTING PAGE] Parse error details:", parseError.message);
+          throw new Error(`Failed to parse server response: ${parseError.message}`);
         }
         
         if (isMounted) {
+          console.log("[LISTING PAGE] Setting listing state and stopping loading");
           setListing(data);
           setLoading(false);
+        } else {
+          console.log("[LISTING PAGE] Component unmounted, not updating state");
         }
       } catch (err: any) {
         clearTimeout(fetchTimeout);
