@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       priceCents: data.priceCents,
       imagesCount: data.images?.length || 0,
       digitalFilesCount: data.digitalFiles?.length || 0,
+      isDigital: (data.digitalFiles?.length || 0) > 0,
     });
 
     // Create listing (using unchecked input to avoid TypeScript issues)
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
         currency: data.currency ?? "usd",
         category: data.category ?? null,
         images: data.images ?? [],
-        digitalFiles: data.digitalFiles ?? [],
+        digitalFiles: Array.isArray(data.digitalFiles) ? data.digitalFiles : (data.digitalFiles ? [data.digitalFiles] : []),
         isActive: false,
       } as any,
       select: { id: true },
