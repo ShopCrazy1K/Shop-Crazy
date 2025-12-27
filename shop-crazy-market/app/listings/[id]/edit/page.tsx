@@ -206,6 +206,32 @@ export default function EditListingPage() {
               </p>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Digital Files (URLs, one per line)
+              </label>
+              <textarea
+                rows={4}
+                value={formData.digitalFiles.join("\n")}
+                onChange={(e) => {
+                  const urls = e.target.value.split("\n").filter(url => url.trim());
+                  setFormData({ ...formData, digitalFiles: urls });
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="https://example.com/file1.pdf&#10;https://example.com/file2.zip"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Enter digital file URLs (PDFs, ZIPs, etc.), one per line. Leave empty for physical products.
+              </p>
+              {formData.digitalFiles.length > 0 && (
+                <div className="mt-2 p-3 bg-purple-50 rounded-lg">
+                  <p className="text-sm text-purple-700 font-semibold mb-1">
+                    💾 This listing is marked as DIGITAL ({formData.digitalFiles.length} file{formData.digitalFiles.length !== 1 ? 's' : ''})
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-4">
               <button
                 type="submit"
