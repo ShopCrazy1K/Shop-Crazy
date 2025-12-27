@@ -3,6 +3,7 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "installCommand": "npm install && npx prisma generate"
 }
 
