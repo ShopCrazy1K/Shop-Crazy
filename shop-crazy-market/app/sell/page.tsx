@@ -640,7 +640,7 @@ export default function SellPage() {
                     // Clear files when switching types
                     if (newType === "DIGITAL") {
                       setImageFiles([]);
-                      setUploadedImageUrls([]);
+                      setImages([]);
                       setImageUrls("");
                     } else {
                       setDigitalFiles([]);
