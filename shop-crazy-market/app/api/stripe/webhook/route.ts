@@ -1,76 +1,88 @@
-import { NextResponse } from "next/server";
-import { headers } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import Stripe from "stripe";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-export async function POST(req: Request) {
-  const body = await req.text();
-  const sig = (await headers()).get("stripe-signature");
+export async function POST(req: NextRequest) {
+  const sig = req.headers.get("stripe-signature");
+  
+  if (!sig) {
+    return NextResponse.json(
+      { ok: false, message: "Missing signature" },
+      { status: 400 }
+    );
+  }
 
-  if (!sig) return NextResponse.json({ ok: false, message: "Missing stripe-signature" }, { status: 400 });
+  const rawBody = await req.text();
 
-  let event;
+  let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = stripe.webhooks.constructEvent(
+      rawBody,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
   } catch (err: any) {
-    return NextResponse.json({ ok: false, message: `Webhook error: ${err.message}` }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, message: `Webhook Error: ${err.message}` },
+      { status: 400 }
+    );
   }
 
   try {
-    // 1) Listing fee subscription finished / updated
+    // ✅ Activate listing after subscription checkout completes
     if (event.type === "checkout.session.completed") {
-      const session = event.data.object as any;
+      const session = event.data.object as Stripe.Checkout.Session;
+      const listingId = session.metadata?.listingId;
 
-      if (session?.metadata?.type === "listing_fee") {
-        const listingId = session.metadata.listingId as string;
-        const subscriptionId = session.subscription as string;
-        const customerId = session.customer as string;
+      if (listingId) {
+        const subscriptionId = typeof session.subscription === "string" 
+          ? session.subscription 
+          : session.subscription?.id || null;
+        const customerId = typeof session.customer === "string"
+          ? session.customer
+          : session.customer?.id || null;
 
-        console.log("[WEBHOOK] checkout.session.completed for listing_fee:", { listingId, subscriptionId, customerId });
+        console.log("[WEBHOOK] checkout.session.completed for listing:", { 
+          listingId, 
+          subscriptionId, 
+          customerId 
+        });
 
-        // Fetch the subscription to check its status
+        // Fetch subscription status to determine if we should activate
         let subscriptionStatus = "pending";
+        let isActive = false;
+
         if (subscriptionId) {
           try {
             const subscription = await stripe.subscriptions.retrieve(subscriptionId);
             subscriptionStatus = subscription.status;
+            isActive = subscriptionStatus === "active";
             console.log("[WEBHOOK] Subscription status:", subscriptionStatus);
           } catch (err: any) {
             console.error("[WEBHOOK] Error fetching subscription:", err);
-            // If we can't fetch subscription, still save the IDs and let subscription.updated handle it
-            subscriptionStatus = "unknown";
+            // If we can't fetch, save IDs and let subscription.updated handle activation
           }
-        } else {
-          console.warn("[WEBHOOK] No subscription ID in checkout session");
         }
 
-        // Update listing with subscription info and activate if subscription is active
-        try {
-          const updated = await prisma.listing.update({
-            where: { id: listingId },
-            data: {
-              feeSubscriptionId: subscriptionId || undefined,
-              feeCustomerId: customerId || undefined,
-              feeSubscriptionStatus: subscriptionStatus,
-              isActive: subscriptionStatus === "active", // Activate immediately if subscription is active
-            },
-          });
+        await prisma.listing.update({
+          where: { id: listingId },
+          data: {
+            isActive: isActive,
+            feeSubscriptionId: subscriptionId,
+            feeCustomerId: customerId,
+            feeSubscriptionStatus: subscriptionStatus,
+          },
+        });
 
-          console.log("[WEBHOOK] Listing updated:", { 
-            listingId, 
-            isActive: updated.isActive,
-            subscriptionStatus: updated.feeSubscriptionStatus,
-          });
-        } catch (dbError: any) {
-          console.error("[WEBHOOK] Database error updating listing:", dbError);
-          throw dbError;
-        }
+        console.log("[WEBHOOK] Listing updated:", { listingId, isActive });
       }
 
-      if (session?.metadata?.type === "order") {
+      // Handle order payments
+      if (session.metadata?.type === "order") {
         const orderId = session.metadata.orderId as string;
         const paymentIntent = session.payment_intent as string;
 
