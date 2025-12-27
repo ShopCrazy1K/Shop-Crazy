@@ -50,6 +50,19 @@ export default function SellPage() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [imageUrls, setImageUrls] = useState<string>(""); // Manual URLs
 
+  // Check if user is returning from Stripe checkout
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const pendingListingId = sessionStorage.getItem('pendingListingId');
+      if (pendingListingId) {
+        // User returned from Stripe, show success with listing ID
+        setCreatedProduct(pendingListingId);
+        setShowSuccess(true);
+        sessionStorage.removeItem('pendingListingId');
+      }
+    }
+  }, []);
+
   // Load saved form data from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -469,7 +482,15 @@ export default function SellPage() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => router.push(`/listings/${createdProduct}`)}
+                onClick={() => {
+                  const listingId = typeof createdProduct === 'string' ? createdProduct : createdProduct?.id || createdProduct?.listingId;
+                  if (listingId) {
+                    router.push(`/listings/${listingId}`);
+                  } else {
+                    console.error('No listing ID found:', createdProduct);
+                    alert('Listing ID not found. Please check your listings.');
+                  }
+                }}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg"
               >
                 View Your Listing
