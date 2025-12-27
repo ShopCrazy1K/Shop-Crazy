@@ -10,10 +10,22 @@ export function getHolidayTheme(): HolidayTheme | null {
   const today = new Date();
   const month = today.getMonth() + 1;
   const day = today.getDate();
+  const year = today.getFullYear();
 
-  // 🎄 CHRISTMAS (Dec 1–31) - Extended to full month
+  // 🎊 NEW YEAR'S (Dec 31 - Jan 2, 2026)
+  if ((month === 12 && day === 31) || (month === 1 && day <= 2 && year <= 2026)) {
+    return {
+      name: "new-year",
+      bg: "bg-gradient-to-br from-purple-900 via-indigo-900 to-black",
+      accent: "text-yellow-300",
+      font: "font-neon",
+      animation: "animate-sparkle",
+    };
+  }
+
+  // 🎄 CHRISTMAS (Dec 1–30) - Extended to full month except New Year's Eve
   // Note: This overrides the winter theme for December
-  if (month === 12) {
+  if (month === 12 && day < 31) {
     return {
       name: "christmas-toon",
       bg: "bg-gradient-to-br from-red-200 via-red-100 to-green-200",
