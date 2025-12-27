@@ -9,6 +9,17 @@ type OrderWithRelations = Prisma.OrderGetPayload<{
         email: true;
       };
     };
+    seller: {
+      select: {
+        username: true;
+        email: true;
+      };
+    };
+    listing: {
+      select: {
+        title: true;
+      };
+    };
     items: {
       include: {
         product: {
@@ -36,6 +47,17 @@ export default async function AdminOrders() {
           email: true,
         },
       },
+      seller: {
+        select: {
+          username: true,
+          email: true,
+        },
+      },
+      listing: {
+        select: {
+          title: true,
+        },
+      },
       items: {
         include: {
           product: {
@@ -57,7 +79,7 @@ export default async function AdminOrders() {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status?.toUpperCase()) {
       case "PAID":
         return "text-green-600 bg-green-100";
       case "SHIPPED":
@@ -66,6 +88,12 @@ export default async function AdminOrders() {
         return "text-purple-600 bg-purple-100";
       case "CANCELLED":
         return "text-red-600 bg-red-100";
+      case "PENDING":
+        return "text-yellow-600 bg-yellow-100";
+      case "FAILED":
+        return "text-red-600 bg-red-100";
+      case "REFUNDED":
+        return "text-orange-600 bg-orange-100";
       default:
         return "text-gray-600 bg-gray-100";
     }
@@ -100,19 +128,19 @@ export default async function AdminOrders() {
                 <tr key={o.id} className="border-b hover:bg-gray-50">
                   <td className="p-4 font-mono text-sm">{o.id.slice(0, 8)}...</td>
                   <td className="p-4">
-                    {o.user.username || o.user.email}
+                    {o.buyerEmail || o.user?.email || o.user?.username || "Guest"}
                   </td>
-                  <td className="p-4 text-center">{o.items.length}</td>
+                  <td className="p-4 text-center">{o.items.length || 1}</td>
                   <td className="p-4 text-center font-bold">
-                    ${(o.total / 100).toFixed(2)}
+                    ${((o.orderTotalCents || o.total || 0) / 100).toFixed(2)}
                   </td>
                   <td className="p-4 text-center">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(
-                        o.status
+                        o.paymentStatus || o.status || "pending"
                       )}`}
                     >
-                      {o.status}
+                      {o.paymentStatus || o.status || "pending"}
                     </span>
                   </td>
                   <td className="p-4 text-center text-sm text-gray-500">
