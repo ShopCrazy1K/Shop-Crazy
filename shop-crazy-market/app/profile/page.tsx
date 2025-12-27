@@ -246,7 +246,7 @@ export default function ProfilePage() {
         <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-center">My Listings</h2>
         {loadingListings ? (
           <div className="text-center py-4 text-gray-500">Loading listings...</div>
-        ) : myListings.length === 0 ? (
+        ) : myListings.length === 0 && myProducts.length === 0 ? (
           <div className="text-center py-6 space-y-3">
             <p className="text-gray-500">You haven't created any listings yet.</p>
             <Link
