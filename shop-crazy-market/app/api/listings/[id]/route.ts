@@ -11,7 +11,8 @@ export async function GET(req: NextRequest, context: Ctx) {
     const { id } = await context.params;
     console.log("[API LISTINGS ID] Fetching listing with ID:", id);
 
-    const listing = await prisma.listing.findUnique({
+    // Add timeout wrapper for Prisma query
+    const queryPromise = prisma.listing.findUnique({
       where: { id },
       include: {
         seller: {
@@ -24,10 +25,17 @@ export async function GET(req: NextRequest, context: Ctx) {
       },
     });
 
+    // Race against timeout
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Database query timeout")), 5000)
+    );
+
+    const listing = await Promise.race([queryPromise, timeoutPromise]) as any;
+
     if (!listing) {
       console.log("[API LISTINGS ID] Listing not found for ID:", id);
       // Try to find by slug as fallback
-      const listingBySlug = await prisma.listing.findUnique({
+      const slugQueryPromise = prisma.listing.findUnique({
         where: { slug: id },
         include: {
           seller: {
@@ -39,6 +47,12 @@ export async function GET(req: NextRequest, context: Ctx) {
           },
         },
       });
+
+      const slugTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Database query timeout")), 5000)
+      );
+
+      const listingBySlug = await Promise.race([slugQueryPromise, slugTimeoutPromise]) as any;
       
       if (listingBySlug) {
         console.log("[API LISTINGS ID] Found listing by slug:", listingBySlug.id);

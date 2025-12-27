@@ -63,8 +63,24 @@ export default function ListingPage() {
 
       console.log("[LISTING PAGE] Fetching listing:", listingId);
       
+      // Add timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        setError("Request timed out. Please try refreshing the page.");
+        setLoading(false);
+      }, 10000); // 10 second timeout
+      
       try {
-        const response = await fetch(`/api/listings/${listingId}`);
+        // Add AbortController for timeout
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000); // 8 second timeout for fetch
+        
+        const response = await fetch(`/api/listings/${listingId}`, {
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeout);
+        clearTimeout(timeoutId);
+        
         console.log("[LISTING PAGE] Response status:", response.status);
         
         if (!response.ok) {
@@ -76,7 +92,12 @@ export default function ListingPage() {
             console.log("[LISTING PAGE] Listing not found yet, waiting for webhook...");
             // Wait 2 seconds and retry
             await new Promise(resolve => setTimeout(resolve, 2000));
-            const retryResponse = await fetch(`/api/listings/${listingId}`);
+            const retryController = new AbortController();
+            const retryTimeout = setTimeout(() => retryController.abort(), 8000);
+            const retryResponse = await fetch(`/api/listings/${listingId}`, {
+              signal: retryController.signal,
+            });
+            clearTimeout(retryTimeout);
             if (retryResponse.ok) {
               const data = await retryResponse.json();
               setListing(data);
@@ -90,8 +111,13 @@ export default function ListingPage() {
         console.log("[LISTING PAGE] Listing fetched:", data.id, "isActive:", data.isActive);
         setListing(data);
       } catch (err: any) {
+        clearTimeout(timeoutId);
         console.error("[LISTING PAGE] Fetch error:", err);
-        setError(err.message || "Failed to load listing");
+        if (err.name === 'AbortError') {
+          setError("Request timed out. The server may be experiencing issues. Please try again.");
+        } else {
+          setError(err.message || "Failed to load listing");
+        }
       } finally {
         setLoading(false);
       }
