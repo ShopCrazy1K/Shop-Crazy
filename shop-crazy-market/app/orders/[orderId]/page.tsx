@@ -19,6 +19,7 @@ function OrderContent() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [checkingPayment, setCheckingPayment] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -45,6 +46,46 @@ function OrderContent() {
       setLoading(false);
     }
   }
+
+  async function checkPaymentStatus() {
+    if (!user || !orderId) return;
+    
+    setCheckingPayment(true);
+    try {
+      const response = await fetch(`/api/orders/${orderId}/check-payment?userId=${user.id}`, {
+        method: "POST",
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to check payment status");
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === "paid" && data.order) {
+        setOrder(data.order);
+        alert("✅ Payment confirmed! Your download links are now available.");
+      } else {
+        alert(`Payment status: ${data.status}. ${data.message || "Please wait a moment and try again."}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message || "Failed to check payment status"}`);
+    } finally {
+      setCheckingPayment(false);
+    }
+  }
+
+  // Auto-check payment status if order is pending and we just came from checkout
+  useEffect(() => {
+    if (order && order.paymentStatus === "pending" && paid === "1") {
+      // Wait 2 seconds then check payment status automatically
+      const timer = setTimeout(() => {
+        checkPaymentStatus();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [order, paid]);
 
   if (authLoading || loading) {
     return (
@@ -73,10 +114,27 @@ function OrderContent() {
 
   return (
     <main className="p-6 max-w-2xl mx-auto pb-24">
-      {paid === "1" && (
+      {paid === "1" && order?.paymentStatus === "paid" && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6 text-center">
           <h2 className="text-2xl font-bold text-green-800 mb-2">✅ Payment Successful!</h2>
           <p className="text-green-700">Your order has been confirmed and payment has been processed.</p>
+        </div>
+      )}
+
+      {paid === "1" && order?.paymentStatus === "pending" && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-bold text-blue-800 mb-2">⏳ Verifying Payment...</h2>
+          <p className="text-blue-700 mb-4">
+            Your payment was successful! We're verifying it with our payment processor. 
+            This usually takes just a few seconds.
+          </p>
+          <button
+            onClick={checkPaymentStatus}
+            disabled={checkingPayment}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {checkingPayment ? "Checking..." : "Check Payment Status Now"}
+          </button>
         </div>
       )}
 
@@ -176,10 +234,19 @@ function OrderContent() {
                Array.isArray(order.listing.digitalFiles) && 
                order.listing.digitalFiles.length > 0 && 
                order.paymentStatus !== "paid" && (
-                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-800">
+                <div className="mt-4 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg">
+                  <p className="text-sm text-yellow-800 font-semibold mb-3">
                     ⏳ Download links will be available after payment is confirmed.
                   </p>
+                  {order.paymentStatus === "pending" && (
+                    <button
+                      onClick={checkPaymentStatus}
+                      disabled={checkingPayment}
+                      className="bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {checkingPayment ? "Checking Payment..." : "Check Payment Status"}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
