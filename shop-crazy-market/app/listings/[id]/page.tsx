@@ -78,16 +78,72 @@ export default function ListingPage() {
         }, 8000); // 8 second timeout for fetch
         
         console.log("[LISTING PAGE] Starting fetch to:", `/api/listings/${listingId}`);
+        const startTime = Date.now();
         const response = await fetch(`/api/listings/${listingId}`, {
           signal: controller.signal,
           cache: 'no-store',
-          headers: {
-            'Content-Type': 'application/json',
-          },
         });
-        console.log("[LISTING PAGE] Fetch completed, status:", response.status);
+        const fetchTime = Date.now() - startTime;
+        console.log("[LISTING PAGE] Fetch completed in", fetchTime, "ms, status:", response.status);
         
         clearTimeout(fetchTimeout);
+        
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => 'Unknown error');
+          console.error("[LISTING PAGE] Error response:", errorText);
+          let errorData: any = {};
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { error: errorText || `HTTP ${response.status}` };
+          }
+          
+          // If listing not found and we just paid, wait a bit for webhook to process
+          if (feeStatus === "success" && response.status === 404) {
+            console.log("[LISTING PAGE] Listing not found yet, waiting for webhook...");
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            if (!isMounted) return;
+            
+            const retryController = new AbortController();
+            const retryTimeout = setTimeout(() => retryController.abort(), 8000);
+            try {
+              const retryResponse = await fetch(`/api/listings/${listingId}`, {
+                signal: retryController.signal,
+              });
+              clearTimeout(retryTimeout);
+              if (retryResponse.ok) {
+                const retryData = await retryResponse.json();
+                if (isMounted) {
+                  setListing(retryData);
+                  setLoading(false);
+                }
+                return;
+              }
+            } catch (retryErr: any) {
+              clearTimeout(retryTimeout);
+              if (!isMounted) return;
+              console.error("[LISTING PAGE] Retry failed:", retryErr);
+            }
+          }
+          
+          if (!isMounted) return;
+          throw new Error(errorData.error || errorData.message || "Listing not found");
+        }
+        
+        const data = await response.json();
+        console.log("[LISTING PAGE] Listing fetched:", data.id, "isActive:", data.isActive);
+        
+        if (!data || !data.id) {
+          throw new Error("Invalid listing data received");
+        }
+        
+        if (isMounted) {
+          console.log("[LISTING PAGE] Setting listing state and stopping loading");
+          setListing(data);
+          setLoading(false);
+        } else {
+          console.log("[LISTING PAGE] Component unmounted, not updating state");
+        }
       } catch (err: any) {
         clearTimeout(fetchTimeout);
         console.error("[LISTING PAGE] Fetch error:", err);
