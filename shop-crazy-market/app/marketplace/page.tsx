@@ -219,17 +219,44 @@ function MarketplaceContent() {
             <Link key={product.id} href={`/listings/${product.id}`}>
               <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
                 <div className="h-48 bg-gray-200 relative">
-                  {product.images && Array.isArray(product.images) && product.images[0] ? (
-                    <img
-                      src={product.images[0]}
-                      alt={product.title}
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      📦
-                    </div>
-                  )}
+                  {(() => {
+                    // Handle both array and string formats
+                    let imageUrl: string | null = null;
+                    if (product.images) {
+                      if (Array.isArray(product.images) && product.images.length > 0) {
+                        imageUrl = product.images[0];
+                      } else if (typeof product.images === 'string' && product.images.trim()) {
+                        imageUrl = product.images;
+                      }
+                    }
+                    
+                    if (imageUrl) {
+                      return (
+                        <img
+                          src={imageUrl}
+                          alt={product.title}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            // Hide broken image and show placeholder
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent && !parent.querySelector('.image-placeholder')) {
+                              const placeholder = document.createElement('div');
+                              placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 image-placeholder';
+                              placeholder.textContent = '📦';
+                              parent.appendChild(placeholder);
+                            }
+                          }}
+                        />
+                      );
+                    }
+                    return (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        📦
+                      </div>
+                    );
+                  })()}
                   {product.type === "DIGITAL" && (
                     <div className="absolute top-2 right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">
                       💾 Digital

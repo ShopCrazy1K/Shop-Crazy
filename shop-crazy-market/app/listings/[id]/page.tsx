@@ -419,6 +419,16 @@ export default function ListingPage() {
             <div className="md:w-1/2">
               {/* Combine images and image-type digital files */}
               {(() => {
+                // Normalize images to always be an array
+                let normalizedImages: string[] = [];
+                if (listing.images) {
+                  if (Array.isArray(listing.images)) {
+                    normalizedImages = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
+                  } else if (typeof listing.images === 'string' && listing.images.trim()) {
+                    normalizedImages = [listing.images];
+                  }
+                }
+                
                 // Check if digital files are images
                 const imageDigitalFiles = listing.digitalFiles?.filter((url: string) => {
                   const ext = url.split('.').pop()?.toLowerCase();
@@ -426,7 +436,7 @@ export default function ListingPage() {
                 }) || [];
                 
                 // Combine regular images with image-type digital files
-                const allImages = [...listing.images, ...imageDigitalFiles];
+                const allImages = [...normalizedImages, ...imageDigitalFiles];
                 
                 if (allImages.length > 0) {
                   return (
@@ -437,6 +447,18 @@ export default function ListingPage() {
                           src={allImages[0]}
                           alt={listing.title}
                           className="w-full h-full object-contain hover:opacity-90 transition-opacity"
+                          onError={(e) => {
+                            // Show placeholder if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent && !parent.querySelector('.image-error-placeholder')) {
+                              const placeholder = document.createElement('div');
+                              placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 image-error-placeholder';
+                              placeholder.textContent = '📦 Image not available';
+                              parent.appendChild(placeholder);
+                            }
+                          }}
                         />
                       </div>
                       {/* Thumbnail Gallery */}
