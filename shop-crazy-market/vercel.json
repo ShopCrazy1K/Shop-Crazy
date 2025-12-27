@@ -1,6 +1,6 @@
 {
   "installCommand": "npm install",
-  "buildCommand": "prisma db push --accept-data-loss --skip-generate || true && prisma generate && next build",
+  "buildCommand": "prisma generate && next build",
   "framework": "nextjs",
   "outputDirectory": ".next"
 }
