@@ -46,26 +46,32 @@ export default function CheckoutPage() {
     setError("");
 
     try {
+      // Calculate order breakdown (simplified - you may want to add shipping, tax, etc.)
+      const itemsSubtotalCents = listing.priceCents;
+      const shippingCents = 0; // Add shipping calculation if needed
+      const giftWrapCents = 0;
+      const taxCents = 0; // Add tax calculation if needed
+
       const response = await fetch("/api/orders/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userId: user.id,
-          items: [
-            {
-              listingId: listing.id,
-              quantity: 1,
-            },
-          ],
+          listingId: listing.id,
+          buyerEmail: user.email,
+          itemsSubtotalCents,
+          shippingCents,
+          giftWrapCents,
+          taxCents,
+          country: "DEFAULT",
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create checkout session");
+        throw new Error(data.message || data.error || "Failed to create checkout session");
       }
 
       if (data.checkoutUrl) {
