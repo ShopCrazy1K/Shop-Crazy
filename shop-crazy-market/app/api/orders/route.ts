@@ -1,37 +1,40 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-export async function GET(request: Request) {
+/**
+ * GET /api/orders - List all orders for a user (as buyer or seller)
+ */
+export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId") || req.headers.get("x-user-id");
 
     if (!userId) {
       return NextResponse.json(
-        { error: "User ID required" },
-        { status: 400 }
+        { error: "User ID is required" },
+        { status: 401 }
       );
     }
 
+    // Fetch orders where user is either the buyer (userId) or seller (sellerId)
     const orders = await prisma.order.findMany({
-      where: { userId },
+      where: {
+        OR: [
+          { userId: userId },
+          { sellerId: userId },
+        ],
+      },
       include: {
-        items: {
+        listing: {
           include: {
-            product: {
+            seller: {
               select: {
                 id: true,
-                title: true,
-                images: true,
-                type: true,
-                shop: {
-                  select: {
-                    name: true,
-                  },
-                },
+                email: true,
+                username: true,
               },
             },
           },
@@ -42,31 +45,12 @@ export async function GET(request: Request) {
       },
     });
 
-    // Parse images for each product
-    const ordersWithParsedImages = orders.map((order) => ({
-      ...order,
-      items: order.items.map((item) => ({
-        ...item,
-        product: {
-          ...item.product,
-          images: (() => {
-            try {
-              return JSON.parse(item.product.images || "[]");
-            } catch {
-              return [];
-            }
-          })(),
-        },
-      })),
-    }));
-
-    return NextResponse.json(ordersWithParsedImages);
-  } catch (error) {
+    return NextResponse.json(orders);
+  } catch (error: any) {
     console.error("Error fetching orders:", error);
     return NextResponse.json(
-      { error: "Failed to fetch orders" },
+      { error: error.message || "Failed to fetch orders" },
       { status: 500 }
     );
   }
 }
-

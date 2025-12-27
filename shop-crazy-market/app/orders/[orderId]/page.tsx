@@ -121,26 +121,65 @@ function OrderContent() {
               <h3 className="font-semibold mb-2">Listing:</h3>
               <Link
                 href={`/listings/${order.listing.id}`}
-                className="text-purple-600 hover:underline"
+                className="text-purple-600 hover:underline font-semibold"
               >
                 {order.listing.title}
               </Link>
-              {order.listing.digitalFiles && order.listing.digitalFiles.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="font-semibold mb-2">Digital Files:</h4>
-                  <div className="space-y-2">
-                    {order.listing.digitalFiles.map((fileUrl: string, index: number) => (
-                      <a
-                        key={index}
-                        href={fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block text-purple-600 hover:underline"
-                      >
-                        📄 File {index + 1}
-                      </a>
-                    ))}
+              
+              {/* Prominent Download Section for Digital Products */}
+              {order.listing.digitalFiles && 
+               Array.isArray(order.listing.digitalFiles) && 
+               order.listing.digitalFiles.length > 0 && 
+               order.paymentStatus === "paid" && (
+                <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-2xl">💾</span>
+                    <h4 className="font-bold text-lg text-purple-800">Your Digital Files</h4>
                   </div>
+                  <p className="text-sm text-gray-700 mb-3">
+                    Download your purchased files below. You can access these anytime from your order history.
+                  </p>
+                  <div className="space-y-2">
+                    {order.listing.digitalFiles.map((fileUrl: string, index: number) => {
+                      const fileName = fileUrl.split('/').pop() || `File ${index + 1}`;
+                      const isImage = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(fileName);
+                      return (
+                        <a
+                          key={index}
+                          href={fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 bg-white rounded-lg border border-purple-200 hover:border-purple-400 hover:shadow-md transition-all group"
+                        >
+                          <span className="text-2xl">{isImage ? '🖼️' : '📄'}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-purple-700 group-hover:text-purple-900 truncate">
+                              {fileName}
+                            </p>
+                            <p className="text-xs text-gray-500">Click to download</p>
+                          </div>
+                          <span className="text-purple-600 group-hover:translate-x-1 transition-transform">
+                            ⬇️
+                          </span>
+                        </a>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-600 mt-3 pt-3 border-t border-purple-200">
+                    💡 Tip: Save these files to your device. You can always access them from your order history.
+                  </p>
+                </div>
+              )}
+              
+              {/* Show message if order is not paid yet but has digital files */}
+              {order.listing.digitalFiles && 
+               Array.isArray(order.listing.digitalFiles) && 
+               order.listing.digitalFiles.length > 0 && 
+               order.paymentStatus !== "paid" && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    ⏳ Download links will be available after payment is confirmed.
+                  </p>
                 </div>
               )}
             </div>

@@ -5,27 +5,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-interface OrderItem {
+interface Order {
   id: string;
-  quantity: number;
-  price: number;
-  product: {
+  paymentStatus: string;
+  orderTotalCents: number;
+  createdAt: string;
+  listing: {
     id: string;
     title: string;
     images: string[];
-    type: string;
-    shop: {
-      name: string;
+    digitalFiles: string[];
+    seller: {
+      username: string | null;
+      email: string;
     };
-  };
-}
-
-interface Order {
-  id: string;
-  status: string;
-  total: number;
-  createdAt: string;
-  items: OrderItem[];
+  } | null;
 }
 
 export default function OrdersPage() {
@@ -87,74 +81,109 @@ export default function OrdersPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {orders.map((order) => (
-            <div key={order.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Order #{order.id.slice(0, 8)}</p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </p>
+          {orders.map((order) => {
+            if (!order.listing) return null;
+            
+            const hasDigitalFiles = order.listing.digitalFiles && 
+              Array.isArray(order.listing.digitalFiles) && 
+              order.listing.digitalFiles.length > 0;
+            const isPaid = order.paymentStatus === "paid";
+            const imageUrl = Array.isArray(order.listing.images) && order.listing.images.length > 0
+              ? order.listing.images[0]
+              : typeof order.listing.images === 'string' && order.listing.images.trim()
+                ? order.listing.images
+                : null;
+            
+            return (
+              <div key={order.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Order #{order.id.slice(0, 8)}</p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-xl text-purple-600">
+                        ${(order.orderTotalCents / 100).toFixed(2)}
+                      </p>
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-semibold ${
+                          isPaid
+                            ? "bg-green-100 text-green-800"
+                            : order.paymentStatus === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {order.paymentStatus?.toUpperCase() || "PENDING"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-xl">${(order.total / 100).toFixed(2)}</p>
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-semibold ${
-                        order.status === "COMPLETED"
-                          ? "bg-green-100 text-green-800"
-                          : order.status === "PENDING"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {order.status}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="border-t pt-4 space-y-3">
-                  {order.items.map((item) => (
-                    <div key={item.id} className="flex gap-4">
-                      {item.product.images[0] && (
+                  <div className="border-t pt-4">
+                    <div className="flex gap-4">
+                      {imageUrl ? (
                         <img
-                          src={item.product.images[0]}
-                          alt={item.product.title}
-                          className="w-16 h-16 object-cover rounded-lg"
+                          src={imageUrl}
+                          alt={order.listing.title}
+                          className="w-20 h-20 object-contain rounded-lg bg-gray-100"
                         />
+                      ) : (
+                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+                          📦
+                        </div>
                       )}
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <Link
-                          href={`/product/${item.product.id}`}
-                          className="font-semibold hover:text-purple-600"
+                          href={`/listings/${order.listing.id}`}
+                          className="font-semibold hover:text-purple-600 block truncate"
                         >
-                          {item.product.title}
+                          {order.listing.title}
                         </Link>
                         <p className="text-sm text-gray-600">
-                          {item.product.shop.name} • Qty: {item.quantity}
+                          {order.listing.seller.username || order.listing.seller.email}
                         </p>
-                        {item.product.type === "DIGITAL" && (
-                          <div className="mt-2">
-                            <a
-                              href={`/download/${item.product.id}?orderId=${order.id}`}
-                              className="text-sm text-purple-600 hover:underline inline-block font-semibold"
+                        
+                        {/* Prominent Download Link for Digital Products */}
+                        {hasDigitalFiles && isPaid && (
+                          <div className="mt-3">
+                            <Link
+                              href={`/orders/${order.id}`}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
                             >
-                              📥 Download Files →
-                            </a>
+                              <span className="text-lg">💾</span>
+                              <span>Download Files ({order.listing.digitalFiles.length})</span>
+                              <span>→</span>
+                            </Link>
+                          </div>
+                        )}
+                        
+                        {hasDigitalFiles && !isPaid && (
+                          <div className="mt-3">
+                            <p className="text-sm text-yellow-700 bg-yellow-50 px-3 py-2 rounded-lg border border-yellow-200">
+                              ⏳ Payment pending - download links will be available after payment confirmation
+                            </p>
                           </div>
                         )}
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold">
-                          ${((item.price * item.quantity) / 100).toFixed(2)}
-                        </p>
-                      </div>
                     </div>
-                  ))}
+                    
+                    {/* View Order Details Link */}
+                    <div className="mt-4 pt-4 border-t">
+                      <Link
+                        href={`/orders/${order.id}`}
+                        className="text-purple-600 hover:text-purple-700 font-semibold text-sm"
+                      >
+                        View Order Details →
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </main>
