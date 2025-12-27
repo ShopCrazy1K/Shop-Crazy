@@ -10,6 +10,18 @@ export async function GET(req: NextRequest, context: Ctx) {
   try {
     const { id } = await context.params;
     console.log("[API LISTINGS ID] Fetching listing with ID:", id);
+    
+    // Check if DATABASE_URL is available
+    if (!process.env.DATABASE_URL) {
+      console.error("[API LISTINGS ID] DATABASE_URL is not set!");
+      return NextResponse.json(
+        { 
+          error: "Database configuration error. Please contact support.",
+          details: "DATABASE_URL environment variable is missing.",
+        },
+        { status: 500 }
+      );
+    }
 
     // Add timeout wrapper for Prisma query with better error handling
     let listing: any;

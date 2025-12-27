@@ -136,9 +136,11 @@ export default function ListingPage() {
         if (!isMounted) return;
         
         if (err.name === 'AbortError') {
-          setError("Request timed out. The server may be experiencing issues. Please try refreshing the page.");
+          setError("Request timed out after 8 seconds. The server may be experiencing issues. Please try refreshing the page.");
         } else if (err.message?.includes("prepared statement")) {
           setError("Database connection issue. Please try refreshing the page.");
+        } else if (err.message?.includes("DATABASE_URL") || err.message?.includes("Database configuration")) {
+          setError("Database configuration error. The server needs to be reconfigured. Please contact support.");
         } else {
           setError(err.message || "Failed to load listing. Please try refreshing the page.");
         }
