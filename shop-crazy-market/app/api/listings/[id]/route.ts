@@ -6,6 +6,7 @@ export const runtime = 'nodejs';
 
 type Ctx = { params: Promise<{ id: string }> };
 
+// GET - Fetch a single listing
 export async function GET(req: NextRequest, context: Ctx) {
   try {
     const { id } = await context.params;
@@ -126,3 +127,117 @@ export async function GET(req: NextRequest, context: Ctx) {
   }
 }
 
+// PUT - Update a listing
+export async function PUT(req: NextRequest, context: Ctx) {
+  try {
+    const { id } = await context.params;
+    const body = await req.json();
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 401 }
+      );
+    }
+
+    // Verify the listing belongs to the user
+    const listing = await prisma.listing.findUnique({
+      where: { id },
+      select: { sellerId: true },
+    });
+
+    if (!listing) {
+      return NextResponse.json(
+        { error: "Listing not found" },
+        { status: 404 }
+      );
+    }
+
+    if (listing.sellerId !== userId) {
+      return NextResponse.json(
+        { error: "Unauthorized. You can only edit your own listings." },
+        { status: 403 }
+      );
+    }
+
+    // Update the listing
+    const updated = await prisma.listing.update({
+      where: { id },
+      data: {
+        title: body.title,
+        description: body.description,
+        priceCents: body.priceCents,
+        images: body.images || [],
+        digitalFiles: body.digitalFiles || [],
+      },
+      include: {
+        seller: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error: any) {
+    console.error("[API LISTINGS ID] Error updating listing:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to update listing" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Delete a listing
+export async function DELETE(req: NextRequest, context: Ctx) {
+  try {
+    const { id } = await context.params;
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 401 }
+      );
+    }
+
+    // Verify the listing belongs to the user
+    const listing = await prisma.listing.findUnique({
+      where: { id },
+      select: { sellerId: true },
+    });
+
+    if (!listing) {
+      return NextResponse.json(
+        { error: "Listing not found" },
+        { status: 404 }
+      );
+    }
+
+    if (listing.sellerId !== userId) {
+      return NextResponse.json(
+        { error: "Unauthorized. You can only delete your own listings." },
+        { status: 403 }
+      );
+    }
+
+    // Delete the listing
+    await prisma.listing.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true, message: "Listing deleted successfully" });
+  } catch (error: any) {
+    console.error("[API LISTINGS ID] Error deleting listing:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to delete listing" },
+      { status: 500 }
+    );
+  }
+}
