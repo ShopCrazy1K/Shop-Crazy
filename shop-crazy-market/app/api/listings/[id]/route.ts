@@ -69,6 +69,29 @@ export async function GET(req: NextRequest, context: Ctx) {
     return NextResponse.json(listing);
   } catch (error: any) {
     console.error("[API LISTINGS ID] Error fetching listing:", error);
+    
+    // Check for specific database errors
+    if (error.message?.includes("prepared statement") || error.message?.includes("42P05")) {
+      console.error("[API LISTINGS ID] PgBouncer prepared statement error detected");
+      return NextResponse.json(
+        { 
+          error: "Database connection issue. Please try again in a moment.",
+          details: "The database connection pooler is experiencing issues. This usually resolves quickly.",
+        },
+        { status: 503 } // Service Unavailable
+      );
+    }
+    
+    if (error.message?.includes("timeout")) {
+      return NextResponse.json(
+        { 
+          error: "Request timed out. The database may be slow to respond.",
+          details: "Please try refreshing the page.",
+        },
+        { status: 504 } // Gateway Timeout
+      );
+    }
+    
     return NextResponse.json(
       { error: error.message || "Failed to fetch listing" },
       { status: 500 }
