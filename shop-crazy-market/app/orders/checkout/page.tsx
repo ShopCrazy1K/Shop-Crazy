@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 
-export default function CheckoutPage() {
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
+function CheckoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -162,6 +165,18 @@ export default function CheckoutPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <main className="p-6 max-w-2xl mx-auto pb-24">
+        <div className="text-center py-10 text-gray-500">Loading...</div>
+      </main>
+    }>
+      <CheckoutContent />
+    </Suspense>
   );
 }
 
