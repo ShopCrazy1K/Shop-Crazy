@@ -96,8 +96,12 @@ function MarketplaceContent() {
           if (listing.images) {
             if (Array.isArray(listing.images)) {
               images = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
-            } else if (typeof listing.images === 'string' && listing.images.trim()) {
-              images = [listing.images];
+            } else {
+              // Handle case where images might be stored as a single string
+              const imagesValue = listing.images as any;
+              if (typeof imagesValue === 'string' && imagesValue.trim()) {
+                images = [imagesValue];
+              }
             }
           }
           
