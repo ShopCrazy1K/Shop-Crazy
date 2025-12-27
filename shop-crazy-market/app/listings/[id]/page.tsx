@@ -103,7 +103,8 @@ export default function ListingPage() {
   // Auto-activate on payment success
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if (p.get("payment") === "success") {
+    // Handle both "payment=success" and "fee=success" query parameters
+    if (p.get("payment") === "success" || p.get("fee") === "success") {
       fetch(`/api/listings/${listingId}/activate-from-stripe`, { method: "POST" })
         .then(() => window.location.reload());
     }
