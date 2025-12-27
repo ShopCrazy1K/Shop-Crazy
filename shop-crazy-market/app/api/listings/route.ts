@@ -9,69 +9,63 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // Validate input
-    const validatedData = createListingSchema.parse(body);
+    const parsed = createListingSchema.safeParse(body);
+    
+    if (!parsed.success) {
+      return NextResponse.json(
+        { ok: false, message: "Validation failed", fieldErrors: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
     
     // TODO: Get sellerId from authentication
     const sellerId = body.sellerId as string;
     if (!sellerId) {
       return NextResponse.json(
-        { error: "Seller ID is required" },
+        { ok: false, message: "Missing sellerId" },
         { status: 401 }
       );
     }
     
-    // Generate slug from title
-    const baseSlug = slugify(validatedData.title);
+    const data = parsed.data;
+    const baseSlug = slugify(data.title);
     
     // Ensure slug is unique
     let slug = baseSlug;
-    let counter = 1;
-    while (await prisma.listing.findUnique({ where: { slug } })) {
-      slug = `${baseSlug}-${counter}`;
-      counter++;
+    let i = 2;
+    while (await prisma.listing.findUnique({ where: { slug }, select: { id: true } })) {
+      slug = `${baseSlug}-${i++}`;
     }
 
     // Create listing
     const listing = await prisma.listing.create({
       data: {
-        sellerId: sellerId,
-        title: validatedData.title,
-        description: validatedData.description,
-        slug: slug,
-        priceCents: validatedData.priceCents,
-        currency: validatedData.currency || "usd",
-        images: validatedData.images || [],
-        digitalFiles: validatedData.digitalFiles,
+        sellerId,
+        title: data.title,
+        description: data.description,
+        slug,
+        priceCents: data.priceCents,
+        currency: data.currency ?? "usd",
+        images: data.images ?? [],
+        digitalFiles: data.digitalFiles,
         isActive: false,
       } as any, // Type assertion to work around TypeScript cache issue
     });
     
-    return NextResponse.json(listing, { status: 201 });
+    return NextResponse.json({ ok: true, listing }, { status: 201 });
   } catch (error: any) {
     console.error("Error creating listing:", error);
-    
-    // Handle Zod validation errors
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { 
-          error: "Validation failed",
-          details: error.errors,
-        },
-        { status: 400 }
-      );
-    }
     
     // Handle Prisma errors
     if (error.code === 'P2002') {
       return NextResponse.json(
-        { error: "A listing with this slug already exists" },
+        { ok: false, message: "A listing with this slug already exists" },
         { status: 409 }
       );
     }
     
     return NextResponse.json(
-      { error: error.message || "Failed to create listing" },
+      { ok: false, message: error.message || "Failed to create listing" },
       { status: 500 }
     );
   }
