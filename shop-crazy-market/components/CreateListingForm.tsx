@@ -118,13 +118,16 @@ export default function CreateListingForm() {
       return;
     }
 
+    // Ensure we send empty array if no digital files (validation requires array)
+    const finalDigitalFiles = digitalFileUrls.length > 0 ? digitalFileUrls : undefined;
+
     try {
       const payload = {
         title,
         description,
         priceCents: priceInCents,
-        images: imageUrls,
-        digitalFiles: digitalFileUrls,
+        images: imageUrls.length > 0 ? imageUrls : [],
+        ...(finalDigitalFiles && { digitalFiles: finalDigitalFiles }),
         sellerId: user.id,
       };
 
