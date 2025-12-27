@@ -335,6 +335,15 @@ img, [class*="image"], [class*="Image"], .product-image, .user-image {
   animation: winter-gradient 20s ease infinite;
   position: relative;
   overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Force white background on body and main for winter theme */
+[data-theme="winter-snow"] body,
+[data-theme="winter-snow"] main {
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 25%, #dbeafe 50%, #ffffff 75%, #eff6ff 100%) !important;
+  background-size: 400% 400%;
+  animation: winter-gradient 20s ease infinite;
 }
 
 /* Override Tailwind classes for Winter theme */
