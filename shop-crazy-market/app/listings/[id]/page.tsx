@@ -168,17 +168,35 @@ export default function ListingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center max-w-md mx-auto p-6">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 mb-4">Loading listing...</p>
-          <p className="text-sm text-gray-500 mb-4">This may take a few seconds</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm"
-          >
-            Refresh Page
-          </button>
+          <p className="text-gray-600 mb-2">Loading listing...</p>
+          <p className="text-gray-500 text-sm mb-4">This may take a few seconds.</p>
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <p className="text-red-600 text-sm font-semibold mb-2">Error:</p>
+              <p className="text-red-500 text-sm">{error}</p>
+            </div>
+          )}
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => {
+                setLoading(true);
+                setError("");
+                window.location.reload();
+              }}
+              className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
+            >
+              Refresh Page
+            </button>
+            <button
+              onClick={() => router.push("/sell")}
+              className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors"
+            >
+              Back to Create
+            </button>
+          </div>
         </div>
       </div>
     );
