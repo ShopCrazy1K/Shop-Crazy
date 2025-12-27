@@ -98,31 +98,16 @@ export default function ListingPage() {
     }
 
     fetchListing();
-
-    // If payment was successful but listing is inactive, poll for updates
-    if (feeStatus === "success") {
-      const pollInterval = setInterval(async () => {
-        try {
-          const response = await fetch(`/api/listings/${listingId}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.isActive) {
-              console.log("[LISTING PAGE] Listing activated via polling!");
-              setListing(data);
-              clearInterval(pollInterval);
-            }
-          }
-        } catch (err) {
-          console.error("[LISTING PAGE] Poll error:", err);
-        }
-      }, 3000); // Poll every 3 seconds
-
-      // Stop polling after 30 seconds
-      setTimeout(() => clearInterval(pollInterval), 30000);
-
-      return () => clearInterval(pollInterval);
-    }
   }, [listingId, feeStatus]);
+
+  // Auto-activate on payment success
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("payment") === "success") {
+      fetch(`/api/listings/${listingId}/activate-from-stripe`, { method: "POST" })
+        .then(() => window.location.reload());
+    }
+  }, [listingId]);
 
   if (loading) {
     return (
