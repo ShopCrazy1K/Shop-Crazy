@@ -155,8 +155,23 @@ export default function CreateListingForm() {
       }
 
       if (data?.ok && data?.id) {
-        console.log("[CREATE LISTING FORM] Listing created, redirecting to:", `/listings/${data.id}`);
-        router.push(`/listings/${data.id}`);
+        console.log("[CREATE LISTING FORM] Listing created with ID:", data.id);
+        
+        // Verify the listing exists before redirecting
+        try {
+          const verifyRes = await fetch(`/api/listings/${data.id}`);
+          if (verifyRes.ok) {
+            console.log("[CREATE LISTING FORM] Listing verified, redirecting to:", `/listings/${data.id}`);
+            router.push(`/listings/${data.id}`);
+          } else {
+            console.error("[CREATE LISTING FORM] Listing not found after creation:", data.id);
+            setError("Listing was created but could not be found. Please try refreshing the page or check your listings.");
+          }
+        } catch (verifyError) {
+          console.error("[CREATE LISTING FORM] Error verifying listing:", verifyError);
+          // Still redirect - might be a timing issue
+          router.push(`/listings/${data.id}`);
+        }
       } else {
         setError(data?.message || "Could not create listing. No ID returned.");
       }
