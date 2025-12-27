@@ -93,8 +93,20 @@ export default function CategoryPage() {
             images: finalImages,
             category: listing.category || "",
             type: (() => {
-              const hasDigitalFiles = listing.digitalFiles && Array.isArray(listing.digitalFiles) && listing.digitalFiles.length > 0;
-              console.log("[CATEGORY PAGE] Listing", listing.id, "digitalFiles:", listing.digitalFiles, "hasDigitalFiles:", hasDigitalFiles);
+              // Check if listing has digital files - handle both array and edge cases
+              const digitalFiles = listing.digitalFiles;
+              const hasDigitalFiles = digitalFiles && 
+                ((Array.isArray(digitalFiles) && digitalFiles.length > 0) || 
+                 (typeof digitalFiles === 'string' && digitalFiles.trim().length > 0));
+              
+              if (slug === "digital-products") {
+                console.log("[CATEGORY PAGE] Listing", listing.id, listing.title, 
+                  "digitalFiles:", digitalFiles, 
+                  "isArray:", Array.isArray(digitalFiles),
+                  "length:", Array.isArray(digitalFiles) ? digitalFiles.length : "N/A",
+                  "hasDigitalFiles:", hasDigitalFiles);
+              }
+              
               return hasDigitalFiles ? "DIGITAL" : "PHYSICAL";
             })(),
             shop: {
