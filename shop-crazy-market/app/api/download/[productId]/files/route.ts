@@ -25,9 +25,12 @@ export async function GET(
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
-        userId: userId,
-        status: {
-          in: ["PAID", "COMPLETED"],
+        OR: [
+          { userId: userId },
+          { buyerEmail: userId }, // Support email-based lookup
+        ],
+        paymentStatus: {
+          in: ["paid"],
         },
         items: {
           some: {
