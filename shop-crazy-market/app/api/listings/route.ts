@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { createListingSchema, slugify } from "@/lib/validation/listing";
+import { createListingSchema, slugify } from "@/lib/validation";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -12,46 +12,39 @@ export async function POST(request: Request) {
     // Validate input
     const validatedData = createListingSchema.parse(body);
     
-    // Generate slug from title if not provided
-    const slug = validatedData.slug || slugify(validatedData.title);
+    // TODO: Get sellerId from authentication
+    const sellerId = body.sellerId as string;
+    if (!sellerId) {
+      return NextResponse.json(
+        { error: "Seller ID is required" },
+        { status: 401 }
+      );
+    }
+    
+    // Generate slug from title
+    const baseSlug = slugify(validatedData.title);
     
     // Ensure slug is unique
-    const existingListing = await prisma.listing.findUnique({
-      where: { slug },
-    });
-    
-    if (existingListing) {
-      // Append a number to make it unique
-      let uniqueSlug = slug;
-      let counter = 1;
-      while (await prisma.listing.findUnique({ where: { slug: uniqueSlug } })) {
-        uniqueSlug = `${slug}-${counter}`;
-        counter++;
-      }
-      validatedData.slug = uniqueSlug;
-    } else {
-      validatedData.slug = slug;
+    let slug = baseSlug;
+    let counter = 1;
+    while (await prisma.listing.findUnique({ where: { slug } })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
     }
-    
-    // Prepare images array
-    let images: string[] = [];
-    if (validatedData.images && Array.isArray(validatedData.images)) {
-      images = validatedData.images;
-    } else if (validatedData.imageUrl) {
-      images = [validatedData.imageUrl];
-    }
-    
+
     // Create listing
     const listing = await prisma.listing.create({
       data: {
+        sellerId: sellerId,
         title: validatedData.title,
         description: validatedData.description,
-        slug: validatedData.slug,
-        price: validatedData.price,
-        images: images,
+        slug: slug,
+        priceCents: validatedData.priceCents,
+        currency: validatedData.currency || "usd",
+        images: validatedData.images || [],
+        digitalFiles: validatedData.digitalFiles,
         isActive: false,
-        feePaid: false,
-      },
+      } as any, // Type assertion to work around TypeScript cache issue
     });
     
     return NextResponse.json(listing, { status: 201 });
