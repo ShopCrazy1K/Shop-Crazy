@@ -394,25 +394,34 @@ export default function SellPage() {
       }
 
       const result = await response.json();
+      console.log("[LISTING CREATE] Response:", result);
       
       // Always store the listing ID for later use
-      if (result.listingId) {
-        setCreatedProduct(result.listingId);
+      const listingId = result.listingId || result.listing?.id || result.id;
+      if (listingId) {
+        console.log("[LISTING CREATE] Storing listing ID:", listingId);
+        setCreatedProduct(listingId);
       }
       
       // If there's a checkout URL, redirect to Stripe checkout for listing fee
       if (result.checkoutUrl) {
         // Store listing ID in sessionStorage so we can retrieve it after payment
-        if (typeof window !== 'undefined' && result.listingId) {
-          sessionStorage.setItem('pendingListingId', result.listingId);
+        if (typeof window !== 'undefined' && listingId) {
+          sessionStorage.setItem('pendingListingId', String(listingId));
+          console.log("[LISTING CREATE] Stored listing ID in sessionStorage:", listingId);
         }
         window.location.href = result.checkoutUrl;
         return; // Don't show success message, user is going to checkout
       }
       
       // Otherwise, show success and allow viewing the listing
-      setShowSuccess(true);
-      setLoading(false);
+      if (listingId) {
+        setShowSuccess(true);
+        setLoading(false);
+      } else {
+        setError("Listing created but no listing ID returned");
+        setLoading(false);
+      }
       
       // Clear saved form data
       if (typeof window !== 'undefined') {
@@ -483,11 +492,14 @@ export default function SellPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => {
-                  const listingId = typeof createdProduct === 'string' ? createdProduct : createdProduct?.id || createdProduct?.listingId;
+                  const listingId = typeof createdProduct === 'string' 
+                    ? createdProduct 
+                    : createdProduct?.id || createdProduct?.listingId || String(createdProduct);
+                  console.log("[VIEW LISTING] Listing ID:", listingId, "Type:", typeof listingId);
                   if (listingId) {
                     router.push(`/listings/${listingId}`);
                   } else {
-                    console.error('No listing ID found:', createdProduct);
+                    console.error('[VIEW LISTING] No listing ID found:', createdProduct);
                     alert('Listing ID not found. Please check your listings.');
                   }
                 }}
