@@ -122,7 +122,7 @@ export default function CreateListingForm() {
       const payload = {
         title,
         description,
-        price: priceInCents,
+        priceCents: priceInCents,
         images: imageUrls,
         digitalFiles: digitalFileUrls,
         sellerId: user.id,
