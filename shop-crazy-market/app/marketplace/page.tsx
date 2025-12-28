@@ -17,6 +17,7 @@ interface Listing {
   images: string[];
   digitalFiles: string[];
   isActive: boolean;
+  sellerId?: string; // Add sellerId to interface
   seller: {
     id: string;
     email: string;
@@ -95,9 +96,12 @@ function MarketplaceContent() {
         // Filter by type (digital vs physical based on digitalFiles) - done client-side
         // Also filter out user's own listings as a safety measure
         let filtered = listings.filter(listing => {
-          // Exclude user's own listings
-          if (user?.id && (listing.sellerId === user.id || listing.seller?.id === user.id)) {
-            return false;
+          // Exclude user's own listings (check both sellerId and seller.id)
+          if (user?.id) {
+            const listingSellerId = listing.sellerId || listing.seller?.id;
+            if (listingSellerId === user.id) {
+              return false;
+            }
           }
           return true;
         });
