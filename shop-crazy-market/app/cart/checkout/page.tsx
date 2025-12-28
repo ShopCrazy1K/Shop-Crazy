@@ -19,7 +19,7 @@ interface CheckoutItem {
 function CheckoutContent() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { removeItem } = useCart();
+  // Note: We don't remove items from cart here - they stay until payment is confirmed
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [checkoutItems, setCheckoutItems] = useState<CheckoutItem[]>([]);
@@ -120,13 +120,20 @@ function CheckoutContent() {
 
       const results = await Promise.all(checkoutPromises);
       
-      // Remove checked out items from cart
-      checkoutItems.forEach(item => {
-        removeItem(item.id);
-      });
+      // Store order IDs and item IDs in sessionStorage so we can remove items after payment confirmation
+      const orderIds = results.map(r => r.orderId).filter(Boolean);
+      const itemIds = checkoutItems.map(item => item.id);
+      
+      if (orderIds.length > 0) {
+        sessionStorage.setItem("pendingOrderIds", JSON.stringify(orderIds));
+        sessionStorage.setItem("pendingCheckoutItems", JSON.stringify(itemIds));
+      }
 
-      // Clear sessionStorage
+      // Clear checkout items from sessionStorage (but keep them in cart until payment confirmed)
       sessionStorage.removeItem("checkoutItems");
+
+      // DO NOT remove items from cart here - they will be removed after payment is confirmed
+      // Items stay in cart until payment is successful or user manually deletes them
 
       // Redirect to first checkout session
       if (results.length > 0 && results[0].checkoutUrl) {
