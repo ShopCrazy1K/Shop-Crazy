@@ -5,6 +5,7 @@ import { useCart } from "@/contexts/CartContext";
 
 interface AddToCartProps {
   productId: string;
+  listingId?: string; // Optional for legacy products
   title: string;
   price: number;
   quantity?: number;
@@ -13,6 +14,7 @@ interface AddToCartProps {
 
 export default function AddToCart({
   productId,
+  listingId,
   title,
   price,
   quantity = 1,
@@ -24,6 +26,7 @@ export default function AddToCart({
   function handleAddToCart() {
     addItem({
       id: productId,
+      listingId: listingId || productId, // Use listingId if provided, otherwise use productId for legacy products
       title,
       price,
       quantity,
