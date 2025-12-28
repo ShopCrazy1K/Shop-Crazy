@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import DealBadge from "@/components/DealBadge";
 
 interface Listing {
@@ -758,12 +759,37 @@ export default function ListingPage() {
               )}
 
               {listing.isActive && (
-                <Link
-                  href={`/orders/checkout?listingId=${listing.id}`}
-                  className="block w-full bg-purple-600 text-white text-center py-3 sm:py-4 px-6 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-base sm:text-lg"
+                <button
+                  onClick={() => {
+                    if (!user) {
+                      router.push("/login");
+                      return;
+                    }
+                    if (!listing.isActive) {
+                      alert("This listing is not active. Please contact the seller.");
+                      return;
+                    }
+                    // Add to cart
+                    const imageUrl = Array.isArray(listing.images) && listing.images.length > 0
+                      ? listing.images[0]
+                      : typeof (listing.images as any) === 'string' && (listing.images as any).trim()
+                        ? (listing.images as any)
+                        : null;
+                    addItem({
+                      id: listing.id,
+                      listingId: listing.id,
+                      title: listing.title,
+                      price: listing.priceCents,
+                      quantity: 1,
+                      image: imageUrl || undefined,
+                      sellerId: listing.sellerId,
+                    });
+                    alert("✅ Added to cart!");
+                  }}
+                  className="block w-full bg-purple-600 text-white text-center py-3 sm:py-4 px-6 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-base sm:text-lg cursor-pointer"
                 >
-                  💳 Buy Now (Apple Pay, Google Pay)
-                </Link>
+                  🛒 Add to Cart
+                </button>
               )}
 
               <div className="mt-6 pt-6 border-t">
