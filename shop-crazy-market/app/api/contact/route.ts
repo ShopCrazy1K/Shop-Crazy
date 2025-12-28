@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 const contactSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  subject: z.string().optional(),
-  message: z.string().min(10, "Message must be at least 10 characters"),
+  name: z.string().min(1, "Name is required").trim(),
+  email: z.string().email("Invalid email address").trim().toLowerCase(),
+  subject: z.string().trim().optional().or(z.literal("")),
+  message: z.string().min(10, "Message must be at least 10 characters").trim(),
   type: z.enum(["general", "error", "concern", "feedback"]).default("general"),
 });
 
