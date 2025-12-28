@@ -271,6 +271,12 @@ export default function ProfilePage() {
           href="/messages"
           color="bg-blue-500"
         />
+        <QuickLinkCard 
+          title="📧 Contact Us" 
+          description="Get help & support"
+          href="/contact"
+          color="bg-orange-500"
+        />
       </section>
 
       {/* My Listings Section */}
