@@ -47,9 +47,9 @@ export default function ProductCard({ product }: { product: Product }) {
     : `/product/${product.id}`;
   
   return (
-    <Link href={linkHref}>
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
-        <div className="h-32 bg-gray-200 relative">
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+      <Link href={linkHref} className="block">
+        <div className="h-32 bg-gray-200 relative cursor-pointer">
           {imageUrl ? (
             <img
               src={imageUrl}
@@ -67,30 +67,33 @@ export default function ProductCard({ product }: { product: Product }) {
             </div>
           )}
         </div>
-        <div className="p-3">
-          <div className="flex items-center gap-1 mb-1">
-            {category && (
-              <span className="text-xs">{category.emoji}</span>
-            )}
-            {product.type && (
-              <span className="text-xs text-gray-500">
-                {product.type === "DIGITAL" ? "💾" : "📦"}
-              </span>
-            )}
-          </div>
-          <h3 className="font-bold truncate text-sm">{product.title}</h3>
-          {product.shop && (
-            <Link 
-              href={product.shop.id ? `/shop/${product.shop.id}` : '#'}
-              onClick={(e) => e.stopPropagation()} // Prevent card click when clicking shop name
-              className="text-xs text-gray-500 truncate hover:text-purple-600 hover:underline transition-colors"
-            >
-              {product.shop.name}
-            </Link>
+      </Link>
+      <div className="p-3">
+        <div className="flex items-center gap-1 mb-1">
+          {category && (
+            <span className="text-xs">{category.emoji}</span>
           )}
-          <p className="text-lg font-bold text-purple-600 mt-1">{price}</p>
+          {product.type && (
+            <span className="text-xs text-gray-500">
+              {product.type === "DIGITAL" ? "💾" : "📦"}
+            </span>
+          )}
         </div>
+        <Link href={linkHref} className="block">
+          <h3 className="font-bold truncate text-sm hover:text-purple-600 transition-colors cursor-pointer">{product.title}</h3>
+        </Link>
+        {product.shop && product.shop.id ? (
+          <Link 
+            href={`/shop/${product.shop.id}`}
+            className="text-xs text-gray-500 truncate hover:text-purple-600 hover:underline transition-colors block"
+          >
+            {product.shop.name}
+          </Link>
+        ) : (
+          <p className="text-xs text-gray-500 truncate">{product.shop?.name}</p>
+        )}
+        <p className="text-lg font-bold text-purple-600 mt-1">{price}</p>
       </div>
-    </Link>
+    </div>
   );
 }
