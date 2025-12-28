@@ -96,6 +96,7 @@ export default function ProductPage() {
     
     addItem({
       id: product.id,
+      listingId: product.id, // Use product.id as listingId for legacy products
       title: product.title,
       price: product.price,
       quantity: quantity,
