@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 import { categories } from "@/lib/categories";
 import SearchBar from "@/components/SearchBar";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Listing {
   id: string;
@@ -37,6 +38,7 @@ interface Product {
 
 function MarketplaceContent() {
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -55,7 +57,7 @@ function MarketplaceContent() {
 
   useEffect(() => {
     fetchListings();
-  }, [selectedCategory, selectedType, searchQuery]);
+  }, [selectedCategory, selectedType, searchQuery, user]);
 
   async function fetchListings() {
     try {
@@ -69,6 +71,10 @@ function MarketplaceContent() {
       }
       // Ensure only active listings are fetched for guest users
       url += `isActive=true&`;
+      // Exclude user's own listings from marketplace
+      if (user?.id) {
+        url += `excludeUserId=${encodeURIComponent(user.id)}&`;
+      }
 
       // Fetch from listings API (guest users will only see active listings)
       const response = await fetch(url);
@@ -87,7 +93,14 @@ function MarketplaceContent() {
         } : "No listings");
         
         // Filter by type (digital vs physical based on digitalFiles) - done client-side
-        let filtered = listings;
+        // Also filter out user's own listings as a safety measure
+        let filtered = listings.filter(listing => {
+          // Exclude user's own listings
+          if (user?.id && (listing.sellerId === user.id || listing.seller?.id === user.id)) {
+            return false;
+          }
+          return true;
+        });
         if (selectedType !== "all") {
           console.log("[MARKETPLACE] Filtering by type:", selectedType, "Total listings:", listings.length);
           filtered = filtered.filter(listing => {

@@ -90,6 +90,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const isActive = searchParams.get("isActive");
     const userId = searchParams.get("userId") || request.headers.get("x-user-id");
+    const excludeUserId = searchParams.get("excludeUserId"); // New: exclude user's own listings
     const search = searchParams.get("search") || searchParams.get("q");
     const category = searchParams.get("category");
     
@@ -105,6 +106,11 @@ export async function GET(request: Request) {
       where.isActive = isActive === "true";
     }
     // If userId exists and isActive is not specified, show all listings (user can see their own inactive ones)
+    
+    // Exclude user's own listings if excludeUserId is provided (for marketplace view)
+    // Note: This is applied after the where clause is built, so we need to handle it carefully
+    // We'll filter in memory after fetching if needed, or add to where clause
+    // For now, we'll add it to the where clause
     
     // Add category filter if provided
     if (category && category !== "all") {
