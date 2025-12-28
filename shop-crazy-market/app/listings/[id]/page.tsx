@@ -621,6 +621,7 @@ export default function ListingPage() {
                   <div className="space-y-2">
                     {listing.digitalFiles.map((fileUrl: string, index: number) => {
                       const fileName = fileUrl.split('/').pop() || `File ${index + 1}`;
+                      const downloadUrl = `/api/download?url=${encodeURIComponent(fileUrl)}`;
                       const ext = fileName.split('.').pop()?.toLowerCase();
                       const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
                       
@@ -644,12 +645,11 @@ export default function ListingPage() {
                             </div>
                           </div>
                           <a
-                            href={fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            href={downloadUrl}
+                            download={fileName}
                             className="ml-3 px-3 py-1 text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded transition-colors"
                           >
-                            View
+                            Download
                           </a>
                         </div>
                       );
