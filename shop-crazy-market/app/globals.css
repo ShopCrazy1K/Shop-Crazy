@@ -511,16 +511,17 @@ main, [role="main"], .main-content {
   50% { opacity: 0.8; transform: scale(1.05); }
 }
 
-/* Content overlay - ensure readability */
+/* Content overlay - ensure readability but show background */
 .marketplace-90s-content {
   position: relative;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(5px);
   border-radius: 20px;
   padding: 2rem;
   margin: 1rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .marketplace-90s-content > * {
@@ -530,14 +531,15 @@ main, [role="main"], .main-content {
 
 /* Product cards with 90s flair */
 .marketplace-90s-bg .bg-white {
-  background: rgba(255, 255, 255, 0.98) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
   border: 3px solid;
   border-image: linear-gradient(45deg, #ff6b6b, #4ecdc4, #ffe66d, #ff6b9d) 1;
   box-shadow: 
     0 4px 15px rgba(0, 0, 0, 0.2),
     0 0 20px rgba(255, 107, 107, 0.3),
-    inset 0 0 10px rgba(255, 255, 255, 0.5);
+    inset 0 0 10px rgba(255, 255, 255, 0.4);
   transition: all 0.3s ease;
+  backdrop-filter: blur(3px);
 }
 
 .marketplace-90s-bg .bg-white:hover {
@@ -556,6 +558,16 @@ main, [role="main"], .main-content {
     0 4px 15px rgba(0, 0, 0, 0.3),
     inset 0 0 10px rgba(255, 255, 255, 0.3);
   transition: all 0.2s ease;
+  backdrop-filter: blur(2px);
+}
+
+/* Search bar and inputs - semi-transparent */
+.marketplace-90s-bg input,
+.marketplace-90s-bg .bg-white input,
+.marketplace-90s-bg [class*="search"] {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(5px);
+  border: 2px solid rgba(255, 255, 255, 0.5) !important;
 }
 
 .marketplace-90s-bg button:hover {
