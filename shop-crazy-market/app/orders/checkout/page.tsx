@@ -262,7 +262,7 @@ function CheckoutContent() {
               disabled={loading || !listing.isActive}
               className="w-full bg-purple-600 text-white py-3 sm:py-4 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base sm:text-lg"
             >
-              {loading ? "Processing..." : listing.isActive ? "💳 Proceed to Payment (Apple Pay, Google Pay, PayPal)" : "Listing Not Active"}
+              {loading ? "Processing..." : listing.isActive ? "💳 Proceed to Payment (Apple Pay, Google Pay)" : "Listing Not Active"}
             </button>
 
             <Link

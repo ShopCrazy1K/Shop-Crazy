@@ -762,7 +762,7 @@ export default function ListingPage() {
                   href={`/orders/checkout?listingId=${listing.id}`}
                   className="block w-full bg-purple-600 text-white text-center py-3 sm:py-4 px-6 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-base sm:text-lg"
                 >
-                  💳 Buy Now (Apple Pay, Google Pay, PayPal)
+                  💳 Buy Now (Apple Pay, Google Pay)
                 </Link>
               )}
 
