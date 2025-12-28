@@ -190,6 +190,16 @@ function MarketplaceContent() {
       </div>
 
       <main className="p-4 max-w-7xl mx-auto marketplace-90s-content relative z-10">
+        {/* Deals Link */}
+        <div className="mb-4 text-right">
+          <Link
+            href="/deals"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500 to-orange-500 text-white px-4 py-2 rounded-lg font-semibold hover:from-red-600 hover:to-orange-600 transition-colors shadow-lg"
+          >
+            🔥 View All Deals
+          </Link>
+        </div>
+
         {/* Search Bar */}
         <div className="mb-6">
         <SearchBar />

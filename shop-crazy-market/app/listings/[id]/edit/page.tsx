@@ -390,6 +390,13 @@ export default function EditListingPage() {
                 Cancel
               </Link>
             </div>
+
+            <Link
+              href={`/listings/${listingId}/deals`}
+              className="block w-full bg-orange-500 text-white text-center py-3 px-6 rounded-lg font-semibold hover:bg-orange-600 transition-colors mt-4"
+            >
+              🎯 Manage Deals & Promotions
+            </Link>
           </form>
         </div>
       </div>

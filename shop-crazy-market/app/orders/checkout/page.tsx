@@ -17,6 +17,9 @@ function CheckoutContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [listing, setListing] = useState<any>(null);
+  const [activeDeal, setActiveDeal] = useState<any | null>(null);
+  const [discountCents, setDiscountCents] = useState(0);
+  const [promoCode, setPromoCode] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -37,9 +40,52 @@ function CheckoutContent() {
       }
       const data = await response.json();
       setListing(data);
+      
+      // Fetch active deals for this listing
+      const dealsResponse = await fetch(`/api/listings/${listingId}/deals`);
+      if (dealsResponse.ok) {
+        const deals = await dealsResponse.json();
+        if (deals.length > 0) {
+          setActiveDeal(deals[0]);
+          // Apply the deal automatically
+          applyDeal(deals[0].id);
+        }
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load listing");
     }
+  }
+
+  async function applyDeal(dealId?: string, code?: string) {
+    if (!listing) return;
+    
+    try {
+      const response = await fetch("/api/deals/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listingId: listing.id,
+          dealId,
+          promoCode: code,
+          itemsSubtotalCents: listing.priceCents,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setDiscountCents(data.discountCents || 0);
+        if (data.deal) {
+          setActiveDeal(data.deal);
+        }
+      }
+    } catch (err) {
+      console.error("Error applying deal:", err);
+    }
+  }
+
+  async function handlePromoCode() {
+    if (!promoCode.trim()) return;
+    await applyDeal(undefined, promoCode.trim().toUpperCase());
   }
 
   async function handleCheckout() {
@@ -49,8 +95,8 @@ function CheckoutContent() {
     setError("");
 
     try {
-      // Calculate order breakdown (simplified - you may want to add shipping, tax, etc.)
-      const itemsSubtotalCents = listing.priceCents;
+      // Calculate order breakdown with discount
+      const itemsSubtotalCents = listing.priceCents - discountCents;
       const shippingCents = 0; // Add shipping calculation if needed
       const giftWrapCents = 0;
       const taxCents = 0; // Add tax calculation if needed
@@ -140,12 +186,75 @@ function CheckoutContent() {
 
           <p className="text-gray-700 mb-4">{listing.description}</p>
 
+          {/* Promo Code Input */}
+          {!activeDeal && (
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+              <label className="block text-sm font-semibold mb-2">Have a promo code?</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  placeholder="Enter promo code"
+                  className="flex-1 px-4 py-2 border rounded-lg"
+                />
+                <button
+                  type="button"
+                  onClick={handlePromoCode}
+                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Active Deal Display */}
+          {activeDeal && discountCents > 0 && (
+            <div className="mb-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold text-red-600">
+                  {activeDeal.title} Applied!
+                </span>
+                <span className="text-sm text-gray-600">
+                  Save ${(discountCents / 100).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="border-t pt-4">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-gray-600">Price:</span>
-              <span className="text-2xl font-bold text-purple-600">
-                ${(listing.priceCents / 100).toFixed(2)}
-              </span>
+            <div className="space-y-2 mb-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Original Price:</span>
+                <span className="text-lg font-semibold text-gray-700">
+                  ${(listing.priceCents / 100).toFixed(2)}
+                </span>
+              </div>
+              {discountCents > 0 && (
+                <>
+                  <div className="flex justify-between items-center text-red-600">
+                    <span>Discount:</span>
+                    <span className="font-semibold">
+                      -${(discountCents / 100).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <span className="text-gray-900 font-semibold">Total:</span>
+                    <span className="text-2xl font-bold text-purple-600">
+                      ${((listing.priceCents - discountCents) / 100).toFixed(2)}
+                    </span>
+                  </div>
+                </>
+              )}
+              {discountCents === 0 && (
+                <div className="flex justify-between items-center pt-2 border-t">
+                  <span className="text-gray-900 font-semibold">Total:</span>
+                  <span className="text-2xl font-bold text-purple-600">
+                    ${(listing.priceCents / 100).toFixed(2)}
+                  </span>
+                </div>
+              )}
             </div>
 
             <button
