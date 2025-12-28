@@ -17,7 +17,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
 
-      const { error } = await resend.emails.send({
+      const { data, error } = await resend.emails.send({
         from: from || process.env.EMAIL_FROM || "Shop Crazy Market <noreply@shopcrazymarket.com>",
         to: [to],
         subject,
@@ -25,13 +25,23 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       });
 
       if (error) {
-        console.error("Resend error:", error);
+        console.error("Resend error:", JSON.stringify(error, null, 2));
+        console.error("Resend error details:", {
+          message: error.message,
+          name: error.name,
+          statusCode: (error as any).statusCode,
+        });
         return false;
       }
 
+      if (data) {
+        console.log("Resend email sent successfully:", data.id);
+      }
+
       return true;
-    } catch (error) {
-      console.error("Resend import error:", error);
+    } catch (error: any) {
+      console.error("Resend import/send error:", error?.message || error);
+      console.error("Full error:", JSON.stringify(error, null, 2));
       // Fall through to Nodemailer
     }
   }

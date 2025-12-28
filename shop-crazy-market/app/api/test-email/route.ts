@@ -119,28 +119,52 @@ export async function POST(req: Request) {
       </html>
     `;
 
-    const result = await sendEmail({
-      to,
-      subject: "✅ Shop Crazy Market - Email Test Successful!",
-      html: testEmailHtml,
-    });
-
-    if (result) {
-      return NextResponse.json({
-        success: true,
-        message: `Test email sent successfully to ${to}`,
-        timestamp: new Date().toISOString(),
-        config: {
-          hasResendKey: !!process.env.RESEND_API_KEY,
-          hasSmtpConfig: !!(process.env.SMTP_HOST && process.env.SMTP_USER),
-          emailFrom: process.env.EMAIL_FROM || "Not set",
-        },
+    try {
+      const result = await sendEmail({
+        to,
+        subject: "✅ Shop Crazy Market - Email Test Successful!",
+        html: testEmailHtml,
       });
-    } else {
+
+      if (result) {
+        return NextResponse.json({
+          success: true,
+          message: `Test email sent successfully to ${to}`,
+          timestamp: new Date().toISOString(),
+          config: {
+            hasResendKey: !!process.env.RESEND_API_KEY,
+            hasSmtpConfig: !!(process.env.SMTP_HOST && process.env.SMTP_USER),
+            emailFrom: process.env.EMAIL_FROM || "Not set",
+            resendKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 10) || "Not set",
+          },
+        });
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Failed to send email. Check Vercel function logs for Resend error details.",
+            config: {
+              hasResendKey: !!process.env.RESEND_API_KEY,
+              hasSmtpConfig: !!(process.env.SMTP_HOST && process.env.SMTP_USER),
+              emailFrom: process.env.EMAIL_FROM || "Not set",
+              resendKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 10) || "Not set",
+            },
+            troubleshooting: [
+              "Check Vercel function logs for detailed error message",
+              "Verify RESEND_API_KEY is correct in Vercel environment variables",
+              "Check if your domain is verified in Resend dashboard (if using custom domain)",
+              "Verify EMAIL_FROM format is correct: 'Name <email@domain.com>'",
+            ],
+          },
+          { status: 500 }
+        );
+      }
+    } catch (emailError: any) {
+      console.error("Test email error:", emailError);
       return NextResponse.json(
         {
           success: false,
-          error: "Failed to send email. Check server logs for details.",
+          error: emailError.message || "Failed to send test email",
           config: {
             hasResendKey: !!process.env.RESEND_API_KEY,
             hasSmtpConfig: !!(process.env.SMTP_HOST && process.env.SMTP_USER),
