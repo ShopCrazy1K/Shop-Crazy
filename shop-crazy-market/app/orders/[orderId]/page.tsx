@@ -202,20 +202,20 @@ function OrderContent() {
                     {order.listing.digitalFiles.map((fileUrl: string, index: number) => {
                       const fileName = fileUrl.split('/').pop() || `File ${index + 1}`;
                       const isImage = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(fileName);
+                      const downloadUrl = `/api/download?url=${encodeURIComponent(fileUrl)}`;
                       return (
                         <a
                           key={index}
-                          href={fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-3 p-3 bg-white rounded-lg border border-purple-200 hover:border-purple-400 hover:shadow-md transition-all group"
+                          href={downloadUrl}
+                          download={fileName}
+                          className="flex items-center gap-3 p-3 bg-white rounded-lg border border-purple-200 hover:border-purple-400 hover:shadow-md transition-all group cursor-pointer"
                         >
                           <span className="text-2xl">{isImage ? '🖼️' : '📄'}</span>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-purple-700 group-hover:text-purple-900 truncate">
                               {fileName}
                             </p>
-                            <p className="text-xs text-gray-500">Click to download</p>
+                            <p className="text-xs text-gray-500">Click to download to your device</p>
                           </div>
                           <span className="text-purple-600 group-hover:translate-x-1 transition-transform">
                             ⬇️
