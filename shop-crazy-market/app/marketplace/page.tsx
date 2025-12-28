@@ -165,7 +165,8 @@ function MarketplaceContent() {
               return hasDigitalFiles ? "DIGITAL" : "PHYSICAL";
             })(),
             shop: {
-              name: listing.seller.username || listing.seller.email,
+              name: listing.seller.username || listing.seller.email || "Unknown Seller",
+              id: listing.seller.id, // Add seller ID for shop page link
             },
           };
         });
