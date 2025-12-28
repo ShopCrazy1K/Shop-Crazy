@@ -110,9 +110,25 @@ export async function POST(req: Request) {
       },
     });
 
+    console.log("[CHECKOUT] Created Stripe session:", {
+      sessionId: session.id,
+      orderId: order.id,
+      amount: breakdown.orderTotalCents,
+      currency: listing.currency,
+      paymentIntentId: typeof session.payment_intent === 'string' 
+        ? session.payment_intent 
+        : session.payment_intent?.id,
+    });
+
     await prisma.order.update({
       where: { id: order.id },
-      data: { stripeSessionId: session.id },
+      data: { 
+        stripeSessionId: session.id,
+        // Store payment intent if available immediately
+        stripePaymentIntent: typeof session.payment_intent === 'string' 
+          ? session.payment_intent 
+          : session.payment_intent?.id || null,
+      },
     });
 
     return NextResponse.json({ ok: true, checkoutUrl: session.url, orderId: order.id });
