@@ -52,15 +52,6 @@ export default function Logo({ className = "" }: LogoProps) {
               >
                 SHOP
               </h1>
-              {/* Lime green dripping shape */}
-              <div 
-                className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-8 md:w-48 md:h-12"
-                style={{
-                  background: 'linear-gradient(to bottom, #CDDC39, #8BC34A)',
-                  clipPath: 'polygon(20% 0%, 80% 0%, 100% 100%, 90% 100%, 85% 80%, 70% 90%, 50% 70%, 30% 90%, 15% 80%, 10% 100%, 0% 100%)',
-                  zIndex: 1,
-                }}
-              ></div>
             </div>
 
             {/* "CRAZY" - Large colorful letters */}
