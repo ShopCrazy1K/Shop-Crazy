@@ -163,31 +163,33 @@ function MarketplaceContent() {
   }
 
   return (
-    <div className="marketplace-90s-bg">
-      {/* Graffiti text elements */}
-      <div className="graffiti-text" style={{ '--rotate': '-15deg' } as React.CSSProperties}>
-        SHOP CRAZY
-      </div>
-      <div className="graffiti-text" style={{ '--rotate': '12deg' } as React.CSSProperties}>
-        MARKET
-      </div>
-      <div className="graffiti-text" style={{ '--rotate': '-8deg' } as React.CSSProperties}>
-        SHOP CRAZY MARKET
-      </div>
-      <div className="graffiti-text" style={{ '--rotate': '18deg' } as React.CSSProperties}>
-        CRAZY
-      </div>
-      <div className="graffiti-text" style={{ '--rotate': '-5deg' } as React.CSSProperties}>
-        SHOP
-      </div>
-      <div className="graffiti-text" style={{ '--rotate': '25deg' } as React.CSSProperties}>
-        MARKET
-      </div>
-      <div className="graffiti-text" style={{ '--rotate': '-20deg' } as React.CSSProperties}>
-        CRAZY MARKET
+    <div className="relative min-h-screen">
+      <div className="marketplace-90s-bg">
+        {/* Graffiti text elements */}
+        <div className="graffiti-text" style={{ '--rotate': '-15deg' } as React.CSSProperties}>
+          SHOP CRAZY
+        </div>
+        <div className="graffiti-text" style={{ '--rotate': '12deg' } as React.CSSProperties}>
+          MARKET
+        </div>
+        <div className="graffiti-text" style={{ '--rotate': '-8deg' } as React.CSSProperties}>
+          SHOP CRAZY MARKET
+        </div>
+        <div className="graffiti-text" style={{ '--rotate': '18deg' } as React.CSSProperties}>
+          CRAZY
+        </div>
+        <div className="graffiti-text" style={{ '--rotate': '-5deg' } as React.CSSProperties}>
+          SHOP
+        </div>
+        <div className="graffiti-text" style={{ '--rotate': '25deg' } as React.CSSProperties}>
+          MARKET
+        </div>
+        <div className="graffiti-text" style={{ '--rotate': '-20deg' } as React.CSSProperties}>
+          CRAZY MARKET
+        </div>
       </div>
 
-      <main className="p-4 max-w-7xl mx-auto marketplace-90s-content">
+      <main className="p-4 max-w-7xl mx-auto marketplace-90s-content relative z-10">
         {/* Search Bar */}
         <div className="mb-6">
         <SearchBar />
