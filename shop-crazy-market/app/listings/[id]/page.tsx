@@ -260,7 +260,7 @@ export default function ListingPage() {
           console.error("[LISTING PAGE] Activation error:", err);
         });
     }
-  }, [listingId, listing, loading]);
+  }, [listingId, listing, loading, searchParams]);
 
   // Fetch deals when listing loads
   useEffect(() => {
