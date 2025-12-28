@@ -16,6 +16,7 @@ interface Listing {
   digitalFiles: string[];
   isActive: boolean;
   category: string | null;
+  sellerId?: string; // Add sellerId to interface
   seller: {
     id: string;
     email: string;
