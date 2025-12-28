@@ -56,8 +56,8 @@ function ShopContent() {
       setLoading(true);
       setError("");
 
-      // Fetch user's active listings only
-      const response = await fetch(`/api/listings?userId=${userId}&isActive=true`);
+      // Fetch all active listings, then filter to this user's listings
+      const response = await fetch(`/api/listings?isActive=true`);
       
       if (!response.ok) {
         throw new Error("Failed to fetch shop data");
@@ -65,10 +65,11 @@ function ShopContent() {
 
       const listings: Listing[] = await response.json();
       
-      // Filter to only show listings from this specific user
-      const userListings = listings.filter(listing => 
-        listing.sellerId === userId || listing.seller?.id === userId
-      );
+      // Filter to only show active listings from this specific user
+      const userListings = listings.filter(listing => {
+        const listingSellerId = listing.sellerId || listing.seller?.id;
+        return listingSellerId === userId && listing.isActive;
+      });
 
       // Get shop user info from first listing (if available)
       if (userListings.length > 0) {
