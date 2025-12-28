@@ -16,11 +16,11 @@ export default function CartPage() {
   );
 
   // Update selected items when cart items change
-  useState(() => {
+  useEffect(() => {
     if (items.length > 0) {
       setSelectedItems(new Set(items.map(item => item.id)));
     }
-  });
+  }, [items]);
 
   const toggleItem = (itemId: string) => {
     setSelectedItems(prev => {

@@ -119,10 +119,10 @@ export async function GET(request: Request) {
       ];
     }
     
-    let listings;
+    let listings: any[];
     try {
-      listings = await prisma.listing.findMany({
-        where,
+      listings = await (prisma.listing.findMany({
+        where: where as any,
         include: {
           seller: {
             select: {
@@ -135,15 +135,15 @@ export async function GET(request: Request) {
         orderBy: {
           createdAt: "desc",
         },
-      });
+      }) as Promise<any[]>);
     } catch (error: any) {
       // If error is about missing category column, try query without category filter
       if (error.message?.includes("category") || error.message?.includes("Unknown column")) {
         console.log("[API LISTINGS] Category column not found, retrying without category filter");
         const whereWithoutCategory = { ...where };
         delete whereWithoutCategory.category;
-        listings = await prisma.listing.findMany({
-          where: whereWithoutCategory,
+        listings = await (prisma.listing.findMany({
+          where: whereWithoutCategory as any,
           include: {
             seller: {
               select: {
@@ -156,7 +156,7 @@ export async function GET(request: Request) {
           orderBy: {
             createdAt: "desc",
           },
-        });
+        }) as Promise<any[]>);
         // Filter by category in memory if needed
         if (category && category !== "all" && listings) {
           listings = listings.filter((listing: any) => listing.category === category);
@@ -168,8 +168,8 @@ export async function GET(request: Request) {
     
     // If user is authenticated, filter out inactive listings that don't belong to them
     if (userId) {
-      const filteredListings = listings.filter(listing => 
-        listing.isActive || listing.sellerId === userId
+      const filteredListings = listings.filter((listing: any) => 
+        listing.isActive || listing.sellerId === userId || listing.seller?.id === userId
       );
       return NextResponse.json(filteredListings);
     }

@@ -35,41 +35,52 @@ function CheckoutContent() {
 
     // Load checkout items from sessionStorage and fetch listing details
     const stored = sessionStorage.getItem("checkoutItems");
-    if (stored) {
+    if (!stored) {
+      router.push("/cart");
+      return;
+    }
+
+    let isMounted = true;
+
+    async function fetchListingDetails() {
       try {
         const items: CheckoutItem[] = JSON.parse(stored);
         
-        // Fetch listing details to check for digital files
-        async function fetchListingDetails() {
-          const itemsWithDetails = await Promise.all(
-            items.map(async (item) => {
-              try {
-                const response = await fetch(`/api/listings/${item.listingId}`);
-                if (response.ok) {
-                  const listing = await response.json();
-                  const hasDigitalFiles = listing.digitalFiles && 
-                    ((Array.isArray(listing.digitalFiles) && listing.digitalFiles.length > 0) ||
-                     (typeof listing.digitalFiles === 'string' && listing.digitalFiles.trim().length > 0));
-                  return { ...item, isDigital: hasDigitalFiles };
-                }
-              } catch (error) {
-                console.error(`Error fetching listing ${item.listingId}:`, error);
+        const itemsWithDetails = await Promise.all(
+          items.map(async (item) => {
+            try {
+              const response = await fetch(`/api/listings/${item.listingId}`);
+              if (response.ok) {
+                const listing = await response.json();
+                const hasDigitalFiles = listing.digitalFiles && 
+                  ((Array.isArray(listing.digitalFiles) && listing.digitalFiles.length > 0) ||
+                   (typeof listing.digitalFiles === 'string' && listing.digitalFiles.trim().length > 0));
+                return { ...item, isDigital: hasDigitalFiles };
               }
-              return { ...item, isDigital: false };
-            })
-          );
+            } catch (error) {
+              console.error(`Error fetching listing ${item.listingId}:`, error);
+            }
+            return { ...item, isDigital: false };
+          })
+        );
+        
+        if (isMounted) {
           setCheckoutItems(itemsWithDetails);
           setLoadingItems(false);
         }
-        
-        fetchListingDetails();
       } catch (e) {
         console.error("Error parsing checkout items:", e);
-        router.push("/cart");
+        if (isMounted) {
+          router.push("/cart");
+        }
       }
-    } else {
-      router.push("/cart");
     }
+    
+    fetchListingDetails();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, authLoading, router]);
 
   const subtotal = checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
