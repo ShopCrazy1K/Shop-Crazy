@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import DealBadge from "@/components/DealBadge";
 
 interface Listing {
   id: string;
@@ -33,6 +34,8 @@ export default function ListingPage() {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [deals, setDeals] = useState<any[]>([]);
+  const [activeDeal, setActiveDeal] = useState<any | null>(null);
   const feeStatus = searchParams.get("fee");
 
   // Handle "new" route - redirect to create page
@@ -252,6 +255,29 @@ export default function ListingPage() {
         });
     }
   }, [listingId, listing, loading]);
+
+  // Fetch deals when listing loads
+  useEffect(() => {
+    if (listingId && listing) {
+      fetchDeals();
+    }
+  }, [listingId, listing]);
+
+  async function fetchDeals() {
+    try {
+      const response = await fetch(`/api/listings/${listingId}/deals`);
+      if (response.ok) {
+        const dealsData = await response.json();
+        setDeals(dealsData);
+        // Set the best deal as active (first one, already sorted by discount value)
+        if (dealsData.length > 0) {
+          setActiveDeal(dealsData[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching deals:", error);
+    }
+  }
 
   // Check favorite status when listing loads
   useEffect(() => {
@@ -587,13 +613,49 @@ export default function ListingPage() {
                 )}
               </div>
               
+              {/* Active Deal Badge */}
+              {activeDeal && listing.isActive && (
+                <div className="mb-6">
+                  <DealBadge deal={activeDeal} priceCents={listing.priceCents} />
+                </div>
+              )}
+
               <div className="mb-6">
-                <p className="text-4xl font-bold text-purple-600 mb-2">
-                  ${(listing.priceCents / 100).toFixed(2)}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {listing.currency.toUpperCase()}
-                </p>
+                {activeDeal && listing.isActive ? (
+                  <>
+                    <div className="flex items-baseline gap-3">
+                      <p className="text-4xl font-bold text-red-600">
+                        ${(() => {
+                          const discountCents = activeDeal.discountType === "PERCENTAGE"
+                            ? Math.round((listing.priceCents * activeDeal.discountValue) / 100)
+                            : activeDeal.discountValue;
+                          const discountedPrice = listing.priceCents - discountCents;
+                          return (discountedPrice / 100).toFixed(2);
+                        })()}
+                      </p>
+                      <p className="text-2xl text-gray-400 line-through">
+                        ${(listing.priceCents / 100).toFixed(2)}
+                      </p>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {listing.currency.toUpperCase()} • Save ${(() => {
+                        const discountCents = activeDeal.discountType === "PERCENTAGE"
+                          ? Math.round((listing.priceCents * activeDeal.discountValue) / 100)
+                          : activeDeal.discountValue;
+                        return (discountCents / 100).toFixed(2);
+                      })()}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-4xl font-bold text-purple-600 mb-2">
+                      ${(listing.priceCents / 100).toFixed(2)}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {listing.currency.toUpperCase()}
+                    </p>
+                  </>
+                )}
               </div>
 
               <div className="mb-6">
