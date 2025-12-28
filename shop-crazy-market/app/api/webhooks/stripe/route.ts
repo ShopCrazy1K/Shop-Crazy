@@ -75,7 +75,7 @@ export async function POST(req: Request) {
           // Send order confirmation email
           try {
             const { sendOrderConfirmationEmail } = await import("@/lib/email");
-            await sendOrderConfirmationEmail({
+            const emailResult = await sendOrderConfirmationEmail({
               id: updatedOrder.id,
               orderTotalCents: updatedOrder.orderTotalCents,
               currency: updatedOrder.currency,
@@ -83,7 +83,11 @@ export async function POST(req: Request) {
               buyerEmail: updatedOrder.buyerEmail,
               listing: updatedOrder.listing,
             });
-            console.log("[WEBHOOK] Order confirmation email sent to:", updatedOrder.buyerEmail);
+            if (emailResult.success) {
+              console.log("[WEBHOOK] Order confirmation email sent to:", updatedOrder.buyerEmail);
+            } else {
+              console.error("[WEBHOOK] Failed to send order confirmation email:", emailResult.error);
+            }
           } catch (emailError: any) {
             console.error("[WEBHOOK] Error sending order confirmation email:", emailError);
             // Don't fail the webhook if email fails

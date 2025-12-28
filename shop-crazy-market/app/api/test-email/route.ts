@@ -126,7 +126,7 @@ export async function POST(req: Request) {
         html: testEmailHtml,
       });
 
-      if (result) {
+      if (result.success) {
         return NextResponse.json({
           success: true,
           message: `Test email sent successfully to ${to}`,
@@ -142,7 +142,7 @@ export async function POST(req: Request) {
         return NextResponse.json(
           {
             success: false,
-            error: "Failed to send email. Check Vercel function logs for Resend error details.",
+            error: result.error || "Failed to send email. Check Vercel function logs for details.",
             config: {
               hasResendKey: !!process.env.RESEND_API_KEY,
               hasSmtpConfig: !!(process.env.SMTP_HOST && process.env.SMTP_USER),

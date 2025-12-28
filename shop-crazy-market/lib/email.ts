@@ -8,7 +8,7 @@ interface EmailOptions {
   from?: string;
 }
 
-export async function sendEmail(options: EmailOptions): Promise<boolean> {
+export async function sendEmail(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
   const { to, subject, html, from } = options;
 
   // Use Resend if API key is available
@@ -17,32 +17,48 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
 
+      const emailFrom = from || process.env.EMAIL_FROM || "Shop Crazy Market <onboarding@resend.dev>";
+      
+      console.log("[EMAIL] Attempting to send via Resend:", {
+        to,
+        from: emailFrom,
+        subject,
+        hasApiKey: !!process.env.RESEND_API_KEY,
+      });
+
       const { data, error } = await resend.emails.send({
-        from: from || process.env.EMAIL_FROM || "Shop Crazy Market <noreply@shopcrazymarket.com>",
+        from: emailFrom,
         to: [to],
         subject,
         html,
       });
 
       if (error) {
-        console.error("Resend error:", JSON.stringify(error, null, 2));
-        console.error("Resend error details:", {
+        const errorDetails = {
           message: error.message,
           name: error.name,
           statusCode: (error as any).statusCode,
-        });
-        return false;
+          fullError: error,
+        };
+        console.error("[EMAIL] Resend error:", JSON.stringify(errorDetails, null, 2));
+        return { 
+          success: false, 
+          error: `Resend error: ${error.message || JSON.stringify(error)}` 
+        };
       }
 
       if (data) {
-        console.log("Resend email sent successfully:", data.id);
+        console.log("[EMAIL] Resend email sent successfully:", data.id);
       }
 
-      return true;
+      return { success: true };
     } catch (error: any) {
-      console.error("Resend import/send error:", error?.message || error);
-      console.error("Full error:", JSON.stringify(error, null, 2));
-      // Fall through to Nodemailer
+      console.error("[EMAIL] Resend import/send exception:", error?.message || error);
+      console.error("[EMAIL] Full error:", JSON.stringify(error, null, 2));
+      return { 
+        success: false, 
+        error: `Resend exception: ${error?.message || String(error)}` 
+      };
     }
   }
 
@@ -68,16 +84,19 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
         html,
       });
 
-      return true;
-    } catch (error) {
+      return { success: true };
+    } catch (error: any) {
       console.error("Nodemailer error:", error);
-      return false;
+      return { 
+        success: false, 
+        error: `SMTP error: ${error?.message || String(error)}` 
+      };
     }
   }
 
   // Development mode: log email instead of sending
   console.log("📧 Email (dev mode):", { to, subject, html });
-  return true;
+  return { success: true };
 }
 
 export async function sendAdminReportNotification(report: {
@@ -199,10 +218,10 @@ export async function sendOrderConfirmationEmail(order: {
     title: string;
     digitalFiles: string[];
   };
-}) {
+}): Promise<{ success: boolean; error?: string }> {
   if (!order.buyerEmail) {
     console.log("[EMAIL] No buyer email for order, skipping email");
-    return false;
+    return { success: false, error: "No buyer email" };
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://shopcrazymarket.com";
@@ -408,7 +427,7 @@ export async function sendOrderConfirmationEmail(order: {
     </html>
   `;
 
-  return sendEmail({
+  return await sendEmail({
     to: order.buyerEmail,
     subject: `Order Confirmed - ${order.listing.title} | Shop Crazy Market`,
     html,
