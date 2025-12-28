@@ -108,9 +108,7 @@ export async function GET(request: Request) {
     // If userId exists and isActive is not specified, show all listings (user can see their own inactive ones)
     
     // Exclude user's own listings if excludeUserId is provided (for marketplace view)
-    // Note: This is applied after the where clause is built, so we need to handle it carefully
-    // We'll filter in memory after fetching if needed, or add to where clause
-    // For now, we'll add it to the where clause
+    // This will be filtered in memory after fetching to avoid Prisma type issues
     
     // Add category filter if provided
     if (category && category !== "all") {
@@ -174,6 +172,13 @@ export async function GET(request: Request) {
       } else {
         throw error;
       }
+    }
+    
+    // Exclude user's own listings if excludeUserId is provided (for marketplace view)
+    if (excludeUserId) {
+      listings = listings.filter((listing: any) => 
+        listing.sellerId !== excludeUserId && listing.seller?.id !== excludeUserId
+      );
     }
     
     // If user is authenticated, filter out inactive listings that don't belong to them
