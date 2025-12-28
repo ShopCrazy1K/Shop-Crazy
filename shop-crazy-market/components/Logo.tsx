@@ -1,144 +1,273 @@
 "use client";
 
-export default function Logo({ className = "" }: { className?: string }) {
+interface LogoProps {
+  className?: string;
+}
+
+export default function Logo({ className = "" }: LogoProps) {
   return (
-    <div className={`relative ${className}`}>
-      {/* Dark background with glow */}
-      <div className="relative bg-gradient-to-br from-gray-900 via-purple-900 to-black rounded-3xl p-8 md:p-12 shadow-2xl overflow-hidden">
-        {/* Subtle purple glow effect */}
-        <div className="absolute inset-0 bg-gradient-radial from-purple-500/20 via-transparent to-transparent"></div>
+    <div className={`relative ${className}`} style={{ background: 'black' }}>
+      {/* Main Logo Container */}
+      <div className="relative flex flex-col items-center justify-center p-8 md:p-12">
+        {/* Decorative Elements - Left Side */}
+        <div className="absolute left-0 top-8 w-16 h-16 md:w-24 md:h-24">
+          {/* White circle with black flower design */}
+          <div className="absolute top-0 left-0 w-8 h-8 md:w-12 md:h-12 bg-white rounded-full border-2 border-black flex items-center justify-center">
+            <div className="w-4 h-4 md:w-6 md:h-6 bg-black rounded-full"></div>
+            <div className="absolute w-2 h-2 md:w-3 md:h-3 bg-black rounded-full" style={{ top: '2px' }}></div>
+            <div className="absolute w-2 h-2 md:w-3 md:h-3 bg-black rounded-full" style={{ bottom: '2px' }}></div>
+            <div className="absolute w-2 h-2 md:w-3 md:h-3 bg-black rounded-full" style={{ left: '2px' }}></div>
+            <div className="absolute w-2 h-2 md:w-3 md:h-3 bg-black rounded-full" style={{ right: '2px' }}></div>
+          </div>
+          {/* Yellow arrow pointing right */}
+          <div className="absolute top-12 left-4 md:top-16 md:left-6 text-yellow-400 text-xl md:text-2xl">→</div>
+        </div>
+
+        {/* "Shop" - Yellow text at top */}
+        <div className="relative mb-2 md:mb-4">
+          <h1 
+            className="text-4xl md:text-6xl lg:text-7xl font-black italic"
+            style={{
+              color: '#FFEB3B',
+              textShadow: `
+                -2px -2px 0 white,
+                2px -2px 0 white,
+                -2px 2px 0 white,
+                2px 2px 0 white,
+                3px 3px 0 rgba(255, 152, 0, 0.8),
+                0 0 10px rgba(255, 235, 59, 0.5)
+              `,
+              transform: 'perspective(500px) rotateX(-5deg)',
+              letterSpacing: '0.05em',
+            }}
+          >
+            Shop
+          </h1>
+          {/* Lime green dripping shape */}
+          <div 
+            className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-8 md:w-48 md:h-12"
+            style={{
+              background: 'linear-gradient(to bottom, #CDDC39, #8BC34A)',
+              clipPath: 'polygon(20% 0%, 80% 0%, 100% 100%, 90% 100%, 85% 80%, 70% 90%, 50% 70%, 30% 90%, 15% 80%, 10% 100%, 0% 100%)',
+              zIndex: 1,
+            }}
+          ></div>
+        </div>
+
+        {/* "CRAZY" - Large colorful letters */}
+        <div className="relative flex items-center justify-center gap-1 md:gap-2 mb-4 md:mb-6" style={{ zIndex: 2 }}>
+          {/* C - Hot Pink/Magenta */}
+          <span 
+            className="text-6xl md:text-8xl lg:text-9xl font-black"
+            style={{
+              color: '#E91E63',
+              textShadow: `
+                -3px -3px 0 white,
+                3px -3px 0 white,
+                -3px 3px 0 white,
+                3px 3px 0 white,
+                4px 4px 0 rgba(156, 39, 176, 0.8),
+                0 0 15px rgba(233, 30, 99, 0.6)
+              `,
+              transform: 'rotate(-2deg)',
+            }}
+          >
+            C
+          </span>
+          
+          {/* R - Bright Yellow */}
+          <span 
+            className="text-6xl md:text-8xl lg:text-9xl font-black"
+            style={{
+              color: '#FFEB3B',
+              textShadow: `
+                -3px -3px 0 white,
+                3px -3px 0 white,
+                -3px 3px 0 white,
+                3px 3px 0 white,
+                4px 4px 0 rgba(255, 152, 0, 0.8),
+                0 0 15px rgba(255, 235, 59, 0.6)
+              `,
+              transform: 'rotate(1deg)',
+            }}
+          >
+            R
+          </span>
+          
+          {/* A - Vivid Green */}
+          <span 
+            className="text-6xl md:text-8xl lg:text-9xl font-black"
+            style={{
+              color: '#4CAF50',
+              textShadow: `
+                -3px -3px 0 white,
+                3px -3px 0 white,
+                -3px 3px 0 white,
+                3px 3px 0 white,
+                4px 4px 0 rgba(76, 175, 80, 0.8),
+                0 0 15px rgba(76, 175, 80, 0.6)
+              `,
+              transform: 'rotate(-1deg)',
+            }}
+          >
+            A
+          </span>
+          
+          {/* Z - Bright Orange */}
+          <span 
+            className="text-6xl md:text-8xl lg:text-9xl font-black"
+            style={{
+              color: '#FF9800',
+              textShadow: `
+                -3px -3px 0 white,
+                3px -3px 0 white,
+                -3px 3px 0 white,
+                3px 3px 0 white,
+                4px 4px 0 rgba(255, 152, 0, 0.8),
+                0 0 15px rgba(255, 152, 0, 0.6)
+              `,
+              transform: 'rotate(2deg)',
+            }}
+          >
+            Z
+          </span>
+          
+          {/* Y - Light Blue */}
+          <span 
+            className="text-6xl md:text-8xl lg:text-9xl font-black"
+            style={{
+              color: '#03A9F4',
+              textShadow: `
+                -3px -3px 0 white,
+                3px -3px 0 white,
+                -3px 3px 0 white,
+                3px 3px 0 white,
+                4px 4px 0 rgba(3, 169, 244, 0.8),
+                0 0 15px rgba(3, 169, 244, 0.6)
+              `,
+              transform: 'rotate(-1deg)',
+            }}
+          >
+            Y
+          </span>
+        </div>
+
+        {/* Decorative Elements Around CRAZY */}
+        {/* Dark purple spiky shape behind C */}
+        <div 
+          className="absolute left-8 md:left-16 top-24 md:top-32 w-12 h-16 md:w-16 md:h-24"
+          style={{
+            background: '#7B1FA2',
+            clipPath: 'polygon(50% 0%, 0% 100%, 30% 80%, 50% 100%, 70% 80%, 100% 100%)',
+            zIndex: 0,
+          }}
+        ></div>
+
+        {/* Light blue splash behind Y */}
+        <div 
+          className="absolute right-8 md:right-16 top-28 md:top-36 w-16 h-12 md:w-20 md:h-16"
+          style={{
+            background: '#81D4FA',
+            clipPath: 'polygon(30% 0%, 70% 0%, 100% 50%, 80% 100%, 20% 100%, 0% 50%)',
+            zIndex: 0,
+          }}
+        ></div>
+
+        {/* Orange splash on right */}
+        <div 
+          className="absolute right-4 md:right-8 top-16 md:top-20 w-12 h-12 md:w-16 md:h-16"
+          style={{
+            background: '#FF9800',
+            borderRadius: '50% 30% 50% 30%',
+            zIndex: 0,
+          }}
+        ></div>
+
+        {/* Checkered flag below C */}
+        <div 
+          className="absolute left-12 md:left-20 top-40 md:top-52 w-8 h-6 md:w-12 md:h-8"
+          style={{
+            backgroundImage: `
+              linear-gradient(45deg, black 25%, white 25%, white 50%, black 50%, black 75%, white 75%),
+              linear-gradient(45deg, black 25%, white 25%, white 50%, black 50%, black 75%, white 75%)
+            `,
+            backgroundSize: '8px 8px',
+            backgroundPosition: '0 0, 4px 4px',
+            zIndex: 1,
+          }}
+        ></div>
+
+        {/* "Market" - Purple ribbon banner */}
+        <div className="relative mt-2 md:mt-4" style={{ zIndex: 3 }}>
+          <div 
+            className="relative px-6 md:px-12 py-2 md:py-3"
+            style={{
+              background: 'linear-gradient(135deg, #7B1FA2 0%, #9C27B0 50%, #7B1FA2 100%)',
+              transform: 'perspective(200px) rotateX(5deg)',
+              borderRadius: '8px',
+              boxShadow: `
+                0 4px 8px rgba(0,0,0,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.2),
+                inset 0 -1px 0 rgba(0,0,0,0.2)
+              `,
+            }}
+          >
+            {/* Ribbon fold effect */}
+            <div 
+              className="absolute left-0 top-0 w-4 h-full"
+              style={{
+                background: 'linear-gradient(90deg, rgba(123, 31, 162, 0.8), transparent)',
+                clipPath: 'polygon(0 0, 100% 0, 80% 100%, 0% 100%)',
+              }}
+            ></div>
+            <div 
+              className="absolute right-0 top-0 w-4 h-full"
+              style={{
+                background: 'linear-gradient(-90deg, rgba(123, 31, 162, 0.8), transparent)',
+                clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0% 100%)',
+              }}
+            ></div>
+            
+            <h2 
+              className="text-3xl md:text-5xl lg:text-6xl font-black italic relative z-10"
+              style={{
+                color: '#FFF8E1',
+                textShadow: `
+                  -2px -2px 0 #FF9800,
+                  2px -2px 0 #FF9800,
+                  -2px 2px 0 #FF9800,
+                  2px 2px 0 #FF9800,
+                  3px 3px 0 rgba(0,0,0,0.3)
+                `,
+                letterSpacing: '0.05em',
+              }}
+            >
+              Market
+            </h2>
+          </div>
+        </div>
+
+        {/* Decorative Icons */}
+        {/* Pink heart below Market banner */}
+        <div className="absolute left-16 md:left-24 bottom-8 md:bottom-12 text-2xl md:text-3xl" style={{ zIndex: 4 }}>💖</div>
         
-        {/* Decorative elements - Left side */}
-        <div className="absolute left-4 top-8">
-          {/* Dice */}
-          <div className="bg-white rounded-lg p-2 shadow-lg transform rotate-12">
-            <div className="grid grid-cols-3 gap-0.5 w-8 h-8">
-              <div className="bg-black rounded-full w-1.5 h-1.5"></div>
-              <div></div>
-              <div className="bg-black rounded-full w-1.5 h-1.5"></div>
-              <div></div>
-              <div className="bg-purple-500 rounded-full w-1.5 h-1.5"></div>
-              <div></div>
-              <div className="bg-black rounded-full w-1.5 h-1.5"></div>
-              <div></div>
-              <div className="bg-black rounded-full w-1.5 h-1.5"></div>
-            </div>
-          </div>
-          
-          {/* Checkered flag */}
-          <div className="mt-4 grid grid-cols-4 gap-0.5 w-12 h-8">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className={`${i % 2 === 0 ? "bg-black" : "bg-white"}`}
-              ></div>
-            ))}
-          </div>
-          
-          {/* Heart */}
-          <div className="mt-2 text-pink-500 text-2xl">❤️</div>
+        {/* Yellow lightning/arrows below Market */}
+        <div className="absolute left-1/2 bottom-4 md:bottom-6 transform -translate-x-1/2 flex gap-2" style={{ zIndex: 4 }}>
+          <span className="text-yellow-400 text-xl md:text-2xl">⚡</span>
+          <span className="text-yellow-400 text-xl md:text-2xl">⚡</span>
         </div>
 
-        {/* Decorative elements - Right side */}
-        <div className="absolute right-4 top-8">
-          {/* Star */}
-          <div className="text-yellow-400 text-2xl">⭐</div>
-          
-          {/* Musical note */}
-          <div className="mt-2 text-pink-500 text-2xl">♪</div>
-          
-          {/* Lightning bolts */}
-          <div className="mt-4 flex gap-1">
-            <div className="text-yellow-400 text-xl">⚡</div>
-            <div className="text-yellow-400 text-xl">⚡</div>
-          </div>
-        </div>
+        {/* Pink musical note */}
+        <div className="absolute right-16 md:right-24 bottom-8 md:bottom-12 text-2xl md:text-3xl" style={{ zIndex: 4 }}>🎵</div>
+        
+        {/* Yellow star */}
+        <div className="absolute right-12 md:right-20 bottom-16 md:bottom-20 text-xl md:text-2xl" style={{ zIndex: 4 }}>⭐</div>
 
-        {/* Spiky shape left of C */}
-        <div className="absolute left-16 top-20">
-          <div className="text-purple-400 text-3xl">✦</div>
-        </div>
-
-        {/* Splash/starburst right of Y */}
-        <div className="absolute right-16 top-20">
-          <div className="text-orange-400 text-3xl">✧</div>
-        </div>
-
-        {/* Main Logo Text */}
-        <div className="relative z-10 text-center">
-          {/* SHOP - Yellow bubbly text */}
-          <div className="mb-2">
-            <span className="text-4xl md:text-6xl font-black text-yellow-300 drop-shadow-[0_0_12px_rgba(250,204,21,1)] [text-shadow:_4px_4px_0_rgb(0,0,0),_6px_6px_0_rgba(0,0,0,0.5),_0_0_15px_rgba(250,204,21,0.8)] transform -rotate-1">
-              Shop
-            </span>
-          </div>
-
-          {/* Green slime drip under Shop */}
-          <div className="relative -mt-2 mb-4 flex justify-center">
-            <div className="bg-green-400 rounded-b-full w-32 h-8 opacity-80"></div>
-            <div className="absolute left-1/4 bg-green-400 rounded-b-full w-12 h-6 opacity-60"></div>
-          </div>
-
-          {/* CRAZY - Colorful letters */}
-          <div className="flex justify-center items-center gap-1 md:gap-2 mb-4">
-            {/* C - Pink */}
-            <span className="text-6xl md:text-8xl font-black text-pink-500 drop-shadow-[0_0_12px_rgba(236,72,153,1)] [text-shadow:_5px_5px_0_rgb(0,0,0),_7px_7px_0_rgba(0,0,0,0.5),_0_0_20px_rgba(236,72,153,0.8)] transform hover:scale-110 transition-transform">
-              C
-            </span>
-            
-            {/* R - Yellow */}
-            <span className="text-6xl md:text-8xl font-black text-yellow-300 drop-shadow-[0_0_12px_rgba(250,204,21,1)] [text-shadow:_5px_5px_0_rgb(0,0,0),_7px_7px_0_rgba(0,0,0,0.5),_0_0_20px_rgba(250,204,21,0.8)] transform hover:scale-110 transition-transform">
-              R
-            </span>
-            
-            {/* A - Green */}
-            <span className="text-6xl md:text-8xl font-black text-green-400 drop-shadow-[0_0_12px_rgba(74,222,128,1)] [text-shadow:_5px_5px_0_rgb(0,0,0),_7px_7px_0_rgba(0,0,0,0.5),_0_0_20px_rgba(74,222,128,0.8)] transform hover:scale-110 transition-transform">
-              A
-            </span>
-            
-            {/* Z - Orange */}
-            <span className="text-6xl md:text-8xl font-black text-orange-400 drop-shadow-[0_0_12px_rgba(251,146,60,1)] [text-shadow:_5px_5px_0_rgb(0,0,0),_7px_7px_0_rgba(0,0,0,0.5),_0_0_20px_rgba(251,146,60,0.8)] transform hover:scale-110 transition-transform">
-              Z
-            </span>
-            
-            {/* Y - Blue */}
-            <span className="text-6xl md:text-8xl font-black text-blue-400 drop-shadow-[0_0_12px_rgba(96,165,250,1)] [text-shadow:_5px_5px_0_rgb(0,0,0),_7px_7px_0_rgba(0,0,0,0.5),_0_0_20px_rgba(96,165,250,0.8)] transform hover:scale-110 transition-transform">
-              Y
-            </span>
-          </div>
-
-          {/* Green drip under A */}
-          <div className="relative -mt-4 mb-4 flex justify-center">
-            <div className="bg-green-400 rounded-b-full w-16 h-6 opacity-80"></div>
-          </div>
-
-          {/* MARKET - White text on purple banner */}
-          <div className="relative mt-4">
-            {/* Purple banner */}
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg px-6 py-3 md:px-8 md:py-4 shadow-xl transform -rotate-1">
-              <div className="relative">
-                {/* Ribbon fold effect */}
-                <div className="absolute -right-2 top-0 w-4 h-full bg-purple-800 transform skew-y-12"></div>
-                
-                {/* Market text */}
-                <span className="text-3xl md:text-5xl font-black text-white [text-shadow:_4px_4px_0_rgb(0,0,0),_0_0_15px_rgba(255,255,255,0.5)] relative z-10">
-                  Market
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Scattered shapes at bottom */}
-          <div className="absolute bottom-4 left-0 right-0 flex justify-around items-end opacity-60">
-            <div className="text-yellow-400 text-xl">▲</div>
-            <div className="text-blue-400 text-lg">■</div>
-            <div className="text-pink-400 text-xl">●</div>
-            <div className="text-green-400 text-lg">▲</div>
-            <div className="text-orange-400 text-xl">●</div>
-          </div>
-        </div>
+        {/* Small decorative dots */}
+        <div className="absolute left-4 bottom-4 w-2 h-2 md:w-3 md:h-3 bg-blue-400 rounded-full" style={{ zIndex: 4 }}></div>
+        <div className="absolute right-4 bottom-4 w-2 h-2 md:w-3 md:h-3 bg-gray-400 rounded-full" style={{ zIndex: 4 }}></div>
+        <div className="absolute left-1/2 bottom-2 transform -translate-x-1/2 w-2 h-2 md:w-3 md:h-3 bg-blue-300 rounded-full" style={{ zIndex: 4 }}></div>
       </div>
     </div>
   );
 }
-
