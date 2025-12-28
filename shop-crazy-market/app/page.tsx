@@ -1,49 +1,68 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { categories } from "@/lib/categories";
+import Logo from "@/components/Logo";
 import SearchBar from "@/components/SearchBar";
 
 export default function HomePage() {
   const { user } = useAuth();
 
   return (
-    <main style={styles.page}>
-      <div style={styles.card}>
-        <Image
-          src="/logo.png"
-          alt="Shop Crazy Market"
-          width={520}
-          height={520}
-          priority
-          style={styles.logo}
-        />
-
-        <h1 style={styles.title}>Welcome to Shop Crazy Market</h1>
-        <p style={styles.subtitle}>
-          Buy & sell products, digital downloads, and more.
-        </p>
-
-        <div style={styles.actions}>
-          <Link href="/marketplace">
-            <button style={styles.primaryBtn}>Shop Now</button>
-          </Link>
-          <Link href="/sell">
-            <button style={styles.secondaryBtn}>Sell Something</button>
-          </Link>
-        </div>
-      </div>
+    <main className="p-4 space-y-8 pb-24">
+      {/* Logo Section */}
+      <section className="flex justify-center mb-4">
+        <Logo className="w-full max-w-3xl" />
+      </section>
 
       {/* Search Bar */}
-      <section className="max-w-2xl mx-auto mt-8">
+      <section className="max-w-2xl mx-auto">
         <SearchBar />
       </section>
 
+      {/* Hero Section */}
+      <section className="nick-hero relative overflow-hidden">
+        <div className="relative z-10 text-center">
+          <p className="text-lg md:text-xl font-semibold mb-4">Buy • Sell • Collect • Flex</p>
+          {user ? (
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-2xl">👋</span>
+              <p className="text-base opacity-95">
+                Welcome back, <span className="font-bold">{user.username || user.email}</span>!
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+              <Link
+                href="/signup"
+                className="bg-white text-purple-600 px-8 py-3 rounded-xl font-bold text-center hover:scale-105 transition-transform shadow-lg"
+              >
+                Get Started 🚀
+              </Link>
+              <Link
+                href="/marketplace"
+                className="bg-purple-600/20 backdrop-blur-sm text-white px-8 py-3 rounded-xl font-bold text-center hover:scale-105 transition-transform border-2 border-white/30"
+              >
+                Browse Now 🛒
+              </Link>
+            </div>
+          )}
+        </div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl -z-0"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-300/30 rounded-full blur-2xl -z-0"></div>
+      </section>
+
+      {/* Stats Bar */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard number="1K+" label="Products" emoji="📦" />
+        <StatCard number="500+" label="Sellers" emoji="👥" />
+        <StatCard number="10K+" label="Deals" emoji="💎" />
+      </div>
+
       {/* Categories Grid */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4 text-center text-white">Shop by Category</h2>
+      <div>
+        <h2 className="text-2xl font-bold mb-4 text-center">Shop by Category</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {categories.slice(0, 8).map((category) => (
             <Link key={category.slug} href={`/category/${category.slug}`}>
@@ -64,106 +83,89 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Quick Links */}
-      {user && (
-        <section className="grid grid-cols-2 gap-3 mt-8">
-          <QuickLinkCard 
-            title="💬 Messages" 
-            description="Chat with sellers"
-            href="/messages"
-            color="bg-blue-500"
-          />
-          <QuickLinkCard 
-            title="⭐ Favorites" 
-            description="Saved items"
-            href="/profile"
-            color="bg-pink-500"
-          />
-          <QuickLinkCard 
-            title="📦 Orders" 
-            description="Track purchases"
-            href="/profile"
-            color="bg-green-500"
-          />
-          <QuickLinkCard 
-            title="🏪 My Shop" 
-            description="Seller dashboard"
-            href="/seller/dashboard"
-            color="bg-purple-500"
-          />
+      {/* Featured Section */}
+      <section className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
+        <h2 className="text-2xl font-bold mb-4 text-center">✨ Featured This Week</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <FeatureCard emoji="🎮" title="Retro Consoles" price="$129" />
+          <FeatureCard emoji="👟" title="Sneaker Drops" price="$89" />
+          <FeatureCard emoji="🎨" title="Art Prints" price="$45" />
+          <FeatureCard emoji="📱" title="Tech Gear" price="$199" />
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      {!user && (
+        <section className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 text-white text-center shadow-2xl">
+          <h2 className="text-3xl font-bold mb-2">Ready to Start Selling?</h2>
+          <p className="mb-6 opacity-90">Join thousands of sellers making money on Shop Crazy Market</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/signup"
+              className="bg-white text-purple-600 px-8 py-3 rounded-xl font-bold hover:scale-105 transition-transform shadow-lg"
+            >
+              Create Account
+            </Link>
+            <Link
+              href="/sell"
+              className="bg-purple-800/50 backdrop-blur-sm text-white px-8 py-3 rounded-xl font-bold hover:scale-105 transition-transform border-2 border-white/30"
+            >
+              Learn More
+            </Link>
+          </div>
         </section>
       )}
+
+      {/* Quick Links */}
+      <section className="grid grid-cols-2 gap-3">
+        <QuickLinkCard 
+          title="💬 Messages" 
+          description="Chat with sellers"
+          href="/messages"
+          color="bg-blue-500"
+        />
+        <QuickLinkCard 
+          title="⭐ Favorites" 
+          description="Saved items"
+          href="/profile"
+          color="bg-pink-500"
+        />
+        <QuickLinkCard 
+          title="📦 Orders" 
+          description="Track purchases"
+          href="/profile"
+          color="bg-green-500"
+        />
+        <QuickLinkCard 
+          title="🏪 My Shop" 
+          description="Seller dashboard"
+          href="/seller/dashboard"
+          color="bg-purple-500"
+        />
+      </section>
     </main>
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  page: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    padding: 24,
-    paddingBottom: 100, // Space for bottom nav
-    background:
-      "radial-gradient(circle at top, rgba(255,255,255,0.18), rgba(0,0,0,0.85))",
-  },
-  card: {
-    width: "min(920px, 100%)",
-    borderRadius: 24,
-    padding: 28,
-    background: "rgba(15, 15, 20, 0.72)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    boxShadow: "0 20px 80px rgba(0,0,0,0.45)",
-    textAlign: "center",
-    backdropFilter: "blur(10px)",
-    marginBottom: 24,
-  },
-  logo: {
-    width: "min(520px, 90vw)",
-    height: "auto",
-    margin: "0 auto 18px",
-    display: "block",
-    filter: "drop-shadow(0 18px 30px rgba(0,0,0,0.55))",
-  },
-  title: {
-    margin: "8px 0 6px",
-    fontSize: 34,
-    color: "#fff",
-    letterSpacing: 0.2,
-  },
-  subtitle: {
-    margin: "0 0 18px",
-    fontSize: 16,
-    color: "rgba(255,255,255,0.78)",
-  },
-  actions: {
-    display: "flex",
-    gap: 12,
-    justifyContent: "center",
-    flexWrap: "wrap",
-    marginTop: 10,
-  },
-  primaryBtn: {
-    padding: "12px 18px",
-    borderRadius: 14,
-    border: "none",
-    cursor: "pointer",
-    fontWeight: 700,
-    color: "#111",
-    background:
-      "linear-gradient(90deg, #ffdc5d, #ff6ad5, #63f7ff, #7CFF6B)",
-  },
-  secondaryBtn: {
-    padding: "12px 18px",
-    borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.25)",
-    cursor: "pointer",
-    fontWeight: 700,
-    color: "#fff",
-    background: "rgba(255,255,255,0.06)",
-  },
-};
+function StatCard({ number, label, emoji }: { number: string; label: string; emoji: string }) {
+  return (
+    <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg hover:scale-105 transition-transform">
+      <div className="text-3xl mb-1">{emoji}</div>
+      <div className="text-2xl font-bold text-purple-600">{number}</div>
+      <div className="text-xs text-gray-600 font-semibold">{label}</div>
+    </div>
+  );
+}
+
+function FeatureCard({ emoji, title, price }: { emoji: string; title: string; price: string }) {
+  return (
+    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 text-center hover:scale-105 transition-transform shadow-md cursor-pointer border-2 border-transparent hover:border-purple-300">
+      <div className="text-4xl mb-2">{emoji}</div>
+      <div className="font-bold text-sm mb-1">{title}</div>
+      <div className="text-purple-600 font-semibold">{price}</div>
+    </div>
+  );
+}
 
 function QuickLinkCard({ 
   title, 
