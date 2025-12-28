@@ -10,6 +10,7 @@ interface Product {
   type?: string;
   shop?: {
     name: string;
+    id?: string; // Add seller ID for shop page link
   };
 }
 
@@ -79,7 +80,13 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
           <h3 className="font-bold truncate text-sm">{product.title}</h3>
           {product.shop && (
-            <p className="text-xs text-gray-500 truncate">{product.shop.name}</p>
+            <Link 
+              href={product.shop.id ? `/shop/${product.shop.id}` : '#'}
+              onClick={(e) => e.stopPropagation()} // Prevent card click when clicking shop name
+              className="text-xs text-gray-500 truncate hover:text-purple-600 hover:underline transition-colors"
+            >
+              {product.shop.name}
+            </Link>
           )}
           <p className="text-lg font-bold text-purple-600 mt-1">{price}</p>
         </div>
