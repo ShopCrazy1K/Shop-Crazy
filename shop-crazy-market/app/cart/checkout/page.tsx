@@ -13,6 +13,7 @@ interface CheckoutItem {
   price: number;
   quantity: number;
   image?: string;
+  isDigital?: boolean; // Whether this item has digital files
 }
 
 function CheckoutContent() {
@@ -24,6 +25,7 @@ function CheckoutContent() {
   const [checkoutItems, setCheckoutItems] = useState<CheckoutItem[]>([]);
   const [shippingCents, setShippingCents] = useState(0);
   const [giftWrapCents, setGiftWrapCents] = useState(0);
+  const [loadingItems, setLoadingItems] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -31,12 +33,36 @@ function CheckoutContent() {
       return;
     }
 
-    // Load checkout items from sessionStorage
+    // Load checkout items from sessionStorage and fetch listing details
     const stored = sessionStorage.getItem("checkoutItems");
     if (stored) {
       try {
-        const items = JSON.parse(stored);
-        setCheckoutItems(items);
+        const items: CheckoutItem[] = JSON.parse(stored);
+        
+        // Fetch listing details to check for digital files
+        async function fetchListingDetails() {
+          const itemsWithDetails = await Promise.all(
+            items.map(async (item) => {
+              try {
+                const response = await fetch(`/api/listings/${item.listingId}`);
+                if (response.ok) {
+                  const listing = await response.json();
+                  const hasDigitalFiles = listing.digitalFiles && 
+                    ((Array.isArray(listing.digitalFiles) && listing.digitalFiles.length > 0) ||
+                     (typeof listing.digitalFiles === 'string' && listing.digitalFiles.trim().length > 0));
+                  return { ...item, isDigital: hasDigitalFiles };
+                }
+              } catch (error) {
+                console.error(`Error fetching listing ${item.listingId}:`, error);
+              }
+              return { ...item, isDigital: false };
+            })
+          );
+          setCheckoutItems(itemsWithDetails);
+          setLoadingItems(false);
+        }
+        
+        fetchListingDetails();
       } catch (e) {
         console.error("Error parsing checkout items:", e);
         router.push("/cart");
@@ -47,8 +73,12 @@ function CheckoutContent() {
   }, [user, authLoading, router]);
 
   const subtotal = checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const hasPhysicalItems = checkoutItems.some(item => !item.isDigital);
   const taxCents = Math.round(subtotal * 0.08); // 8% tax (adjust as needed)
-  const total = subtotal + shippingCents + giftWrapCents + taxCents;
+  // Only apply shipping and gift wrap to physical items
+  const effectiveShippingCents = hasPhysicalItems ? shippingCents : 0;
+  const effectiveGiftWrapCents = hasPhysicalItems ? giftWrapCents : 0;
+  const total = subtotal + effectiveShippingCents + effectiveGiftWrapCents + taxCents;
 
   async function proceedToPayment() {
     if (!user || checkoutItems.length === 0) return;
@@ -59,6 +89,10 @@ function CheckoutContent() {
     try {
       // Create checkout sessions for each item
       const checkoutPromises = checkoutItems.map(async (item) => {
+        // Digital items don't need shipping or gift wrap
+        const itemShippingCents = item.isDigital ? 0 : effectiveShippingCents;
+        const itemGiftWrapCents = item.isDigital ? 0 : effectiveGiftWrapCents;
+        
         const response = await fetch("/api/orders/checkout", {
           method: "POST",
           headers: {
@@ -69,8 +103,8 @@ function CheckoutContent() {
             listingId: item.listingId,
             buyerEmail: user.email,
             itemsSubtotalCents: item.price * item.quantity,
-            shippingCents: shippingCents,
-            giftWrapCents: giftWrapCents,
+            shippingCents: itemShippingCents,
+            giftWrapCents: itemGiftWrapCents,
             taxCents: taxCents,
             country: "DEFAULT",
           }),
@@ -108,7 +142,7 @@ function CheckoutContent() {
     }
   }
 
-  if (authLoading || checkoutItems.length === 0) {
+  if (authLoading || loadingItems || checkoutItems.length === 0) {
     return (
       <main className="p-4 sm:p-6 max-w-4xl mx-auto pb-24">
         <div className="text-center py-10 text-gray-500">Loading checkout...</div>
@@ -156,9 +190,16 @@ function CheckoutContent() {
                   >
                     {item.title}
                   </Link>
-                  <p className="text-gray-600 text-sm sm:text-base">
-                    ${(item.price / 100).toFixed(2)} × {item.quantity}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-gray-600 text-sm sm:text-base">
+                      ${(item.price / 100).toFixed(2)} × {item.quantity}
+                    </p>
+                    {item.isDigital && (
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        📥 Digital
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-base sm:text-lg">${itemTotal.toFixed(2)}</p>
@@ -169,41 +210,59 @@ function CheckoutContent() {
         </div>
       </div>
 
-      {/* Shipping & Options */}
-      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4">
-        <h2 className="text-lg sm:text-xl font-semibold mb-4">Shipping & Options</h2>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Shipping Method
-            </label>
-            <select
-              value={shippingCents}
-              onChange={(e) => setShippingCents(parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-            >
-              <option value="0">Standard Shipping - Free</option>
-              <option value="500">Express Shipping - $5.00</option>
-              <option value="1000">Overnight Shipping - $10.00</option>
-            </select>
-          </div>
+      {/* Shipping & Options - Only show for physical items */}
+      {hasPhysicalItems && (
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold mb-4">Shipping & Options</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Shipping Method
+              </label>
+              <select
+                value={shippingCents}
+                onChange={(e) => setShippingCents(parseInt(e.target.value) || 0)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="0">Standard Shipping - Free</option>
+                <option value="500">Express Shipping - $5.00</option>
+                <option value="1000">Overnight Shipping - $10.00</option>
+              </select>
+            </div>
 
-          <div>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={giftWrapCents > 0}
-                onChange={(e) => setGiftWrapCents(e.target.checked ? 300 : 0)}
-                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Gift Wrap (+$3.00)
-              </span>
-            </label>
+            <div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={giftWrapCents > 0}
+                  onChange={(e) => setGiftWrapCents(e.target.checked ? 300 : 0)}
+                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Gift Wrap (+$3.00)
+                </span>
+              </label>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Digital Items Notice */}
+      {!hasPhysicalItems && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 sm:p-6 mb-4">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">📥</span>
+            <div>
+              <h3 className="font-semibold text-blue-900 mb-1">Digital Products</h3>
+              <p className="text-sm text-blue-800">
+                All items in your order are digital. No shipping required! After payment verification, 
+                you'll receive download links for all your purchases.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Order Summary */}
       <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
@@ -214,14 +273,16 @@ function CheckoutContent() {
             <span className="text-gray-600">Subtotal:</span>
             <span className="font-semibold">${(subtotal / 100).toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-sm sm:text-base">
-            <span className="text-gray-600">Shipping:</span>
-            <span className="font-semibold">${(shippingCents / 100).toFixed(2)}</span>
-          </div>
-          {giftWrapCents > 0 && (
+          {hasPhysicalItems && (
+            <div className="flex justify-between text-sm sm:text-base">
+              <span className="text-gray-600">Shipping:</span>
+              <span className="font-semibold">${(effectiveShippingCents / 100).toFixed(2)}</span>
+            </div>
+          )}
+          {effectiveGiftWrapCents > 0 && (
             <div className="flex justify-between text-sm sm:text-base">
               <span className="text-gray-600">Gift Wrap:</span>
-              <span className="font-semibold">${(giftWrapCents / 100).toFixed(2)}</span>
+              <span className="font-semibold">${(effectiveGiftWrapCents / 100).toFixed(2)}</span>
             </div>
           )}
           <div className="flex justify-between text-sm sm:text-base">
