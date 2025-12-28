@@ -87,8 +87,34 @@ export async function GET(req: NextRequest, context: Ctx) {
         if (paymentInfo.stripeSession.paymentIntentId) {
           try {
             const paymentIntent = await stripe.paymentIntents.retrieve(
-              paymentInfo.stripeSession.paymentIntentId
+              paymentInfo.stripeSession.paymentIntentId,
+              {
+                expand: ['charges'],
+              }
             );
+
+            // Get charges separately if not expanded
+            let charges: any[] = [];
+            if (paymentIntent.latest_charge) {
+              try {
+                const chargeId = typeof paymentIntent.latest_charge === 'string' 
+                  ? paymentIntent.latest_charge 
+                  : paymentIntent.latest_charge.id;
+                const charge = await stripe.charges.retrieve(chargeId);
+                charges = [charge];
+              } catch (chargeError) {
+                // If we can't retrieve charge, try listing charges
+                try {
+                  const chargesList = await stripe.charges.list({
+                    payment_intent: paymentIntent.id,
+                    limit: 10,
+                  });
+                  charges = chargesList.data;
+                } catch (listError) {
+                  // Ignore if we can't get charges
+                }
+              }
+            }
 
             paymentInfo.paymentIntent = {
               id: paymentIntent.id,
@@ -96,19 +122,19 @@ export async function GET(req: NextRequest, context: Ctx) {
               amount: paymentIntent.amount,
               currency: paymentIntent.currency,
               created: new Date(paymentIntent.created * 1000).toISOString(),
-              charges: paymentIntent.charges?.data?.map((charge: any) => ({
+              charges: charges.map((charge: any) => ({
                 id: charge.id,
                 amount: charge.amount,
                 status: charge.status,
                 paid: charge.paid,
                 created: new Date(charge.created * 1000).toISOString(),
                 receiptUrl: charge.receipt_url,
-              })) || [],
+              })),
             };
 
             // Check if payment was actually captured
-            if (paymentIntent.status === 'succeeded' && paymentIntent.charges?.data?.length > 0) {
-              const charge = paymentIntent.charges.data[0];
+            if (paymentIntent.status === 'succeeded' && charges.length > 0) {
+              const charge = charges[0];
               paymentInfo.paymentCaptured = charge.paid;
               paymentInfo.chargeId = charge.id;
               paymentInfo.receiptUrl = charge.receipt_url;
