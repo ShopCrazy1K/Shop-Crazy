@@ -10,7 +10,13 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata = {
   title: "Shop Crazy Market",
-  description: "Where the deals get crazy"
+  description: "Where the deals get crazy",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

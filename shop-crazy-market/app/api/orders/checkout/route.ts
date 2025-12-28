@@ -86,15 +86,23 @@ export async function POST(req: Request) {
     });
 
     // Charge buyer the full orderTotalCents (your fees come out of seller payout in accounting)
+    // Enable Apple Pay, Google Pay, and PayPal in addition to card payments
+    // Note: Apple Pay and Google Pay are automatically enabled by Stripe when:
+    // - payment_method_types includes "card"
+    // - The customer's device/browser supports them
+    // - The session is properly configured
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card"],
+      payment_method_types: ["card", "paypal"], // Card enables Apple Pay/Google Pay automatically on supported devices
       customer_email: buyerEmail,
       line_items: [
         {
           price_data: {
             currency: listing.currency,
-            product_data: { name: listing.title },
+            product_data: { 
+              name: listing.title,
+              description: listing.description?.substring(0, 500) || undefined,
+            },
             unit_amount: breakdown.orderTotalCents, // total charge
           },
           quantity: 1,
@@ -108,6 +116,14 @@ export async function POST(req: Request) {
         listingId: listing.id,
         sellerId: listing.sellerId,
       },
+      // PayPal configuration
+      payment_method_options: {
+        paypal: {
+          preferred_locale: "en",
+        },
+      },
+      // Enable automatic payment methods (Apple Pay, Google Pay) - Stripe handles this automatically
+      // No additional configuration needed - they appear when device/browser supports them
     });
 
     console.log("[CHECKOUT] Created Stripe session:", {

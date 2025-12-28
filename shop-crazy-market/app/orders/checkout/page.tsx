@@ -161,8 +161,8 @@ function CheckoutContent() {
   }
 
   return (
-    <main className="p-6 max-w-2xl mx-auto pb-24">
-      <h1 className="text-2xl font-bold mb-6">Checkout</h1>
+    <main className="p-4 sm:p-6 max-w-2xl mx-auto pb-24">
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Checkout</h1>
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -171,11 +171,11 @@ function CheckoutContent() {
       )}
 
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        <div className="p-6">
-          <h2 className="text-xl font-bold mb-4">{listing.title}</h2>
+        <div className="p-4 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">{listing.title}</h2>
           
           {listing.images && Array.isArray(listing.images) && listing.images.length > 0 && (
-            <div className="w-full h-64 bg-gray-100 rounded-lg overflow-hidden mb-4">
+            <div className="w-full h-48 sm:h-64 bg-gray-100 rounded-lg overflow-hidden mb-3 sm:mb-4">
               <img
                 src={listing.images[0]}
                 alt={listing.title}
@@ -184,24 +184,24 @@ function CheckoutContent() {
             </div>
           )}
 
-          <p className="text-gray-700 mb-4">{listing.description}</p>
+          <p className="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4 line-clamp-3">{listing.description}</p>
 
           {/* Promo Code Input */}
           {!activeDeal && (
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <label className="block text-sm font-semibold mb-2">Have a promo code?</label>
-              <div className="flex gap-2">
+            <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
+              <label className="block text-xs sm:text-sm font-semibold mb-2">Have a promo code?</label>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                   placeholder="Enter promo code"
-                  className="flex-1 px-4 py-2 border rounded-lg"
+                  className="flex-1 px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-lg"
                 />
                 <button
                   type="button"
                   onClick={handlePromoCode}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm sm:text-base whitespace-nowrap"
                 >
                   Apply
                 </button>
@@ -260,9 +260,9 @@ function CheckoutContent() {
             <button
               onClick={handleCheckout}
               disabled={loading || !listing.isActive}
-              className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-purple-600 text-white py-3 sm:py-4 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base sm:text-lg"
             >
-              {loading ? "Processing..." : listing.isActive ? "Proceed to Payment" : "Listing Not Active"}
+              {loading ? "Processing..." : listing.isActive ? "💳 Proceed to Payment (Apple Pay, Google Pay, PayPal)" : "Listing Not Active"}
             </button>
 
             <Link
