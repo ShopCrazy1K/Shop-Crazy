@@ -783,7 +783,7 @@ export default function ListingPage() {
                       price: listing.priceCents,
                       quantity: 1,
                       image: imageUrl || undefined,
-                      sellerId: listing.sellerId,
+                      sellerId: listing.seller.id,
                     });
                     alert("✅ Added to cart!");
                   }}
