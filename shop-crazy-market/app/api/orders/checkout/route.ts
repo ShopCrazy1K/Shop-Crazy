@@ -91,7 +91,6 @@ export async function POST(req: Request) {
     // - payment_method_types includes "card"
     // - The customer's device/browser supports them
     // - The session is properly configured
-    // PayPal can be added by enabling it in Stripe Dashboard: https://dashboard.stripe.com/account/payments/settings
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"], // Card enables Apple Pay/Google Pay automatically on supported devices
@@ -117,10 +116,6 @@ export async function POST(req: Request) {
         listingId: listing.id,
         sellerId: listing.sellerId,
       },
-      // PayPal configuration (optional - PayPal will use customer's locale by default)
-      // payment_method_options: {
-      //   paypal: {},
-      // },
       // Enable automatic payment methods (Apple Pay, Google Pay) - Stripe handles this automatically
       // No additional configuration needed - they appear when device/browser supports them
     });
