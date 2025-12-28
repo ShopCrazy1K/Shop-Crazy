@@ -121,7 +121,7 @@ export async function GET(request: Request) {
     
     let listings: any[];
     try {
-      // @ts-ignore - Prisma type inference issue with dynamic where clause
+      // @ts-expect-error - Prisma type inference issue with dynamic where clause
       listings = await prisma.listing.findMany({
         where: where as any,
         include: {
@@ -143,7 +143,7 @@ export async function GET(request: Request) {
         console.log("[API LISTINGS] Category column not found, retrying without category filter");
         const whereWithoutCategory = { ...where };
         delete whereWithoutCategory.category;
-        // @ts-ignore - Prisma type inference issue with dynamic where clause
+        // @ts-expect-error - Prisma type inference issue with dynamic where clause
         listings = await prisma.listing.findMany({
           where: whereWithoutCategory as any,
           include: {
