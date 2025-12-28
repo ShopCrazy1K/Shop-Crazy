@@ -116,12 +116,10 @@ export async function POST(req: Request) {
         listingId: listing.id,
         sellerId: listing.sellerId,
       },
-      // PayPal configuration
-      payment_method_options: {
-        paypal: {
-          preferred_locale: "en",
-        },
-      },
+      // PayPal configuration (optional - PayPal will use customer's locale by default)
+      // payment_method_options: {
+      //   paypal: {},
+      // },
       // Enable automatic payment methods (Apple Pay, Google Pay) - Stripe handles this automatically
       // No additional configuration needed - they appear when device/browser supports them
     });
