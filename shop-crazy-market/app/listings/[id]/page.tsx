@@ -441,8 +441,8 @@ export default function ListingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Success/Cancel Messages */}
         {feeStatus === "success" && (
           <div className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
@@ -613,9 +613,9 @@ export default function ListingPage() {
             </div>
 
             {/* Details */}
-            <div className="md:w-1/2 p-8">
-              <div className="flex items-start justify-between mb-4">
-                <h1 className="text-3xl font-bold text-gray-900 flex-1">{listing.title}</h1>
+            <div className="md:w-1/2 p-4 sm:p-8">
+              <div className="flex items-start justify-between mb-3 sm:mb-4">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex-1 pr-2">{listing.title}</h1>
                 {/* Favorite Button */}
                 {user && (
                   <button
@@ -649,11 +649,11 @@ export default function ListingPage() {
                 </div>
               )}
 
-              <div className="mb-6">
+              <div className="mb-4 sm:mb-6">
                 {activeDeal && listing.isActive ? (
                   <>
-                    <div className="flex items-baseline gap-3">
-                      <p className="text-4xl font-bold text-red-600">
+                    <div className="flex items-baseline gap-2 sm:gap-3">
+                      <p className="text-3xl sm:text-4xl font-bold text-red-600">
                         ${(() => {
                           const discountCents = activeDeal.discountType === "PERCENTAGE"
                             ? Math.round((listing.priceCents * activeDeal.discountValue) / 100)
@@ -677,7 +677,7 @@ export default function ListingPage() {
                   </>
                 ) : (
                   <>
-                    <p className="text-4xl font-bold text-purple-600 mb-2">
+                    <p className="text-3xl sm:text-4xl font-bold text-purple-600 mb-2">
                       ${(listing.priceCents / 100).toFixed(2)}
                     </p>
                     <p className="text-sm text-gray-500">
@@ -760,9 +760,9 @@ export default function ListingPage() {
               {listing.isActive && (
                 <Link
                   href={`/orders/checkout?listingId=${listing.id}`}
-                  className="block w-full bg-purple-600 text-white text-center py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                  className="block w-full bg-purple-600 text-white text-center py-3 sm:py-4 px-6 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-base sm:text-lg"
                 >
-                  Buy Now
+                  💳 Buy Now (Apple Pay, Google Pay, PayPal)
                 </Link>
               )}
 
