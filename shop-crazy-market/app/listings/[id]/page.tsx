@@ -31,6 +31,7 @@ export default function ListingPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { addItem } = useCart();
   const listingId = params.id as string;
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
