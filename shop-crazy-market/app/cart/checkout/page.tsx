@@ -44,7 +44,8 @@ function CheckoutContent() {
 
     async function fetchListingDetails() {
       try {
-        const items: CheckoutItem[] = JSON.parse(stored);
+        // stored is guaranteed to be non-null here due to the check above
+        const items: CheckoutItem[] = JSON.parse(stored as string);
         
         const itemsWithDetails = await Promise.all(
           items.map(async (item) => {
