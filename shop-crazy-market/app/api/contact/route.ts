@@ -19,8 +19,16 @@ export async function POST(request: Request) {
     const parsed = contactSchema.safeParse(body);
 
     if (!parsed.success) {
+      const errorMessages = parsed.error.issues.map(issue => {
+        const field = issue.path.join('.') || 'form';
+        return `${field}: ${issue.message}`;
+      }).join('; ');
+      
       return NextResponse.json(
-        { error: "Validation failed", details: parsed.error.issues },
+        { 
+          error: `Validation failed: ${errorMessages}`,
+          details: parsed.error.issues 
+        },
         { status: 400 }
       );
     }

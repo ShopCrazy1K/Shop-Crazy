@@ -47,6 +47,14 @@ export default function ContactPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Show detailed validation errors if available
+        if (data.details && Array.isArray(data.details)) {
+          const errorMessages = data.details.map((issue: any) => {
+            const field = issue.path.join('.');
+            return `${field}: ${issue.message}`;
+          }).join(', ');
+          throw new Error(`Validation failed: ${errorMessages}`);
+        }
         throw new Error(data.error || "Failed to send message");
       }
 
