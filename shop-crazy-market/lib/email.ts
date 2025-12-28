@@ -178,3 +178,230 @@ export async function sendAppealNotification(
   });
 }
 
+export async function sendOrderConfirmationEmail(order: {
+  id: string;
+  orderTotalCents: number;
+  currency: string;
+  createdAt: Date;
+  buyerEmail: string | null;
+  listing: {
+    id: string;
+    title: string;
+    digitalFiles: string[];
+  };
+}) {
+  if (!order.buyerEmail) {
+    console.log("[EMAIL] No buyer email for order, skipping email");
+    return false;
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://shopcrazymarket.com";
+  const orderUrl = `${siteUrl}/orders/${order.id}`;
+  const hasDigitalFiles = order.listing.digitalFiles && 
+    Array.isArray(order.listing.digitalFiles) && 
+    order.listing.digitalFiles.length > 0;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+          background-color: #f5f5f5;
+        }
+        .container {
+          background-color: #ffffff;
+          border-radius: 8px;
+          padding: 30px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 30px;
+          padding-bottom: 20px;
+          border-bottom: 2px solid #7c3aed;
+        }
+        .header h1 {
+          color: #7c3aed;
+          margin: 0;
+          font-size: 28px;
+        }
+        .success-badge {
+          display: inline-block;
+          background-color: #10b981;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 14px;
+          font-weight: bold;
+          margin-top: 10px;
+        }
+        .order-details {
+          background-color: #f9fafb;
+          border-radius: 6px;
+          padding: 20px;
+          margin: 20px 0;
+        }
+        .order-details h2 {
+          margin-top: 0;
+          color: #1f2937;
+          font-size: 20px;
+        }
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 0;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .detail-row:last-child {
+          border-bottom: none;
+        }
+        .detail-label {
+          color: #6b7280;
+          font-weight: 500;
+        }
+        .detail-value {
+          color: #1f2937;
+          font-weight: bold;
+        }
+        .total-row {
+          margin-top: 15px;
+          padding-top: 15px;
+          border-top: 2px solid #7c3aed;
+          font-size: 18px;
+        }
+        .digital-files {
+          background-color: #eef2ff;
+          border-left: 4px solid #7c3aed;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 6px;
+        }
+        .digital-files h3 {
+          margin-top: 0;
+          color: #7c3aed;
+        }
+        .file-list {
+          list-style: none;
+          padding: 0;
+          margin: 15px 0;
+        }
+        .file-list li {
+          padding: 8px 0;
+          border-bottom: 1px solid #c7d2fe;
+        }
+        .file-list li:last-child {
+          border-bottom: none;
+        }
+        .button {
+          display: inline-block;
+          background-color: #7c3aed;
+          color: white;
+          padding: 14px 28px;
+          text-decoration: none;
+          border-radius: 6px;
+          font-weight: bold;
+          margin: 20px 0;
+          text-align: center;
+        }
+        .button:hover {
+          background-color: #6d28d9;
+        }
+        .footer {
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          text-align: center;
+          color: #6b7280;
+          font-size: 14px;
+        }
+        .footer a {
+          color: #7c3aed;
+          text-decoration: none;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎉 Order Confirmed!</h1>
+          <div class="success-badge">Payment Successful</div>
+        </div>
+
+        <p>Thank you for your purchase! Your order has been confirmed and payment has been processed.</p>
+
+        <div class="order-details">
+          <h2>Order Details</h2>
+          <div class="detail-row">
+            <span class="detail-label">Order Number:</span>
+            <span class="detail-value">#${order.id.slice(0, 8).toUpperCase()}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Item:</span>
+            <span class="detail-value">${order.listing.title}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Order Date:</span>
+            <span class="detail-value">${new Date(order.createdAt).toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}</span>
+          </div>
+          <div class="detail-row total-row">
+            <span class="detail-label">Total Paid:</span>
+            <span class="detail-value">${(order.orderTotalCents / 100).toFixed(2)} ${order.currency.toUpperCase()}</span>
+          </div>
+        </div>
+
+        ${hasDigitalFiles ? `
+        <div class="digital-files">
+          <h3>💾 Your Digital Files</h3>
+          <p>Your purchased digital files are ready for download:</p>
+          <ul class="file-list">
+            ${order.listing.digitalFiles.map((file: string) => {
+              const fileName = file.split('/').pop() || 'File';
+              return `<li>📄 ${fileName}</li>`;
+            }).join('')}
+          </ul>
+          <p><strong>You can download your files anytime from your order page.</strong></p>
+        </div>
+        ` : ''}
+
+        <div style="text-align: center;">
+          <a href="${orderUrl}" class="button">View Order & Download Files</a>
+        </div>
+
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+          Need help? Contact us at <a href="mailto:support@shopcrazymarket.com" style="color: #7c3aed;">support@shopcrazymarket.com</a>
+        </p>
+
+        <div class="footer">
+          <p>This is an automated email from Shop Crazy Market.</p>
+          <p>
+            <a href="${siteUrl}">Visit Shop Crazy Market</a> | 
+            <a href="${siteUrl}/orders">View All Orders</a>
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: order.buyerEmail,
+    subject: `Order Confirmed - ${order.listing.title} | Shop Crazy Market`,
+    html,
+  });
+}
+

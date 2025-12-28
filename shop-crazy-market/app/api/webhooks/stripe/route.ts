@@ -52,15 +52,42 @@ export async function POST(req: Request) {
           
           console.log("[WEBHOOK] Processing order payment:", { orderId, paymentIntent });
           
-          await prisma.order.update({
+          // Update order status
+          const updatedOrder = await prisma.order.update({
             where: { id: orderId },
             data: {
               stripePaymentIntent: paymentIntent ?? null,
               paymentStatus: "paid",
             },
+            include: {
+              listing: {
+                select: {
+                  id: true,
+                  title: true,
+                  digitalFiles: true,
+                },
+              },
+            },
           });
           
           console.log("[WEBHOOK] Order updated to paid:", orderId);
+
+          // Send order confirmation email
+          try {
+            const { sendOrderConfirmationEmail } = await import("@/lib/email");
+            await sendOrderConfirmationEmail({
+              id: updatedOrder.id,
+              orderTotalCents: updatedOrder.orderTotalCents,
+              currency: updatedOrder.currency,
+              createdAt: updatedOrder.createdAt,
+              buyerEmail: updatedOrder.buyerEmail,
+              listing: updatedOrder.listing,
+            });
+            console.log("[WEBHOOK] Order confirmation email sent to:", updatedOrder.buyerEmail);
+          } catch (emailError: any) {
+            console.error("[WEBHOOK] Error sending order confirmation email:", emailError);
+            // Don't fail the webhook if email fails
+          }
         } 
         else {
           // Legacy product purchase
