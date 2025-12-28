@@ -202,7 +202,7 @@ function OrderContent() {
                     {order.listing.digitalFiles.map((fileUrl: string, index: number) => {
                       const fileName = fileUrl.split('/').pop() || `File ${index + 1}`;
                       const isImage = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(fileName);
-                      const downloadUrl = `/api/download?url=${encodeURIComponent(fileUrl)}`;
+                      const downloadUrl = `/api/download?url=${encodeURIComponent(fileUrl)}&listingId=${order.listing.id}${user ? `&userId=${user.id}` : ''}`;
                       return (
                         <a
                           key={index}

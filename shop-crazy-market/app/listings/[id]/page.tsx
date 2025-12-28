@@ -36,6 +36,8 @@ export default function ListingPage() {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [deals, setDeals] = useState<any[]>([]);
   const [activeDeal, setActiveDeal] = useState<any | null>(null);
+  const [hasPaidOrder, setHasPaidOrder] = useState(false);
+  const [isSeller, setIsSeller] = useState(false);
   const feeStatus = searchParams.get("fee");
 
   // Handle "new" route - redirect to create page
@@ -260,8 +262,35 @@ export default function ListingPage() {
   useEffect(() => {
     if (listingId && listing) {
       fetchDeals();
+      checkPurchaseStatus();
     }
-  }, [listingId, listing]);
+  }, [listingId, listing, user]);
+
+  async function checkPurchaseStatus() {
+    if (!user || !listing) return;
+
+    // Check if user is the seller
+    if (listing.seller.id === user.id) {
+      setIsSeller(true);
+      setHasPaidOrder(true); // Sellers can always access their own files
+      return;
+    }
+
+    // Check if user has a paid order
+    try {
+      const response = await fetch(`/api/orders?userId=${user.id}`);
+      if (response.ok) {
+        const orders = await response.json();
+        const paidOrder = orders.find(
+          (order: any) =>
+            order.listingId === listingId && order.paymentStatus === "paid"
+        );
+        setHasPaidOrder(!!paidOrder);
+      }
+    } catch (error) {
+      console.error("Error checking purchase status:", error);
+    }
+  }
 
   async function fetchDeals() {
     try {
@@ -676,47 +705,55 @@ export default function ListingPage() {
                 </p>
               </div>
 
-              {/* Digital Files Section */}
+              {/* Digital Files Section - Only show to buyers who have paid or sellers */}
               {listing.digitalFiles && listing.digitalFiles.length > 0 && (
                 <div className="mb-6">
                   <h2 className="text-lg font-semibold mb-2">Digital Files</h2>
-                  <div className="space-y-2">
-                    {listing.digitalFiles.map((fileUrl: string, index: number) => {
-                      const fileName = fileUrl.split('/').pop() || `File ${index + 1}`;
-                      const downloadUrl = `/api/download?url=${encodeURIComponent(fileUrl)}`;
-                      const ext = fileName.split('.').pop()?.toLowerCase();
-                      const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
-                      
-                      return (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            {isImage ? (
-                              <img
-                                src={fileUrl}
-                                alt={fileName}
-                                className="w-12 h-12 object-cover rounded"
-                              />
-                            ) : (
-                              <div className="w-12 h-12 bg-purple-100 rounded flex items-center justify-center">
-                                <span className="text-2xl">📄</span>
+                  {hasPaidOrder || isSeller ? (
+                    <div className="space-y-2">
+                      {listing.digitalFiles.map((fileUrl: string, index: number) => {
+                        const fileName = fileUrl.split('/').pop() || `File ${index + 1}`;
+                        const downloadUrl = `/api/download?url=${encodeURIComponent(fileUrl)}&listingId=${listingId}${user ? `&userId=${user.id}` : ''}`;
+                        const ext = fileName.split('.').pop()?.toLowerCase();
+                        const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
+                        
+                        return (
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              {isImage ? (
+                                <img
+                                  src={fileUrl}
+                                  alt={fileName}
+                                  className="w-12 h-12 object-cover rounded"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 bg-purple-100 rounded flex items-center justify-center">
+                                  <span className="text-2xl">📄</span>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">{fileName}</p>
+                                <p className="text-xs text-gray-500 truncate">{fileUrl}</p>
                               </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">{fileName}</p>
-                              <p className="text-xs text-gray-500 truncate">{fileUrl}</p>
                             </div>
+                            <a
+                              href={downloadUrl}
+                              download={fileName}
+                              className="ml-3 px-3 py-1 text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded transition-colors"
+                            >
+                              Download
+                            </a>
                           </div>
-                          <a
-                            href={downloadUrl}
-                            download={fileName}
-                            className="ml-3 px-3 py-1 text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded transition-colors"
-                          >
-                            Download
-                          </a>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-yellow-800 text-sm">
+                        🔒 Digital files are available after purchase. Buy this listing to access downloads.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
