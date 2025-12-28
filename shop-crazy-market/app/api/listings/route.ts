@@ -121,8 +121,8 @@ export async function GET(request: Request) {
     
     let listings: any[];
     try {
-      // @ts-expect-error - Prisma type inference issue with dynamic where clause
-      listings = await prisma.listing.findMany({
+      // Type assertion needed due to Prisma's type inference limitations with dynamic where clauses
+      const result = await prisma.listing.findMany({
         where: where as any,
         include: {
           seller: {
@@ -137,14 +137,15 @@ export async function GET(request: Request) {
           createdAt: "desc",
         },
       });
+      listings = result as any;
     } catch (error: any) {
       // If error is about missing category column, try query without category filter
       if (error.message?.includes("category") || error.message?.includes("Unknown column")) {
         console.log("[API LISTINGS] Category column not found, retrying without category filter");
         const whereWithoutCategory = { ...where };
         delete whereWithoutCategory.category;
-        // @ts-expect-error - Prisma type inference issue with dynamic where clause
-        listings = await prisma.listing.findMany({
+        // Type assertion needed due to Prisma's type inference limitations with dynamic where clauses
+        const result2 = await prisma.listing.findMany({
           where: whereWithoutCategory as any,
           include: {
             seller: {
@@ -159,6 +160,7 @@ export async function GET(request: Request) {
             createdAt: "desc",
           },
         });
+        listings = result2 as any;
         // Filter by category in memory if needed
         if (category && category !== "all" && listings) {
           listings = listings.filter((listing: any) => listing.category === category);

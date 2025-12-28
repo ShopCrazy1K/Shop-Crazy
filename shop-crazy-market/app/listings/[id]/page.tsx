@@ -221,9 +221,11 @@ export default function ListingPage() {
       return; // Don't activate if already active
     }
     
-    const p = new URLSearchParams(window.location.search);
+    // Use searchParams from Next.js hook instead of window.location for SSR safety
+    const paymentParam = searchParams.get("payment");
+    const feeParam = searchParams.get("fee");
     // Handle both "payment=success" and "fee=success" query parameters
-    const hasSuccessParam = p.get("payment") === "success" || p.get("fee") === "success";
+    const hasSuccessParam = paymentParam === "success" || feeParam === "success";
     
     if (hasSuccessParam) {
       console.log("[LISTING PAGE] Payment success detected, activating listing...");
