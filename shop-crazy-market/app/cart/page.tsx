@@ -45,7 +45,7 @@ export default function CartPage() {
   const selectedItemsList = items.filter(item => selectedItems.has(item.id));
   const selectedTotal = selectedItemsList.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  async function checkout(selectedOnly: boolean = false) {
+  function proceedToCheckout(selectedOnly: boolean = false) {
     if (!user) {
       router.push("/login");
       return;
@@ -60,56 +60,18 @@ export default function CartPage() {
       return;
     }
 
-    setLoading(true);
+    // Store selected items in sessionStorage to pass to checkout page
+    sessionStorage.setItem("checkoutItems", JSON.stringify(itemsToCheckout.map(item => ({
+      id: item.id,
+      listingId: item.listingId || item.id,
+      title: item.title,
+      price: item.price,
+      quantity: item.quantity,
+      image: item.image,
+    }))));
 
-    try {
-      // For now, checkout items one by one (we'll create separate orders)
-      // In the future, we could create a single order with multiple line items
-      const checkoutPromises = itemsToCheckout.map(async (item) => {
-        const response = await fetch("/api/orders/checkout", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-user-id": user.id,
-          },
-          body: JSON.stringify({
-            listingId: item.listingId || item.id,
-            buyerEmail: user.email,
-            itemsSubtotalCents: item.price,
-            shippingCents: 0,
-            giftWrapCents: 0,
-            taxCents: 0,
-            country: "DEFAULT",
-          }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || `Failed to checkout ${item.title}`);
-        }
-
-        return response.json();
-      });
-
-      const results = await Promise.all(checkoutPromises);
-      
-      // Remove checked out items from cart
-      itemsToCheckout.forEach(item => {
-        removeItem(item.id);
-      });
-
-      // Redirect to first checkout session
-      if (results.length > 0 && results[0].checkoutUrl) {
-        window.location.href = results[0].checkoutUrl;
-      } else {
-        alert("Checkout sessions created. Please check your orders.");
-        router.push("/orders");
-      }
-    } catch (error: any) {
-      console.error("Checkout error:", error);
-      alert(error.message || "An error occurred during checkout");
-      setLoading(false);
-    }
+    // Navigate to checkout review page
+    router.push("/cart/checkout");
   }
 
   if (items.length === 0) {
@@ -228,11 +190,11 @@ export default function CartPage() {
                 </span>
               </div>
               <button
-                onClick={() => checkout(true)}
-                disabled={loading || !user}
+                onClick={() => proceedToCheckout(true)}
+                disabled={!user}
                 className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? "Processing..." : `💳 Checkout Selected (${selectedItems.size} items)`}
+                {`💳 Checkout Selected (${selectedItems.size} items)`}
               </button>
             </div>
           )}
@@ -243,15 +205,13 @@ export default function CartPage() {
               <span className="text-2xl sm:text-3xl font-bold text-purple-600">${totalDollars}</span>
             </div>
             <button
-              onClick={() => checkout(false)}
-              disabled={loading || !user}
+              onClick={() => proceedToCheckout(false)}
+              disabled={!user}
               className="w-full bg-purple-600 text-white py-3 sm:py-4 rounded-lg font-bold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base sm:text-lg"
             >
-              {loading
-                ? "Processing..."
-                : !user
+              {!user
                 ? "Login to Checkout"
-                : `💳 Checkout All (${items.length} items)`}
+                : `💳 Proceed to Checkout (${items.length} items)`}
             </button>
             {!user && (
               <p className="text-center text-sm text-gray-600 mt-2">
