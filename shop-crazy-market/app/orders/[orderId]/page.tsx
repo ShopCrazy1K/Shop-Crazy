@@ -92,8 +92,13 @@ function OrderContent() {
 
   // Remove items from cart when payment is confirmed
   useEffect(() => {
-    if (order && order.paymentStatus === "paid" && user) {
-      // Check if this order's listing was in the cart
+    if (order && order.paymentStatus === "paid" && user && order.listing) {
+      // Remove the specific listing that was purchased from the cart
+      // Items stay in cart until payment is confirmed
+      const listingId = order.listing.id;
+      removeItem(listingId);
+      
+      // Also check sessionStorage for pending items and clean up
       const pendingItems = sessionStorage.getItem("pendingCheckoutItems");
       const pendingOrderIds = sessionStorage.getItem("pendingOrderIds");
       
@@ -102,21 +107,18 @@ function OrderContent() {
           const itemIds: string[] = JSON.parse(pendingItems);
           const orderIds: string[] = JSON.parse(pendingOrderIds);
           
-          // If this order ID is in the pending list, remove the corresponding items from cart
-          if (orderIds.includes(order.id)) {
-            // Find the item ID that matches this order's listing
-            // We'll remove items that were part of this checkout session
-            // For now, we'll remove all pending items if any order is paid
-            // (This is a simplification - in a multi-item checkout, we'd need to track which item belongs to which order)
-            
-            // Remove items from cart
-            itemIds.forEach(itemId => {
-              removeItem(itemId);
-            });
-            
-            // Clear sessionStorage
+          // Remove this order from pending list
+          const updatedOrderIds = orderIds.filter(id => id !== order.id);
+          const updatedItemIds = itemIds.filter(id => id !== listingId);
+          
+          if (updatedOrderIds.length === 0) {
+            // All orders are paid, clear sessionStorage
             sessionStorage.removeItem("pendingCheckoutItems");
             sessionStorage.removeItem("pendingOrderIds");
+          } else {
+            // Update sessionStorage with remaining items
+            sessionStorage.setItem("pendingOrderIds", JSON.stringify(updatedOrderIds));
+            sessionStorage.setItem("pendingCheckoutItems", JSON.stringify(updatedItemIds));
           }
         } catch (e) {
           console.error("Error processing cart cleanup:", e);
@@ -124,7 +126,7 @@ function OrderContent() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order?.paymentStatus, order?.id, user]);
+  }, [order?.paymentStatus, order?.id, order?.listing?.id, user]);
 
   if (authLoading || loading) {
     return (
