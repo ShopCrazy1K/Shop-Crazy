@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 const contactSchema = z.object({
   name: z.string().min(1, "Name is required").trim(),
   email: z.string().email("Invalid email address").trim().toLowerCase(),
-  subject: z.string().trim().optional().or(z.literal("")),
+  subject: z.preprocess((val) => (val === "" ? undefined : val), z.string().trim().optional()),
   message: z.string().min(10, "Message must be at least 10 characters").trim(),
   type: z.enum(["general", "error", "concern", "feedback"]).default("general"),
 });
