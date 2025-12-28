@@ -104,9 +104,10 @@ function ShopContent() {
           images = imageDigitalFiles;
         }
 
-        const hasDigitalFiles = listing.digitalFiles &&
-          ((Array.isArray(listing.digitalFiles) && listing.digitalFiles.length > 0) ||
-           (typeof listing.digitalFiles === 'string' && listing.digitalFiles.trim().length > 0));
+        const digitalFilesValue = listing.digitalFiles as any;
+        const hasDigitalFiles = digitalFilesValue &&
+          ((Array.isArray(digitalFilesValue) && digitalFilesValue.length > 0) ||
+           (typeof digitalFilesValue === 'string' && digitalFilesValue.trim().length > 0));
 
         return {
           id: listing.id,
