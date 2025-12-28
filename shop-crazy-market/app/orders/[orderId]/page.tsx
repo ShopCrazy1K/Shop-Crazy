@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
