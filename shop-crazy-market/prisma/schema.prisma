@@ -28,14 +28,14 @@ model User {
 
   // Etsy-style relationships
   shop            Shop?
-  buyerOrders     Order[]    @relation("BuyerOrders") // Orders as a buyer
+  buyerOrders     Order[]        @relation("BuyerOrders") // Orders as a buyer
   reviews         Review[]
-  reviewsReceived Review[]   @relation("ReceivedReviews") // Reviews received as a seller
+  reviewsReceived Review[]       @relation("ReceivedReviews") // Reviews received as a seller
   favorites       Favorite[]
-  messagesSent    Message[]  @relation("SentMessages")
-  messagesRecv    Message[]  @relation("ReceivedMessages")
+  messagesSent    Message[]      @relation("SentMessages")
+  messagesRecv    Message[]      @relation("ReceivedMessages")
   listings        Listing[]
-  sellerOrders    Order[]    @relation("SellerOrders")
+  sellerOrders    Order[]        @relation("SellerOrders")
   notifications   Notification[] // Notifications received by this user
 
   createdAt DateTime @default(now())
@@ -305,6 +305,30 @@ model Message {
   receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+//////////////////////////////////////
+// NOTIFICATION
+//////////////////////////////////////
+
+model Notification {
+  id     String @id @default(uuid())
+  userId String // User who receives the notification
+  user   User   @relation(fields: [userId], references: [id])
+
+  type    String // "message", "order", "review", etc.
+  title   String
+  message String
+  link    String? // Optional link to related page (e.g., /messages/userId, /orders/orderId)
+
+  read   Boolean   @default(false)
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
 }
 
 //////////////////////////////////////
