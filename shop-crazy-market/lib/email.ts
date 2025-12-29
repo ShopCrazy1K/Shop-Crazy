@@ -101,19 +101,25 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
 
 export async function sendAdminReportNotification(report: {
   id: string;
-  productId: string;
+  productId?: string;
+  listingId?: string;
   productTitle?: string;
   reporterEmail: string;
   reason: string;
 }) {
   const adminEmail = process.env.ADMIN_EMAIL || "admin@shopcrazymarket.com";
 
+  const itemIdentifier = report.productTitle || report.productId || report.listingId || "Unknown Item";
+
   const html = `
     <h2>New Copyright Report</h2>
     <p>A new copyright violation report has been submitted.</p>
     <ul>
       <li><strong>Report ID:</strong> ${report.id}</li>
-      <li><strong>Product:</strong> ${report.productTitle || report.productId}</li>
+      <li><strong>Item Type:</strong> ${report.listingId ? "Listing" : report.productId ? "Product" : "Unknown"}</li>
+      <li><strong>Item:</strong> ${itemIdentifier}</li>
+      ${report.productId ? `<li><strong>Product ID:</strong> ${report.productId}</li>` : ""}
+      ${report.listingId ? `<li><strong>Listing ID:</strong> ${report.listingId}</li>` : ""}
       <li><strong>Reporter:</strong> ${report.reporterEmail}</li>
       <li><strong>Reason:</strong> ${report.reason}</li>
     </ul>
@@ -126,7 +132,7 @@ export async function sendAdminReportNotification(report: {
 
   return sendEmail({
     to: adminEmail,
-    subject: `New Copyright Report: ${report.productTitle || report.productId}`,
+    subject: `New Copyright Report: ${itemIdentifier}`,
     html,
   });
 }
