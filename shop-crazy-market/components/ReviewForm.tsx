@@ -98,18 +98,47 @@ export default function ReviewForm({
     setError("");
 
     try {
-      const response = await fetch(`/api/users/${sellerId}/reviews`, {
+      // Determine which API endpoint to use
+      let endpoint = "";
+      let body: any = {
+        rating,
+        comment: comment || null,
+      };
+
+      if (sellerId) {
+        // Seller/user review
+        endpoint = `/api/users/${sellerId}/reviews`;
+        body.reviewerId = user.id;
+        body.orderId = orderId || null;
+        body.photos = photos;
+      } else if (productId) {
+        // Product review (legacy) - doesn't support photos
+        endpoint = `/api/reviews`;
+        body.productId = productId;
+        body.userId = user.id; // Product reviews use userId, not reviewerId
+      } else if (listingId) {
+        // Listing review - use seller reviews endpoint if we have sellerId
+        if (sellerId) {
+          endpoint = `/api/users/${sellerId}/reviews`;
+          body.reviewerId = user.id;
+          body.orderId = orderId || null;
+          body.photos = photos;
+        } else {
+          // Fallback to general reviews endpoint
+          endpoint = `/api/reviews`;
+          body.listingId = listingId;
+          body.userId = user.id;
+        }
+      } else {
+        throw new Error("Either sellerId, productId, or listingId must be provided");
+      }
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          reviewerId: user.id,
-          rating,
-          comment: comment || null,
-          orderId: orderId || null,
-          photos: photos,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -117,8 +146,8 @@ export default function ReviewForm({
         throw new Error(data.error || "Failed to submit review");
       }
 
-      if (onSuccess) {
-        onSuccess();
+      if (handleSuccess) {
+        handleSuccess();
       }
     } catch (err: any) {
       setError(err.message || "Failed to submit review");
