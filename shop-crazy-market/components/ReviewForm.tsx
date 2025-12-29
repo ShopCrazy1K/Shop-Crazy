@@ -4,13 +4,26 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface ReviewFormProps {
-  sellerId: string;
+  sellerId?: string;
+  productId?: string;
+  listingId?: string;
   orderId?: string;
   onSuccess?: () => void;
   onCancel?: () => void;
+  onReviewSubmitted?: () => void; // Legacy prop name
 }
 
-export default function ReviewForm({ sellerId, orderId, onSuccess, onCancel }: ReviewFormProps) {
+export default function ReviewForm({ 
+  sellerId, 
+  productId, 
+  listingId,
+  orderId, 
+  onSuccess, 
+  onCancel,
+  onReviewSubmitted 
+}: ReviewFormProps) {
+  // Use onReviewSubmitted if onSuccess is not provided (for backward compatibility)
+  const handleSuccess = onSuccess || onReviewSubmitted;
   const { user } = useAuth();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -73,6 +86,11 @@ export default function ReviewForm({ sellerId, orderId, onSuccess, onCancel }: R
 
     if (rating === 0) {
       setError("Please select a rating");
+      return;
+    }
+
+    if (!sellerId && !productId && !listingId) {
+      setError("Review target is required");
       return;
     }
 

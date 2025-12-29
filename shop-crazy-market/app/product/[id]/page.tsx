@@ -266,10 +266,11 @@ export default function ProductPage() {
               )}
             </div>
 
-            {showReviewForm && (
+            {showReviewForm && product && (
               <div className="mb-6 bg-gray-50 p-4 rounded-lg">
                 <ReviewForm
                   productId={productId}
+                  sellerId={product.shop.owner.id}
                   onReviewSubmitted={() => {
                     setShowReviewForm(false);
                     fetchReviews();
