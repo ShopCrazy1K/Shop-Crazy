@@ -187,7 +187,9 @@ function SellerDashboard() {
           // Also show a persistent notice on the page
           setPaymentMethods({ 
             hasStripeAccount: false, 
-            connectNotEnabled: true 
+            connectNotEnabled: true,
+            paymentMethods: [],
+            bankAccounts: []
           });
         } else {
           alert(errorData.error || errorData.message || "Failed to setup payment method");
