@@ -32,6 +32,7 @@ export async function PUT(
         id: true,
         sellerId: true,
         paymentStatus: true,
+        shippedAt: true,
       },
     });
 
