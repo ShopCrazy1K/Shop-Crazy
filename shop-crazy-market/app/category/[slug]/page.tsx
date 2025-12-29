@@ -178,14 +178,24 @@ export default function CategoryPage() {
       {loading ? (
         <div className="text-center py-10 text-gray-500">Loading products...</div>
       ) : products.length === 0 ? (
-        <div className="text-center py-10">
-          <p className="text-gray-500 mb-4">No products found in this category</p>
-          <Link
-            href="/marketplace"
-            className="text-purple-600 underline font-semibold"
-          >
-            Browse All Products
-          </Link>
+        <div className="text-center py-20 bg-white rounded-xl shadow-lg p-12">
+          <div className="text-6xl mb-4">{category.emoji}</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">No listings yet in {category.name}</h2>
+          <p className="text-gray-600 mb-6">Be the first to list something in this category!</p>
+          <div className="flex gap-4 justify-center">
+            <Link
+              href="/sell"
+              className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+            >
+              Create Listing
+            </Link>
+            <Link
+              href="/marketplace"
+              className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+            >
+              Browse All Products
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
