@@ -192,9 +192,20 @@ export default function OrdersPage() {
                         >
                           {order.listing.title}
                         </Link>
-                        <p className="text-sm text-gray-600">
+                        <Link
+                          href={`/shop/${order.listing.seller.id || order.listing.seller.email}`}
+                          className="text-sm text-gray-600 hover:text-purple-600 hover:underline"
+                        >
                           {order.listing.seller.username || order.listing.seller.email}
-                        </p>
+                        </Link>
+                        {user && user.id !== order.listing.seller.id && (
+                          <Link
+                            href={`/messages?userId=${order.listing.seller.id || order.listing.seller.email}`}
+                            className="ml-2 text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                          >
+                            💬 Message
+                          </Link>
+                        )}
                         
                         {/* Prominent Download Link for Digital Products */}
                         {hasDigitalFiles && isPaid && (

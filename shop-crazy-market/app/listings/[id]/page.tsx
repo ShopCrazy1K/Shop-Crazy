@@ -698,7 +698,13 @@ export default function ListingPage() {
 
               <div className="mb-6">
                 <p className="text-sm text-gray-500">
-                  Listed by: {listing.seller.username || listing.seller.email}
+                  Listed by:{" "}
+                  <Link
+                    href={`/shop/${listing.seller.id}`}
+                    className="text-purple-600 hover:text-purple-700 hover:underline font-semibold"
+                  >
+                    {listing.seller.username || listing.seller.email}
+                  </Link>
                 </p>
                 <p className="text-sm text-gray-500">
                   Status: {listing.isActive ? (

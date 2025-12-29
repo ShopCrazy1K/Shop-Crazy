@@ -218,14 +218,24 @@ function ShopContent() {
               </div>
             )}
           </div>
-          {user?.id === userId && (
-            <Link
-              href="/profile"
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold"
-            >
-              Manage Shop
-            </Link>
-          )}
+          <div className="flex gap-2">
+            {user && user.id !== userId && (
+              <Link
+                href={`/messages?userId=${userId}`}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
+              >
+                💬 Message Seller
+              </Link>
+            )}
+            {user?.id === userId && (
+              <Link
+                href="/profile"
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold"
+              >
+                Manage Shop
+              </Link>
+            )}
+          </div>
         </div>
         <div className="border-t pt-4">
           <p className="text-gray-600">
