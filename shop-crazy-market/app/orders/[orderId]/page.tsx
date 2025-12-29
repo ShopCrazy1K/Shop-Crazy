@@ -5,6 +5,7 @@ import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import Link from "next/link";
+import { buildTrackingUrl, formatStatus, type Carrier } from "@/lib/tracking";
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,11 @@ function OrderContent() {
   const [error, setError] = useState("");
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [editingTracking, setEditingTracking] = useState(false);
+  const [trackingCarrier, setTrackingCarrier] = useState<Carrier | "">("");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [shippingStatus, setShippingStatus] = useState("");
+  const [savingTracking, setSavingTracking] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -43,10 +49,48 @@ function OrderContent() {
       }
       const data = await response.json();
       setOrder(data);
+      // Set tracking fields for editing
+      if (data.trackingCarrier) setTrackingCarrier(data.trackingCarrier as Carrier);
+      if (data.trackingNumber) setTrackingNumber(data.trackingNumber);
+      if (data.shippingStatus) setShippingStatus(data.shippingStatus);
     } catch (err: any) {
       setError(err.message || "Failed to load order");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function saveTracking() {
+    if (!user || !orderId) return;
+
+    setSavingTracking(true);
+    try {
+      const response = await fetch(`/api/orders/${orderId}/tracking`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+        },
+        body: JSON.stringify({
+          carrier: trackingCarrier || null,
+          trackingNumber: trackingNumber || null,
+          shippingStatus: shippingStatus || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update tracking");
+      }
+
+      const data = await response.json();
+      setOrder(data.order);
+      setEditingTracking(false);
+      alert("Tracking information updated successfully!");
+    } catch (err: any) {
+      alert(`Error: ${err.message || "Failed to update tracking"}`);
+    } finally {
+      setSavingTracking(false);
     }
   }
 
@@ -336,6 +380,159 @@ function OrderContent() {
                     </button>
                   )}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Tracking Information */}
+          {order.paymentStatus === "paid" && (
+            <div className="border-t pt-4 mt-4">
+              <h3 className="font-semibold text-gray-900 mb-3">Shipping & Tracking</h3>
+              
+              {user?.id === order.sellerId ? (
+                // Seller can edit tracking
+                <div className="space-y-3">
+                  {!editingTracking ? (
+                    <>
+                      {order.trackingNumber ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-gray-600">
+                                <strong>Carrier:</strong> {order.trackingCarrier || "Not specified"}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                <strong>Tracking #:</strong> {order.trackingNumber}
+                              </p>
+                              {order.shippingStatus && (
+                                <p className="text-sm text-gray-600">
+                                  <strong>Status:</strong> {formatStatus(order.shippingStatus)}
+                                </p>
+                              )}
+                              {order.trackingCarrier && order.trackingNumber && (
+                                <a
+                                  href={buildTrackingUrl(order.trackingCarrier as Carrier, order.trackingNumber)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-block mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
+                                >
+                                  📦 Track Package
+                                </a>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => setEditingTracking(true)}
+                              className="text-purple-600 hover:text-purple-700 text-sm font-semibold"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-sm text-gray-500 mb-2">No tracking information added yet.</p>
+                          <button
+                            onClick={() => setEditingTracking(true)}
+                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold"
+                          >
+                            Add Tracking Information
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Shipping Status</label>
+                        <select
+                          value={shippingStatus}
+                          onChange={(e) => setShippingStatus(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        >
+                          <option value="">Select status</option>
+                          <option value="processing">Processing</option>
+                          <option value="shipped">Shipped</option>
+                          <option value="delivered">Delivered</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Carrier</label>
+                        <select
+                          value={trackingCarrier}
+                          onChange={(e) => setTrackingCarrier(e.target.value as Carrier)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        >
+                          <option value="">Select carrier</option>
+                          <option value="USPS">USPS</option>
+                          <option value="UPS">UPS</option>
+                          <option value="FedEx">FedEx</option>
+                          <option value="DHL">DHL</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Tracking Number</label>
+                        <input
+                          type="text"
+                          value={trackingNumber}
+                          onChange={(e) => setTrackingNumber(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          placeholder="Enter tracking number"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={saveTracking}
+                          disabled={savingTracking}
+                          className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold disabled:opacity-50"
+                        >
+                          {savingTracking ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingTracking(false);
+                            // Reset to original values
+                            if (order.trackingCarrier) setTrackingCarrier(order.trackingCarrier as Carrier);
+                            if (order.trackingNumber) setTrackingNumber(order.trackingNumber);
+                            if (order.shippingStatus) setShippingStatus(order.shippingStatus);
+                          }}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Buyer can view tracking
+                order.trackingNumber ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600">
+                      <strong>Carrier:</strong> {order.trackingCarrier || "Not specified"}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      <strong>Tracking #:</strong> {order.trackingNumber}
+                    </p>
+                    {order.shippingStatus && (
+                      <p className="text-sm text-gray-600">
+                        <strong>Status:</strong> {formatStatus(order.shippingStatus)}
+                      </p>
+                    )}
+                    {order.trackingCarrier && order.trackingNumber && (
+                      <a
+                        href={buildTrackingUrl(order.trackingCarrier as Carrier, order.trackingNumber)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
+                      >
+                        📦 Track Package
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">Tracking information will be added by the seller once your order ships.</p>
+                )
               )}
             </div>
           )}

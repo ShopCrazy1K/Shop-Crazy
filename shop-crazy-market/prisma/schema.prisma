@@ -18,23 +18,23 @@ datasource db {
 //////////////////////////////////////
 
 model User {
-  id           String  @id @default(cuid())
-  email        String  @unique
-  username     String?
-  passwordHash String? // Hashed password (optional for OAuth users)
-  role         String  @default("USER") // "USER" or "ADMIN"
-  adsEnabled   Boolean @default(false) // seller opt-in for ad fee
-  about        String? // About section for seller profile (like Etsy)
-  coverPhoto   String? // Cover photo URL for profile page (like Etsy)
+  id                     String  @id @default(cuid())
+  email                  String  @unique
+  username               String?
+  passwordHash           String? // Hashed password (optional for OAuth users)
+  role                   String  @default("USER") // "USER" or "ADMIN"
+  adsEnabled             Boolean @default(false) // seller opt-in for ad fee
+  about                  String? // About section for seller profile (like Etsy)
+  coverPhoto             String? // Cover photo URL for profile page (like Etsy)
   // Shop Policies
-  shopAnnouncement String? // Shop announcements
-  shopAbout        String? // About your shop
-  shippingPolicy   String? // Shipping policy
-  returnsPolicy    String? // Returns and exchanges policy
-  cancellationsPolicy String? // Cancellations policy
-  faqs             String? // FAQs (JSON array of {question, answer})
+  shopAnnouncement       String? // Shop announcements
+  shopAbout              String? // About your shop
+  shippingPolicy         String? // Shipping policy
+  returnsPolicy          String? // Returns and exchanges policy
+  cancellationsPolicy    String? // Cancellations policy
+  faqs                   String? // FAQs (JSON array of {question, answer})
   digitalDownloadsPolicy String? // Digital downloads policy
-  paymentMethods   String? // Payment methods accepted
+  paymentMethods         String? // Payment methods accepted
 
   // Etsy-style relationships
   shop            Shop?
@@ -251,6 +251,12 @@ model Order {
 
   paymentStatus String @default("pending") // pending, paid, failed, refunded
 
+  // Shipping & Tracking
+  shippingStatus    String? // processing, shipped, delivered
+  trackingCarrier   String? // USPS, UPS, FedEx, DHL, Other
+  trackingNumber    String?
+  shippedAt         DateTime?
+
   // For audit/debug
   processingRule   String? // e.g. "US_2%_20c"
   adsEnabledAtSale Boolean @default(false)
@@ -282,7 +288,7 @@ model OrderItem {
 //////////////////////////////////////
 
 model Review {
-  id      String  @id @default(uuid())
+  id      String   @id @default(uuid())
   rating  Int
   comment String?
   photos  String[] // Array of photo URLs for review
