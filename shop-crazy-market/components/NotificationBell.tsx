@@ -137,7 +137,7 @@ export default function NotificationBell() {
           />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] sm:text-xs">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -151,8 +151,8 @@ export default function NotificationBell() {
             onClick={() => setIsOpen(false)}
           />
           
-          {/* Dropdown */}
-          <div className="absolute bottom-full right-0 mb-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden flex flex-col">
+          {/* Dropdown - Positioned differently for mobile vs desktop */}
+          <div className="absolute bottom-full right-0 mb-2 md:bottom-auto md:top-full md:mt-2 md:mb-0 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden flex flex-col">
             <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
               {unreadCount > 0 && (
