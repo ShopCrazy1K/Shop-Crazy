@@ -713,6 +713,15 @@ export default function ListingPage() {
                     <span className="text-red-600 font-semibold">Inactive</span>
                   )}
                 </p>
+                {/* Message Seller Button */}
+                {user && user.id !== listing.seller.id && (
+                  <Link
+                    href={`/messages?userId=${listing.seller.id}`}
+                    className="mt-3 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    💬 Message Seller
+                  </Link>
+                )}
               </div>
 
               {/* Digital Files Section - Only show to buyers who have paid or sellers */}

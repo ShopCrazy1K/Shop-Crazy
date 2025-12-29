@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface Conversation {
   userId: string;
@@ -12,11 +12,13 @@ interface Conversation {
   updatedAt: Date | string;
 }
 
-export default function MessagesPage() {
+function MessagesContent() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const targetUserId = searchParams.get("userId");
 
   useEffect(() => {
     if (!user) {
