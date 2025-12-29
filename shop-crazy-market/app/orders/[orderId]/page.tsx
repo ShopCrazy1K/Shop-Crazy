@@ -212,14 +212,21 @@ function OrderContent() {
         </div>
       )}
 
-      {canceled === "1" && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6 text-center">
-          <h2 className="text-2xl font-bold text-yellow-800 mb-2">⚠️ Payment Canceled</h2>
-          <p className="text-yellow-700">Your payment was canceled. You can try again or continue shopping.</p>
-        </div>
-      )}
+            {canceled === "1" && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6 text-center">
+                <h2 className="text-2xl font-bold text-yellow-800 mb-2">⚠️ Payment Canceled</h2>
+                <p className="text-yellow-700">Your payment was canceled. You can try again or continue shopping.</p>
+              </div>
+            )}
 
-      <h1 className="text-2xl font-bold mb-6">Order Details</h1>
+            {order && order.paymentStatus === "canceled" && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6 text-center">
+                <h2 className="text-2xl font-bold text-red-800 mb-2">❌ Order Canceled</h2>
+                <p className="text-red-700">This order has been canceled.</p>
+              </div>
+            )}
+
+            <h1 className="text-2xl font-bold mb-6">Order Details</h1>
 
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="p-6">
