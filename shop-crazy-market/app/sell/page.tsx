@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
@@ -72,6 +73,24 @@ export default function SellPage() {
     isCancelingRef.current = false;
     
     if (typeof window !== 'undefined') {
+      // Check if we have a flag that indicates cancel was just pressed
+      const wasCanceled = sessionStorage.getItem('form-canceled');
+      if (wasCanceled === 'true') {
+        // Clear the flag and don't load any data
+        sessionStorage.removeItem('form-canceled');
+        // Ensure form is empty
+        setFormData({
+          title: "",
+          description: "",
+          price: "",
+          quantity: "1",
+          category: "",
+          type: "PHYSICAL",
+          condition: "NEW",
+        });
+        return;
+      }
+      
       const savedData = localStorage.getItem('listing-form-data');
       if (savedData) {
         try {
@@ -453,6 +472,28 @@ export default function SellPage() {
       localStorage.removeItem('listing-form-data');
       // Also clear any other related localStorage items
       sessionStorage.removeItem('pendingListingId');
+      // Set a flag to prevent loading data if user comes back to this page
+      sessionStorage.setItem('form-canceled', 'true');
+      
+      // Force clear form inputs directly via DOM IMMEDIATELY (before state updates)
+      const form = document.querySelector('form');
+      if (form) {
+        const inputs = form.querySelectorAll('input, textarea, select');
+        inputs.forEach((input: any) => {
+          if (input.type === 'file') {
+            input.value = '';
+          } else if (input.type === 'checkbox' || input.type === 'radio') {
+            input.checked = false;
+          } else if (input.tagName === 'SELECT') {
+            // Reset select to first option
+            input.selectedIndex = 0;
+          } else {
+            input.value = '';
+          }
+          // Trigger input event to ensure React sees the change
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
     }
     
     // Clear all form data immediately - use empty object to force re-render
@@ -466,42 +507,24 @@ export default function SellPage() {
       condition: "NEW",
     };
     
-    // Clear all state
-    setDigitalFiles([]);
-    setUploadedDigitalFileUrls([]);
-    setImageFiles([]);
-    setImages([]);
-    setImageUrls("");
-    setFormData(emptyFormData);
-    setError("");
-    setLoading(false);
-    setShowSuccess(false);
-    setCreatedProduct(null);
+    // Clear all state synchronously using flushSync to force immediate update
+    flushSync(() => {
+      setDigitalFiles([]);
+      setUploadedDigitalFileUrls([]);
+      setImageFiles([]);
+      setImages([]);
+      setImageUrls("");
+      setFormData(emptyFormData);
+      setError("");
+      setLoading(false);
+      setShowSuccess(false);
+      setCreatedProduct(null);
+    });
     
-    // Force clear form inputs directly via DOM (as backup)
+    // Navigate immediately after state is flushed
     if (typeof window !== 'undefined') {
-      const form = document.querySelector('form');
-      if (form) {
-        const inputs = form.querySelectorAll('input, textarea, select');
-        inputs.forEach((input: any) => {
-          if (input.type === 'file') {
-            input.value = '';
-          } else if (input.type === 'checkbox' || input.type === 'radio') {
-            input.checked = false;
-          } else {
-            input.value = '';
-          }
-        });
-      }
+      window.location.href = "/marketplace";
     }
-    
-    // Use window.location for a hard navigation to ensure everything is reset
-    // Small delay to ensure state updates are processed and form is visually cleared
-    setTimeout(() => {
-      if (typeof window !== 'undefined') {
-        window.location.href = "/marketplace";
-      }
-    }, 150);
   }
 
   function handleCreateAnother() {
