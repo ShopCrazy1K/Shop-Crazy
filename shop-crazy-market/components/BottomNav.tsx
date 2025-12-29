@@ -30,14 +30,9 @@ export default function BottomNav() {
         ➕
       </Link>
       {user ? (
-        <>
-          <div className="relative">
-            <NotificationBell />
-          </div>
-          <Link href="/profile" className="text-2xl hover:scale-110 transition-transform">
-            👤
-          </Link>
-        </>
+        <Link href="/profile" className="text-2xl hover:scale-110 transition-transform">
+          👤
+        </Link>
       ) : (
         <Link href="/login" className="text-2xl hover:scale-110 transition-transform">
           🔐

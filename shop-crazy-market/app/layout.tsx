@@ -3,6 +3,7 @@ import ThemeProvider from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import BottomNav from "@/components/BottomNav";
+import Navbar from "@/components/Navbar";
 import ChristmasDecorations from "@/components/ChristmasDecorations";
 import NewYearDecorations from "@/components/NewYearDecorations";
 import WinterDecorations from "@/components/WinterDecorations";
@@ -30,7 +31,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <ChristmasDecorations />
                 <NewYearDecorations />
                 <WinterDecorations />
-                <div className="pb-20">{children}</div>
+                <Navbar />
+                <div className="pb-20 md:pb-0">{children}</div>
                 <BottomNav />
               </CartProvider>
             </AuthProvider>

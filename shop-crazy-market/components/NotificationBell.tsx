@@ -153,21 +153,21 @@ export default function NotificationBell() {
           
           {/* Dropdown */}
           <div className="absolute bottom-full right-0 mb-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Notifications</h3>
+            <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
                   className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
                 >
-                  Mark all as read
+                  Mark all read
                 </button>
               )}
             </div>
 
             <div className="overflow-y-auto flex-1">
               {notifications.length === 0 ? (
-                <div className="p-6 text-center text-gray-500 text-sm">
+                <div className="p-4 sm:p-6 text-center text-gray-500 text-xs sm:text-sm">
                   No notifications yet
                 </div>
               ) : (
@@ -175,7 +175,7 @@ export default function NotificationBell() {
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-4 hover:bg-gray-50 transition-colors ${
+                      className={`p-3 sm:p-4 hover:bg-gray-50 transition-colors ${
                         !notification.read ? "bg-blue-50" : ""
                       }`}
                     >
@@ -191,28 +191,28 @@ export default function NotificationBell() {
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0">
                               {notification.type === "message" && (
-                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                  <span className="text-blue-600 text-lg">💬</span>
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                  <span className="text-blue-600 text-sm sm:text-lg">💬</span>
                                 </div>
                               )}
                               {notification.type === "order" && (
-                                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                  <span className="text-green-600 text-lg">📦</span>
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                  <span className="text-green-600 text-sm sm:text-lg">📦</span>
                                 </div>
                               )}
                               {notification.type === "review" && (
-                                <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                                  <span className="text-yellow-600 text-lg">⭐</span>
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                                  <span className="text-yellow-600 text-sm sm:text-lg">⭐</span>
                                 </div>
                               )}
                               {!["message", "order", "review"].includes(notification.type) && (
-                                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                                  <span className="text-purple-600 text-lg">🔔</span>
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                  <span className="text-purple-600 text-sm sm:text-lg">🔔</span>
                                 </div>
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-sm text-gray-900">
+                              <p className="font-semibold text-xs sm:text-sm text-gray-900">
                                 {notification.title}
                               </p>
                               <p className="text-xs text-gray-600 mt-1 line-clamp-2">
@@ -264,11 +264,11 @@ export default function NotificationBell() {
             </div>
 
             {notifications.length > 0 && (
-              <div className="p-3 border-t border-gray-200 text-center">
+              <div className="p-2 sm:p-3 border-t border-gray-200 text-center">
                 <Link
                   href="/notifications"
                   onClick={() => setIsOpen(false)}
-                  className="text-sm text-purple-600 hover:text-purple-700 font-semibold"
+                  className="text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-semibold"
                 >
                   View all notifications
                 </Link>
