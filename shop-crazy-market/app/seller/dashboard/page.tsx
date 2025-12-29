@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -23,7 +23,7 @@ interface RecentFee {
   createdAt: string;
 }
 
-export default function SellerDashboard() {
+function SellerDashboard() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -443,6 +443,19 @@ export default function SellerDashboard() {
         )}
       </div>
     </main>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function SellerDashboardPage() {
+  return (
+    <Suspense fallback={
+      <main className="p-6">
+        <div className="text-center text-gray-500 py-10">Loading...</div>
+      </main>
+    }>
+      <SellerDashboard />
+    </Suspense>
   );
 }
 
