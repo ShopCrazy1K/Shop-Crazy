@@ -360,7 +360,7 @@ export default function SellPage() {
       }
 
       // Create the listing using new listings API
-      const response = await fetch("/api/listings/create", {
+      const response = await fetch("/api/listings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -370,6 +370,7 @@ export default function SellPage() {
           description: formData.description,
           priceCents: priceInCents,
           currency: "usd",
+          category: formData.category || undefined,
           images: finalImages,
           // digitalFiles is required - ensure we have uploaded files for digital products
           digitalFiles: formData.type === "DIGITAL" ? uploadedDigitalFileUrls : [],
