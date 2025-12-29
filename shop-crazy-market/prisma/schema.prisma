@@ -26,6 +26,15 @@ model User {
   adsEnabled   Boolean @default(false) // seller opt-in for ad fee
   about        String? // About section for seller profile (like Etsy)
   coverPhoto   String? // Cover photo URL for profile page (like Etsy)
+  // Shop Policies
+  shopAnnouncement String? // Shop announcements
+  shopAbout        String? // About your shop
+  shippingPolicy   String? // Shipping policy
+  returnsPolicy    String? // Returns and exchanges policy
+  cancellationsPolicy String? // Cancellations policy
+  faqs             String? // FAQs (JSON array of {question, answer})
+  digitalDownloadsPolicy String? // Digital downloads policy
+  paymentMethods   String? // Payment methods accepted
 
   // Etsy-style relationships
   shop            Shop?
@@ -276,6 +285,7 @@ model Review {
   id      String  @id @default(uuid())
   rating  Int
   comment String?
+  photos  String[] // Array of photo URLs for review
 
   userId String // Reviewer (who wrote the review)
   user   User   @relation(fields: [userId], references: [id])

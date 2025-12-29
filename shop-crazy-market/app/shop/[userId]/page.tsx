@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import { useAuth } from "@/contexts/AuthContext";
+import ReviewForm from "@/components/ReviewForm";
 
 interface Listing {
   id: string;
@@ -22,6 +23,7 @@ interface Listing {
     email: string;
     username: string | null;
     coverPhoto?: string | null;
+    createdAt?: string;
   };
 }
 
@@ -38,6 +40,17 @@ interface Product {
   };
 }
 
+interface ShopPolicies {
+  shopAnnouncement?: string | null;
+  shopAbout?: string | null;
+  shippingPolicy?: string | null;
+  returnsPolicy?: string | null;
+  cancellationsPolicy?: string | null;
+  faqs?: Array<{ question: string; answer: string }> | null;
+  digitalDownloadsPolicy?: string | null;
+  paymentMethods?: string | null;
+}
+
 function ShopContent() {
   const params = useParams();
   const { user } = useAuth();
@@ -49,11 +62,13 @@ function ShopContent() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [averageRating, setAverageRating] = useState(0);
-  const [userAbout, setUserAbout] = useState<string | null>(null);
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
   const [sellerStats, setSellerStats] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"items" | "reviews" | "about">("items");
+  const [activeTab, setActiveTab] = useState<"items" | "reviews" | "about" | "myshop">("items");
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [shopPolicies, setShopPolicies] = useState<ShopPolicies | null>(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [memberSince, setMemberSince] = useState<string>("");
 
   useEffect(() => {
     if (userId) {
@@ -72,6 +87,18 @@ function ShopContent() {
         const userData = await userResponse.json();
         setShopUser(userData);
         setCoverPhoto(userData.coverPhoto || null);
+        if (userData.createdAt) {
+          const date = new Date(userData.createdAt);
+          const years = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24 * 365));
+          const months = Math.floor(((Date.now() - date.getTime()) % (1000 * 60 * 60 * 24 * 365)) / (1000 * 60 * 60 * 24 * 30));
+          if (years > 0) {
+            setMemberSince(`${years} ${years === 1 ? 'year' : 'years'}`);
+          } else if (months > 0) {
+            setMemberSince(`${months} ${months === 1 ? 'month' : 'months'}`);
+          } else {
+            setMemberSince("Less than a month");
+          }
+        }
       }
 
       // Fetch seller stats
@@ -79,6 +106,13 @@ function ShopContent() {
       if (statsResponse.ok) {
         const stats = await statsResponse.json();
         setSellerStats(stats);
+      }
+
+      // Fetch shop policies
+      const policiesResponse = await fetch(`/api/users/${userId}/policies`);
+      if (policiesResponse.ok) {
+        const policies = await policiesResponse.json();
+        setShopPolicies(policies);
       }
 
       // Fetch listings
@@ -141,13 +175,6 @@ function ShopContent() {
 
       setProducts(transformed);
 
-      // Fetch user's about section
-      const aboutResponse = await fetch(`/api/users/${userId}/about`);
-      if (aboutResponse.ok) {
-        const aboutData = await aboutResponse.json();
-        setUserAbout(aboutData.about);
-      }
-
       // Fetch reviews
       fetchReviews();
     } catch (err: any) {
@@ -203,7 +230,6 @@ function ShopContent() {
 
       const uploadData = await uploadResponse.json();
       
-      // Update user's cover photo
       const updateResponse = await fetch(`/api/users/${userId}/cover-photo`, {
         method: "PUT",
         headers: {
@@ -253,7 +279,7 @@ function ShopContent() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Cover Photo Section - Etsy Style */}
+      {/* Cover Photo Section */}
       <div className="relative h-64 sm:h-80 bg-gradient-to-r from-purple-400 via-pink-400 to-purple-600">
         {coverPhoto ? (
           <img
@@ -265,7 +291,6 @@ function ShopContent() {
           <div className="w-full h-full bg-gradient-to-r from-purple-400 via-pink-400 to-purple-600" />
         )}
         
-        {/* Cover Photo Upload Button (Owner Only) */}
         {isOwner && (
           <div className="absolute bottom-4 right-4">
             <label className="cursor-pointer bg-white bg-opacity-90 hover:bg-opacity-100 px-4 py-2 rounded-lg font-semibold text-sm text-gray-700 transition-all shadow-lg">
@@ -281,7 +306,6 @@ function ShopContent() {
           </div>
         )}
 
-        {/* Profile Info Overlay */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-6">
           <div className="max-w-7xl mx-auto">
             <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
@@ -319,6 +343,11 @@ function ShopContent() {
               <span className="text-white text-sm">
                 {products.length} {products.length === 1 ? 'item' : 'items'}
               </span>
+              {memberSince && (
+                <span className="text-white text-sm">
+                  Member since {memberSince} ago
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -329,32 +358,38 @@ function ShopContent() {
         <div className="flex items-center justify-between mb-6 bg-white rounded-lg shadow-sm p-4">
           <div className="flex gap-2">
             {user && user.id !== userId && (
-              <>
-                <Link
-                  href={`/messages/${userId}`}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
-                >
-                  💬 Message Seller
-                </Link>
-              </>
+              <Link
+                href={`/messages/${userId}`}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
+              >
+                💬 Message Seller
+              </Link>
             )}
             {isOwner && (
-              <Link
-                href="/profile"
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold"
-              >
-                ⚙️ Manage Shop
-              </Link>
+              <>
+                <Link
+                  href="/profile"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold"
+                >
+                  ⚙️ Manage Shop
+                </Link>
+                <button
+                  onClick={() => setActiveTab("myshop")}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
+                >
+                  👁️ My Shop
+                </button>
+              </>
             )}
           </div>
         </div>
 
-        {/* Tabs - Etsy Style */}
+        {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm mb-6 border-b border-gray-200">
-          <div className="flex gap-1 px-4">
+          <div className="flex gap-1 px-4 overflow-x-auto">
             <button
               onClick={() => setActiveTab("items")}
-              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors ${
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "items"
                   ? "border-purple-600 text-purple-600"
                   : "border-transparent text-gray-600 hover:text-gray-900"
@@ -364,7 +399,7 @@ function ShopContent() {
             </button>
             <button
               onClick={() => setActiveTab("reviews")}
-              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors ${
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "reviews"
                   ? "border-purple-600 text-purple-600"
                   : "border-transparent text-gray-600 hover:text-gray-900"
@@ -374,7 +409,7 @@ function ShopContent() {
             </button>
             <button
               onClick={() => setActiveTab("about")}
-              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors ${
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "about"
                   ? "border-purple-600 text-purple-600"
                   : "border-transparent text-gray-600 hover:text-gray-900"
@@ -382,6 +417,18 @@ function ShopContent() {
             >
               About
             </button>
+            {isOwner && (
+              <button
+                onClick={() => setActiveTab("myshop")}
+                className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${
+                  activeTab === "myshop"
+                    ? "border-purple-600 text-purple-600"
+                    : "border-transparent text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                My Shop
+              </button>
+            )}
           </div>
         </div>
 
@@ -390,6 +437,36 @@ function ShopContent() {
           {/* Items Section */}
           {activeTab === "items" && (
             <div>
+              {/* Stats Bar */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 pb-6 border-b border-gray-200">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-purple-600">{products.length}</p>
+                  <p className="text-sm text-gray-600">Listings</p>
+                </div>
+                {sellerStats && (
+                  <>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-green-600">{sellerStats.salesCount || 0}</p>
+                      <p className="text-sm text-gray-600">Sales</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i} className={i < Math.round(averageRating) ? "text-yellow-400" : "text-gray-300"}>
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-sm text-gray-600">Shop Rating</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-blue-600">{memberSince || "New"}</p>
+                      <p className="text-sm text-gray-600">Member Since</p>
+                    </div>
+                  </>
+                )}
+              </div>
+
               {products.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-gray-500 text-lg mb-4">This shop has no active listings yet.</p>
@@ -399,14 +476,6 @@ function ShopContent() {
                       className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
                     >
                       Create Your First Listing
-                    </Link>
-                  )}
-                  {!isOwner && (
-                    <Link
-                      href="/marketplace"
-                      className="text-purple-600 hover:underline font-semibold"
-                    >
-                      Browse other shops →
                     </Link>
                   )}
                 </div>
@@ -423,12 +492,36 @@ function ShopContent() {
           {/* Reviews Section */}
           {activeTab === "reviews" && (
             <div>
+              {user && user.id !== userId && !showReviewForm && (
+                <div className="mb-6 pb-6 border-b border-gray-200">
+                  <button
+                    onClick={() => setShowReviewForm(true)}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                  >
+                    Write a Review
+                  </button>
+                </div>
+              )}
+
+              {showReviewForm && (
+                <div className="mb-6 pb-6 border-b border-gray-200">
+                  <ReviewForm
+                    sellerId={userId}
+                    onSuccess={() => {
+                      setShowReviewForm(false);
+                      fetchReviews();
+                    }}
+                    onCancel={() => setShowReviewForm(false)}
+                  />
+                </div>
+              )}
+
               {reviewsLoading ? (
                 <div className="text-center py-8 text-gray-500">Loading reviews...</div>
               ) : reviews.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-gray-500 text-lg mb-2">No reviews yet.</p>
-                  {user && user.id !== userId && (
+                  {user && user.id !== userId && !showReviewForm && (
                     <p className="text-sm text-gray-400">Be the first to leave a review after making a purchase!</p>
                   )}
                 </div>
@@ -453,8 +546,25 @@ function ShopContent() {
                           {review.comment && (
                             <p className="text-gray-700 mb-2">{review.comment}</p>
                           )}
+                          {/* Review Photos */}
+                          {review.photos && review.photos.length > 0 && (
+                            <div className="grid grid-cols-4 gap-2 mt-3">
+                              {review.photos.map((photo: string, index: number) => (
+                                <img
+                                  key={index}
+                                  src={photo}
+                                  alt={`Review photo ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => {
+                                    // Open in modal or new tab
+                                    window.open(photo, '_blank');
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          )}
                           {review.order?.listing && (
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-gray-500 mt-2">
                               Purchased: {review.order.listing.title}
                             </p>
                           )}
@@ -470,30 +580,137 @@ function ShopContent() {
             </div>
           )}
 
-          {/* About Section */}
+          {/* About Section with Shop Policies */}
           {activeTab === "about" && (
-            <div>
-              {!userAbout ? (
+            <div className="space-y-6">
+              {!shopPolicies || (!shopPolicies.shopAnnouncement && !shopPolicies.shopAbout && !shopPolicies.shippingPolicy && !shopPolicies.returnsPolicy && !shopPolicies.cancellationsPolicy && !shopPolicies.faqs && !shopPolicies.digitalDownloadsPolicy && !shopPolicies.paymentMethods) ? (
                 <div className="text-center py-12">
                   {isOwner ? (
                     <>
-                      <p className="text-gray-500 text-lg mb-4">You haven't added an About section yet.</p>
+                      <p className="text-gray-500 text-lg mb-4">You haven't added shop policies yet.</p>
                       <Link
                         href="/profile"
                         className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
                       >
-                        Add About Section
+                        Add Shop Policies
                       </Link>
                     </>
                   ) : (
-                    <p className="text-gray-500">This seller hasn't added an About section yet.</p>
+                    <p className="text-gray-500">This seller hasn't added shop policies yet.</p>
                   )}
                 </div>
               ) : (
-                <div className="prose max-w-none">
-                  <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{userAbout}</p>
-                </div>
+                <>
+                  {shopPolicies.shopAnnouncement && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">Shop Announcements</h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">{shopPolicies.shopAnnouncement}</p>
+                    </div>
+                  )}
+
+                  {shopPolicies.shopAbout && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">About Your Shop</h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">{shopPolicies.shopAbout}</p>
+                    </div>
+                  )}
+
+                  {shopPolicies.shippingPolicy && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">Shipping</h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">{shopPolicies.shippingPolicy}</p>
+                    </div>
+                  )}
+
+                  {shopPolicies.returnsPolicy && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">Returns and Exchanges</h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">{shopPolicies.returnsPolicy}</p>
+                    </div>
+                  )}
+
+                  {shopPolicies.cancellationsPolicy && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">Cancellations</h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">{shopPolicies.cancellationsPolicy}</p>
+                    </div>
+                  )}
+
+                  {shopPolicies.digitalDownloadsPolicy && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">Digital Downloads</h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">{shopPolicies.digitalDownloadsPolicy}</p>
+                    </div>
+                  )}
+
+                  {shopPolicies.paymentMethods && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">Payment Methods</h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">{shopPolicies.paymentMethods}</p>
+                    </div>
+                  )}
+
+                  {shopPolicies.faqs && shopPolicies.faqs.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">FAQs</h3>
+                      <div className="space-y-4">
+                        {shopPolicies.faqs.map((faq: any, index: number) => (
+                          <div key={index} className="border-b border-gray-200 pb-4 last:border-0">
+                            <h4 className="font-semibold text-gray-900 mb-2">{faq.question || faq.q}</h4>
+                            <p className="text-gray-700">{faq.answer || faq.a}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
+            </div>
+          )}
+
+          {/* My Shop Tab - Customer View */}
+          {activeTab === "myshop" && isOwner && (
+            <div>
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <p className="text-gray-600 mb-4">This is how your shop appears to customers:</p>
+                <Link
+                  href={`/shop/${userId}`}
+                  target="_blank"
+                  className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                >
+                  👁️ View My Shop (Opens in New Tab)
+                </Link>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Shop Preview</h3>
+                <p className="text-gray-600 mb-2">
+                  <strong>Shop Name:</strong> {shopName}
+                </p>
+                <p className="text-gray-600 mb-2">
+                  <strong>Listings:</strong> {products.length}
+                </p>
+                {sellerStats && (
+                  <>
+                    <p className="text-gray-600 mb-2">
+                      <strong>Sales:</strong> {sellerStats.salesCount || 0}
+                    </p>
+                    <p className="text-gray-600 mb-2">
+                      <strong>Rating:</strong> {averageRating > 0 ? `${averageRating.toFixed(1)}/5.0` : "No ratings yet"}
+                    </p>
+                    <p className="text-gray-600 mb-2">
+                      <strong>Reviews:</strong> {reviews.length}
+                    </p>
+                    <p className="text-gray-600 mb-2">
+                      <strong>Followers:</strong> {sellerStats.followersCount || 0}
+                    </p>
+                  </>
+                )}
+                {memberSince && (
+                  <p className="text-gray-600">
+                    <strong>Member Since:</strong> {memberSince} ago
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>

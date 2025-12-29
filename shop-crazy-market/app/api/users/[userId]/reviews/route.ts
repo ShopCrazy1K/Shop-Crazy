@@ -62,7 +62,7 @@ export async function POST(req: NextRequest, context: Ctx) {
   try {
     const { userId } = await context.params;
     const body = await req.json();
-    const { reviewerId, rating, comment, orderId } = body;
+    const { reviewerId, rating, comment, orderId, photos } = body;
 
     if (!reviewerId || !rating) {
       return NextResponse.json(
@@ -141,6 +141,7 @@ export async function POST(req: NextRequest, context: Ctx) {
         rating,
         comment: comment || null,
         orderId: orderId || null,
+        photos: photos && Array.isArray(photos) ? photos : [],
       },
       include: {
         user: {
