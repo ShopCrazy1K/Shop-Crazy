@@ -40,6 +40,9 @@ export default function ProfilePage() {
   const [myListings, setMyListings] = useState<any[]>([]);
   const [myProducts, setMyProducts] = useState<any[]>([]);
   const [loadingListings, setLoadingListings] = useState(false);
+  const [about, setAbout] = useState<string>("");
+  const [editingAbout, setEditingAbout] = useState(false);
+  const [savingAbout, setSavingAbout] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -50,8 +53,49 @@ export default function ProfilePage() {
     if (user) {
       fetchStats();
       fetchMyListings();
+      fetchAbout();
     }
   }, [user, loading, router]);
+
+  async function fetchAbout() {
+    if (!user?.id) return;
+    try {
+      const response = await fetch(`/api/users/${user.id}/about`);
+      if (response.ok) {
+        const data = await response.json();
+        setAbout(data.about || "");
+      }
+    } catch (error) {
+      console.error("Error fetching about:", error);
+    }
+  }
+
+  async function saveAbout() {
+    if (!user?.id) return;
+    setSavingAbout(true);
+    try {
+      const response = await fetch(`/api/users/${user.id}/about`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+        },
+        body: JSON.stringify({ about }),
+      });
+      if (response.ok) {
+        setEditingAbout(false);
+        alert("About section updated successfully!");
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to update about section");
+      }
+    } catch (error) {
+      console.error("Error saving about:", error);
+      alert("Failed to save about section");
+    } finally {
+      setSavingAbout(false);
+    }
+  }
 
   async function fetchStats() {
     try {

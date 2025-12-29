@@ -45,6 +45,10 @@ function ShopContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
+  const [userAbout, setUserAbout] = useState<string | null>(null);
 
   useEffect(() => {
     if (userId) {
@@ -124,11 +128,42 @@ function ShopContent() {
       });
 
       setProducts(transformed);
+
+      // Fetch user's about section
+      const aboutResponse = await fetch(`/api/users/${userId}/about`);
+      if (aboutResponse.ok) {
+        const aboutData = await aboutResponse.json();
+        setUserAbout(aboutData.about);
+      }
+
+      // Fetch reviews for this seller
+      fetchReviews();
     } catch (err: any) {
       console.error("Error fetching shop data:", err);
       setError(err.message || "Failed to load shop");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchReviews() {
+    try {
+      setReviewsLoading(true);
+      const response = await fetch(`/api/users/${userId}/reviews`);
+      if (response.ok) {
+        const reviewsData = await response.json();
+        setReviews(reviewsData);
+        
+        // Calculate average rating
+        if (reviewsData.length > 0) {
+          const total = reviewsData.reduce((sum: number, review: any) => sum + review.rating, 0);
+          setAverageRating(total / reviewsData.length);
+        }
+      }
+    } catch (err: any) {
+      console.error("Error fetching reviews:", err);
+    } finally {
+      setReviewsLoading(false);
     }
   }
 

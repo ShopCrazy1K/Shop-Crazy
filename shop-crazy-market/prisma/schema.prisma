@@ -24,11 +24,13 @@ model User {
   passwordHash String? // Hashed password (optional for OAuth users)
   role         String  @default("USER") // "USER" or "ADMIN"
   adsEnabled   Boolean @default(false) // seller opt-in for ad fee
+  about        String? // About section for seller profile (like Etsy)
 
   // Etsy-style relationships
   shop         Shop?
   orders       Order[]
   reviews      Review[]
+  reviewsReceived Review[] @relation("ReceivedReviews") // Reviews received as a seller
   favorites    Favorite[]
   messagesSent Message[]  @relation("SentMessages")
   messagesRecv Message[]  @relation("ReceivedMessages")
@@ -221,9 +223,10 @@ model Order {
 
   // Legacy relations for backward compatibility with shop-based orders
   userId          String?
-  user            User?            @relation(fields: [userId], references: [id])
+  user            User?            @relation("BuyerOrders", fields: [userId], references: [id])
   items           OrderItem[]
   feeTransactions FeeTransaction[]
+  reviews         Review[] // Reviews for this order
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -249,8 +252,11 @@ model Review {
   rating  Int
   comment String?
 
-  userId String
+  userId String // Reviewer (who wrote the review)
   user   User   @relation(fields: [userId], references: [id])
+
+  sellerId String? // Seller being reviewed (for shop/user reviews)
+  seller   User?   @relation("ReceivedReviews", fields: [sellerId], references: [id])
 
   productId String?
   product   Product? @relation(fields: [productId], references: [id])
@@ -258,7 +264,11 @@ model Review {
   shopId String?
   shop   Shop?   @relation(fields: [shopId], references: [id])
 
+  orderId String? // Link to order if review is from a purchase
+  order   Order?  @relation(fields: [orderId], references: [id])
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 //////////////////////////////////////
