@@ -141,9 +141,14 @@ function SellerDashboard() {
       if (res.ok) {
         const data = await res.json();
         setPaymentMethods(data);
+      } else {
+        // If API returns error, set paymentMethods to indicate no account
+        setPaymentMethods({ hasStripeAccount: false });
       }
     } catch (error) {
       console.error("Error fetching payment methods:", error);
+      // On error, still show the setup button
+      setPaymentMethods({ hasStripeAccount: false });
     } finally {
       setLoadingPaymentMethods(false);
     }
@@ -324,7 +329,7 @@ function SellerDashboard() {
         <h2 className="font-accent text-2xl mb-4">Payment Methods for Withdrawals</h2>
         {loadingPaymentMethods ? (
           <div className="text-center py-4 text-gray-500">Loading payment methods...</div>
-        ) : paymentMethods?.hasStripeAccount ? (
+        ) : paymentMethods && paymentMethods.hasStripeAccount ? (
           <div className="space-y-4">
             {paymentMethods.bankAccounts && paymentMethods.bankAccounts.length > 0 ? (
               <div>
