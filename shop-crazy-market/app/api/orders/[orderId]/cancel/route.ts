@@ -57,34 +57,14 @@ export async function POST(req: NextRequest, context: Ctx) {
       );
     }
 
-    // Update order status to canceled
-    const updatedOrder = await prisma.order.update({
+    // Delete the order from the database (since it's pending and not paid, we can safely delete it)
+    await prisma.order.delete({
       where: { id: orderId },
-      data: {
-        paymentStatus: "canceled",
-      },
-      include: {
-        listing: {
-          select: {
-            id: true,
-            title: true,
-            images: true,
-            digitalFiles: true,
-            seller: {
-              select: {
-                id: true,
-                email: true,
-                username: true,
-              },
-            },
-          },
-        },
-      },
     });
 
     return NextResponse.json({
-      message: "Order cancelled successfully",
-      order: updatedOrder,
+      message: "Order cancelled and deleted successfully",
+      deleted: true,
     });
   } catch (error: any) {
     console.error("Error cancelling order:", error);

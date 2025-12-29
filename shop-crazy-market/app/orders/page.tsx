@@ -45,7 +45,9 @@ export default function OrdersPage() {
       const response = await fetch(`/api/orders?userId=${user?.id}`);
       if (response.ok) {
         const data = await response.json();
-        setOrders(data);
+        // Filter out canceled orders (they should be deleted, but just in case)
+        const activeOrders = data.filter((order: Order) => order.paymentStatus !== "canceled");
+        setOrders(activeOrders);
       }
     } catch (error) {
       console.error("Error fetching orders:", error);

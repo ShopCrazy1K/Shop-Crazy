@@ -20,12 +20,16 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch orders where user is either the buyer (userId) or seller (sellerId)
+    // Exclude canceled orders (they should be deleted, but filter just in case)
     const orders = await prisma.order.findMany({
       where: {
         OR: [
           { userId: userId },
           { sellerId: userId },
         ],
+        paymentStatus: {
+          not: "canceled", // Exclude canceled orders
+        },
       },
       include: {
         listing: {

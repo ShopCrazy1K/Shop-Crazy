@@ -101,9 +101,14 @@ function OrderContent() {
       }
 
       const data = await response.json();
-      setOrder(data.order);
-      alert("Order cancelled successfully!");
-      router.push("/orders");
+      if (data.deleted) {
+        alert("Order cancelled and removed successfully!");
+        router.push("/orders");
+      } else {
+        setOrder(data.order);
+        alert("Order cancelled successfully!");
+        router.push("/orders");
+      }
     } catch (err: any) {
       alert(`Error: ${err.message || "Failed to cancel order"}`);
     } finally {
