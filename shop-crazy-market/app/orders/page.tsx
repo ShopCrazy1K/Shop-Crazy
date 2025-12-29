@@ -16,6 +16,7 @@ interface Order {
     images: string[];
     digitalFiles: string[];
     seller: {
+      id: string;
       username: string | null;
       email: string;
     };
@@ -193,14 +194,14 @@ export default function OrdersPage() {
                           {order.listing.title}
                         </Link>
                         <Link
-                          href={`/shop/${order.listing.seller.id || order.listing.seller.email}`}
+                          href={`/shop/${order.listing.seller.id}`}
                           className="text-sm text-gray-600 hover:text-purple-600 hover:underline"
                         >
                           {order.listing.seller.username || order.listing.seller.email}
                         </Link>
                         {user && user.id !== order.listing.seller.id && (
                           <Link
-                            href={`/messages?userId=${order.listing.seller.id || order.listing.seller.email}`}
+                            href={`/messages?userId=${order.listing.seller.id}`}
                             className="ml-2 text-xs text-blue-600 hover:text-blue-700 hover:underline"
                           >
                             💬 Message
