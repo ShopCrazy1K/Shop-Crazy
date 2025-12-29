@@ -202,6 +202,21 @@ function ShopContent() {
             {shopUser?.email && (
               <p className="text-gray-600 text-sm">{shopUser.email}</p>
             )}
+            {/* Average Rating Display */}
+            {averageRating > 0 && (
+              <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span key={star} className="text-yellow-400">
+                      {star <= Math.round(averageRating) ? '★' : '☆'}
+                    </span>
+                  ))}
+                </div>
+                <span className="text-sm text-gray-600">
+                  {averageRating.toFixed(1)} ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                </span>
+              </div>
+            )}
           </div>
           {user?.id === userId && (
             <Link
@@ -217,6 +232,64 @@ function ShopContent() {
             {products.length} {products.length === 1 ? 'listing' : 'listings'} available
           </p>
         </div>
+      </div>
+
+      {/* About Section */}
+      {userAbout && (
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-3">About</h2>
+          <p className="text-gray-700 whitespace-pre-wrap">{userAbout}</p>
+        </div>
+      )}
+
+      {/* Reviews Section */}
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          Reviews ({reviews.length})
+        </h2>
+        
+        {reviewsLoading ? (
+          <div className="text-center py-4 text-gray-500">Loading reviews...</div>
+        ) : reviews.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>No reviews yet.</p>
+            {user && user.id !== userId && (
+              <p className="text-sm mt-2">Be the first to leave a review after making a purchase!</p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {reviews.map((review: any) => (
+              <div key={review.id} className="border-b border-gray-200 pb-4 last:border-0 last:pb-0">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span key={star} className="text-yellow-400 text-sm">
+                          {star <= review.rating ? '★' : '☆'}
+                        </span>
+                      ))}
+                    </div>
+                    <span className="font-semibold text-gray-900">
+                      {review.user.username || review.user.email.split('@')[0]}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {new Date(review.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                {review.comment && (
+                  <p className="text-gray-700 mt-2">{review.comment}</p>
+                )}
+                {review.order?.listing && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Purchased: {review.order.listing.title}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Listings Grid */}

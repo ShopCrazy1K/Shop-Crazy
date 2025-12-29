@@ -27,15 +27,15 @@ model User {
   about        String? // About section for seller profile (like Etsy)
 
   // Etsy-style relationships
-  shop         Shop?
-  orders       Order[]
-  reviews      Review[]
-  reviewsReceived Review[] @relation("ReceivedReviews") // Reviews received as a seller
-  favorites    Favorite[]
-  messagesSent Message[]  @relation("SentMessages")
-  messagesRecv Message[]  @relation("ReceivedMessages")
-  listings     Listing[]
-  sellerOrders Order[]    @relation("SellerOrders")
+  shop            Shop?
+  buyerOrders     Order[]    @relation("BuyerOrders") // Orders as a buyer
+  reviews         Review[]
+  reviewsReceived Review[]   @relation("ReceivedReviews") // Reviews received as a seller
+  favorites       Favorite[]
+  messagesSent    Message[]  @relation("SentMessages")
+  messagesRecv    Message[]  @relation("ReceivedMessages")
+  listings        Listing[]
+  sellerOrders    Order[]    @relation("SellerOrders")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
