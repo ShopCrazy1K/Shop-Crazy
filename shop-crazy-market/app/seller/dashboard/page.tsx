@@ -410,18 +410,59 @@ function SellerDashboard() {
           </div>
         ) : (
           <div className="text-center py-6">
-            <p className="text-gray-600 mb-4">
-              Set up your payment method to receive payouts from your sales.
-            </p>
-            <button
-              onClick={setupPaymentMethod}
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-            >
-              Set Up Payment Method
-            </button>
-            <p className="text-xs text-gray-500 mt-3">
-              You'll be redirected to Stripe to securely add your bank account information.
-            </p>
+            {paymentMethods?.connectNotEnabled ? (
+              <div className="mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                <p className="text-red-800 font-semibold mb-2">
+                  ⚠️ Stripe Connect Not Enabled
+                </p>
+                <p className="text-sm text-red-700 mb-3">
+                  The platform owner needs to enable Stripe Connect to allow seller payouts.
+                </p>
+                <div className="text-left text-sm text-red-700 space-y-1">
+                  <p><strong>Steps to enable:</strong></p>
+                  <ol className="list-decimal list-inside space-y-1 ml-2">
+                    <li>Go to <a href="https://dashboard.stripe.com/settings/connect" target="_blank" rel="noopener noreferrer" className="underline">Stripe Dashboard → Settings → Connect</a></li>
+                    <li>Click "Enable Connect" or "Get Started"</li>
+                    <li>Choose "Express accounts" for marketplaces</li>
+                    <li>Complete the onboarding process</li>
+                  </ol>
+                </div>
+                <a
+                  href="https://stripe.com/docs/connect"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
+                >
+                  Learn More About Stripe Connect
+                </a>
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-600 mb-4">
+                  Set up your payment method to receive payouts from your sales.
+                </p>
+                <button
+                  onClick={setupPaymentMethod}
+                  className="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                >
+                  Set Up Payment Method
+                </button>
+                <p className="text-xs text-gray-500 mt-3">
+                  You'll be redirected to Stripe to securely add your bank account information.
+                </p>
+              </>
+            )}
+            {user?.role === "ADMIN" && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-left">
+                <p className="text-xs text-yellow-800">
+                  <strong>Platform Owner Notice:</strong> If sellers see an error about Stripe Connect not being enabled, 
+                  enable it at{" "}
+                  <a href="https://dashboard.stripe.com/settings/connect" target="_blank" rel="noopener noreferrer" className="underline font-semibold">
+                    stripe.com/settings/connect
+                  </a>
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
