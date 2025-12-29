@@ -43,6 +43,9 @@ export default function ProfilePage() {
   const [about, setAbout] = useState<string>("");
   const [editingAbout, setEditingAbout] = useState(false);
   const [savingAbout, setSavingAbout] = useState(false);
+  const [shopPolicies, setShopPolicies] = useState<any>(null);
+  const [editingPolicies, setEditingPolicies] = useState(false);
+  const [savingPolicies, setSavingPolicies] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -54,6 +57,7 @@ export default function ProfilePage() {
       fetchStats();
       fetchMyListings();
       fetchAbout();
+      fetchShopPolicies();
     }
   }, [user, loading, router]);
 
@@ -67,6 +71,46 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error("Error fetching about:", error);
+    }
+  }
+
+  async function fetchShopPolicies() {
+    if (!user?.id) return;
+    try {
+      const response = await fetch(`/api/users/${user.id}/policies`);
+      if (response.ok) {
+        const data = await response.json();
+        setShopPolicies(data);
+      }
+    } catch (error) {
+      console.error("Error fetching shop policies:", error);
+    }
+  }
+
+  async function saveShopPolicies() {
+    if (!user?.id) return;
+    setSavingPolicies(true);
+    try {
+      const response = await fetch(`/api/users/${user.id}/policies`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+        },
+        body: JSON.stringify(shopPolicies),
+      });
+      if (response.ok) {
+        setEditingPolicies(false);
+        alert("Shop policies updated successfully!");
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to update shop policies");
+      }
+    } catch (error) {
+      console.error("Error saving shop policies:", error);
+      alert("Failed to save shop policies");
+    } finally {
+      setSavingPolicies(false);
     }
   }
 
