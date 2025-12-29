@@ -27,6 +27,7 @@ export default function OrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -50,6 +51,37 @@ export default function OrdersPage() {
       console.error("Error fetching orders:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function cancelOrder(orderId: string) {
+    if (!user) return;
+    
+    if (!confirm("Are you sure you want to cancel this order? This action cannot be undone.")) {
+      return;
+    }
+
+    setCancellingOrderId(orderId);
+    try {
+      const response = await fetch(`/api/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: {
+          "x-user-id": user.id,
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to cancel order");
+      }
+
+      // Refresh orders list
+      await fetchOrders();
+      alert("Order cancelled successfully!");
+    } catch (error: any) {
+      alert(error.message || "Failed to cancel order");
+    } finally {
+      setCancellingOrderId(null);
     }
   }
 
@@ -115,6 +147,8 @@ export default function OrdersPage() {
                             ? "bg-green-100 text-green-800"
                             : order.paymentStatus === "pending"
                             ? "bg-yellow-100 text-yellow-800"
+                            : order.paymentStatus === "canceled"
+                            ? "bg-red-100 text-red-800"
                             : "bg-gray-100 text-gray-800"
                         }`}
                       >
@@ -122,6 +156,19 @@ export default function OrdersPage() {
                       </span>
                     </div>
                   </div>
+
+                  {/* Cancel Button for Pending Orders */}
+                  {order.paymentStatus === "pending" && (
+                    <div className="mb-4">
+                      <button
+                        onClick={() => cancelOrder(order.id)}
+                        disabled={cancellingOrderId === order.id}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        {cancellingOrderId === order.id ? "Cancelling..." : "Cancel Order"}
+                      </button>
+                    </div>
+                  )}
 
                   <div className="border-t pt-4">
                     <div className="flex gap-4">

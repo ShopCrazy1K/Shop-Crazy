@@ -22,6 +22,7 @@ function OrderContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [checkingPayment, setCheckingPayment] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -75,6 +76,38 @@ function OrderContent() {
       alert(`Error: ${err.message || "Failed to check payment status"}`);
     } finally {
       setCheckingPayment(false);
+    }
+  }
+
+  async function cancelOrder() {
+    if (!user || !orderId) return;
+    
+    if (!confirm("Are you sure you want to cancel this order? This action cannot be undone.")) {
+      return;
+    }
+
+    setCancelling(true);
+    try {
+      const response = await fetch(`/api/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: {
+          "x-user-id": user.id,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to cancel order");
+      }
+
+      const data = await response.json();
+      setOrder(data.order);
+      alert("Order cancelled successfully!");
+      router.push("/orders");
+    } catch (err: any) {
+      alert(`Error: ${err.message || "Failed to cancel order"}`);
+    } finally {
+      setCancelling(false);
     }
   }
 
@@ -201,17 +234,19 @@ function OrderContent() {
               <p className="font-bold text-2xl text-purple-600">
                 ${(order.orderTotalCents / 100).toFixed(2)}
               </p>
-              <span
-                className={`px-2 py-1 rounded text-xs font-semibold ${
-                  order.paymentStatus === "paid"
-                    ? "bg-green-100 text-green-800"
-                    : order.paymentStatus === "pending"
-                    ? "bg-yellow-100 text-yellow-800"
-                    : "bg-gray-100 text-gray-800"
-                }`}
-              >
-                {order.paymentStatus?.toUpperCase() || "PENDING"}
-              </span>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                        order.paymentStatus === "paid"
+                          ? "bg-green-100 text-green-800"
+                          : order.paymentStatus === "pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : order.paymentStatus === "canceled"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {order.paymentStatus?.toUpperCase() || "PENDING"}
+                    </span>
             </div>
           </div>
 
