@@ -82,17 +82,23 @@ export default function ProductCard({ product }: { product: Product }) {
         <Link href={linkHref} className="block">
           <h3 className="font-bold truncate text-sm hover:text-purple-600 transition-colors cursor-pointer">{product.title}</h3>
         </Link>
-        {product.shop && product.shop.id ? (
-          <Link 
-            href={`/shop/${product.shop.id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="text-xs text-gray-500 truncate hover:text-purple-600 hover:underline transition-colors block mt-1 cursor-pointer relative z-10"
-            title={`View ${product.shop.name}'s shop`}
-          >
-            {product.shop.name}
-          </Link>
-        ) : (
-          <p className="text-xs text-gray-500 truncate mt-1">{product.shop?.name}</p>
+        {product.shop && (
+          product.shop.id ? (
+            <a 
+              href={`/shop/${product.shop.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                window.location.href = `/shop/${product.shop.id}`;
+              }}
+              className="text-xs text-gray-500 truncate hover:text-purple-600 hover:underline transition-colors inline-block mt-1 cursor-pointer relative z-10"
+              title={`View ${product.shop.name}'s shop`}
+            >
+              {product.shop.name}
+            </a>
+          ) : (
+            <p className="text-xs text-gray-500 truncate mt-1">{product.shop.name}</p>
+          )
         )}
         <p className="text-lg font-bold text-purple-600 mt-1">{price}</p>
       </div>
