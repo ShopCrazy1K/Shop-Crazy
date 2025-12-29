@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Message {
@@ -76,16 +77,15 @@ export default function ConversationPage() {
 
       if (response.ok) {
         const newMessage = await response.json();
-        setMessages([
-          ...messages,
-          {
-            id: newMessage.id,
-            text: newMessage.content,
-            fromMe: true,
-            createdAt: newMessage.createdAt,
-          },
-        ]);
         setInput("");
+        // Refresh messages to get the latest
+        const refreshResponse = await fetch(
+          `/api/messages/${userId}?currentUserId=${currentUserId}`
+        );
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          setMessages(refreshData);
+        }
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -94,9 +94,21 @@ export default function ConversationPage() {
     }
   }
 
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-6 flex flex-col h-[80vh]">
-      <h1 className="font-accent text-3xl mb-4">Conversation</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="font-accent text-3xl">Conversation</h1>
+        <Link
+          href="/messages"
+          className="text-sm text-purple-600 hover:text-purple-700 hover:underline"
+        >
+          ← Back to Messages
+        </Link>
+      </div>
 
       <div className="flex-1 border rounded-xl p-4 space-y-3 overflow-y-auto bg-white">
         {loading ? (
