@@ -16,11 +16,12 @@ interface Listing {
   digitalFiles: string[];
   isActive: boolean;
   category: string | null;
-  sellerId?: string; // Add sellerId to interface
+  sellerId?: string;
   seller: {
     id: string;
     email: string;
     username: string | null;
+    coverPhoto?: string | null;
   };
 }
 
@@ -49,6 +50,10 @@ function ShopContent() {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [averageRating, setAverageRating] = useState(0);
   const [userAbout, setUserAbout] = useState<string | null>(null);
+  const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
+  const [sellerStats, setSellerStats] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<"items" | "reviews" | "about">("items");
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -61,7 +66,22 @@ function ShopContent() {
       setLoading(true);
       setError("");
 
-      // Fetch all active listings, then filter to this user's listings
+      // Fetch user info
+      const userResponse = await fetch(`/api/users/${userId}`);
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        setShopUser(userData);
+        setCoverPhoto(userData.coverPhoto || null);
+      }
+
+      // Fetch seller stats
+      const statsResponse = await fetch(`/api/users/${userId}/stats`);
+      if (statsResponse.ok) {
+        const stats = await statsResponse.json();
+        setSellerStats(stats);
+      }
+
+      // Fetch listings
       const response = await fetch(`/api/listings?isActive=true`);
       
       if (!response.ok) {
@@ -70,22 +90,15 @@ function ShopContent() {
 
       const listings: Listing[] = await response.json();
       
-      // Filter to only show active listings from this specific user
       const userListings = listings.filter(listing => {
         const listingSellerId = listing.sellerId || listing.seller?.id;
         return listingSellerId === userId && listing.isActive;
       });
 
-      // Get shop user info from first listing (if available)
-      if (userListings.length > 0) {
+      if (userListings.length > 0 && !shopUser) {
         setShopUser(userListings[0].seller);
-      } else {
-        // If no listings, try to fetch user info another way
-        // For now, we'll just show "Shop" as the name
-        setShopUser({ id: userId, username: "Shop", email: "" });
       }
 
-      // Transform listings to products
       const transformed: Product[] = userListings.map(listing => {
         let images: string[] = [];
         if (listing.images) {
@@ -99,7 +112,6 @@ function ShopContent() {
           }
         }
 
-        // Use image-type digital files as fallback
         if (images.length === 0 && listing.digitalFiles) {
           const imageDigitalFiles = listing.digitalFiles.filter((url: string) => {
             const ext = url.split('.').pop()?.toLowerCase();
@@ -136,7 +148,7 @@ function ShopContent() {
         setUserAbout(aboutData.about);
       }
 
-      // Fetch reviews for this seller
+      // Fetch reviews
       fetchReviews();
     } catch (err: any) {
       console.error("Error fetching shop data:", err);
@@ -154,10 +166,9 @@ function ShopContent() {
         const reviewsData = await response.json();
         setReviews(reviewsData);
         
-        // Calculate average rating
         if (reviewsData.length > 0) {
           const total = reviewsData.reduce((sum: number, review: any) => sum + review.rating, 0);
-          setAverageRating(total / reviewsData.length);
+          setAverageRating(Math.round((total / reviewsData.length) * 10) / 10);
         }
       }
     } catch (err: any) {
@@ -167,18 +178,67 @@ function ShopContent() {
     }
   }
 
+  async function handleCoverPhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user || user.id !== userId) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Cover photo must be less than 5MB");
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload cover photo");
+      }
+
+      const uploadData = await uploadResponse.json();
+      
+      // Update user's cover photo
+      const updateResponse = await fetch(`/api/users/${userId}/cover-photo`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+        },
+        body: JSON.stringify({ coverPhoto: uploadData.url }),
+      });
+
+      if (updateResponse.ok) {
+        setCoverPhoto(uploadData.url);
+        alert("Cover photo updated successfully!");
+      } else {
+        throw new Error("Failed to update cover photo");
+      }
+    } catch (err: any) {
+      console.error("Error uploading cover photo:", err);
+      alert("Failed to upload cover photo: " + err.message);
+    } finally {
+      setUploadingCover(false);
+    }
+  }
+
   if (loading) {
     return (
-      <main className="p-4 sm:p-6 max-w-7xl mx-auto pb-24">
-        <div className="text-center py-10 text-gray-500">Loading shop...</div>
+      <main className="min-h-screen bg-gray-50">
+        <div className="text-center py-20 text-gray-500">Loading shop...</div>
       </main>
     );
   }
 
   if (error) {
     return (
-      <main className="p-4 sm:p-6 max-w-7xl mx-auto pb-24">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+      <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
+        <div className="max-w-4xl mx-auto bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <p className="text-red-600 mb-4">{error}</p>
           <Link href="/marketplace" className="text-purple-600 hover:underline">
             Back to Marketplace
@@ -188,138 +248,256 @@ function ShopContent() {
     );
   }
 
-  const shopName = shopUser?.username || shopUser?.email || "Shop";
+  const shopName = shopUser?.username || shopUser?.email?.split('@')[0] || "Shop";
+  const isOwner = user?.id === userId;
 
   return (
-    <main className="p-4 sm:p-6 max-w-7xl mx-auto pb-24">
-      {/* Shop Header */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+    <main className="min-h-screen bg-gray-50">
+      {/* Cover Photo Section - Etsy Style */}
+      <div className="relative h-64 sm:h-80 bg-gradient-to-r from-purple-400 via-pink-400 to-purple-600">
+        {coverPhoto ? (
+          <img
+            src={coverPhoto}
+            alt={`${shopName}'s cover`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-purple-400 via-pink-400 to-purple-600" />
+        )}
+        
+        {/* Cover Photo Upload Button (Owner Only) */}
+        {isOwner && (
+          <div className="absolute bottom-4 right-4">
+            <label className="cursor-pointer bg-white bg-opacity-90 hover:bg-opacity-100 px-4 py-2 rounded-lg font-semibold text-sm text-gray-700 transition-all shadow-lg">
+              {uploadingCover ? "Uploading..." : "📷 Change Cover Photo"}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleCoverPhotoUpload}
+                disabled={uploadingCover}
+                className="hidden"
+              />
+            </label>
+          </div>
+        )}
+
+        {/* Profile Info Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-6">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
               {shopName}'s Shop
             </h1>
-            {shopUser?.email && (
-              <p className="text-gray-600 text-sm">{shopUser.email}</p>
-            )}
-            {/* Average Rating Display */}
-            {averageRating > 0 && (
-              <div className="flex items-center gap-2 mt-2">
-                <div className="flex items-center">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <span key={star} className="text-yellow-400">
-                      {star <= Math.round(averageRating) ? '★' : '☆'}
+            <div className="flex items-center gap-4 flex-wrap">
+              {sellerStats && (
+                <>
+                  {averageRating > 0 && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i} className={i < Math.round(averageRating) ? "text-yellow-400" : "text-gray-300"}>
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-white text-sm">
+                        {averageRating.toFixed(1)} ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                      </span>
+                    </div>
+                  )}
+                  {sellerStats.salesCount > 0 && (
+                    <span className="text-white text-sm">
+                      {sellerStats.salesCount} {sellerStats.salesCount === 1 ? 'sale' : 'sales'}
                     </span>
-                  ))}
-                </div>
-                <span className="text-sm text-gray-600">
-                  {averageRating.toFixed(1)} ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
-                </span>
-              </div>
-            )}
+                  )}
+                  {sellerStats.followersCount > 0 && (
+                    <span className="text-white text-sm">
+                      {sellerStats.followersCount} {sellerStats.followersCount === 1 ? 'follower' : 'followers'}
+                    </span>
+                  )}
+                </>
+              )}
+              <span className="text-white text-sm">
+                {products.length} {products.length === 1 ? 'item' : 'items'}
+              </span>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between mb-6 bg-white rounded-lg shadow-sm p-4">
           <div className="flex gap-2">
             {user && user.id !== userId && (
-              <Link
-                href={`/messages/${userId}`}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
-              >
-                💬 Message Seller
-              </Link>
+              <>
+                <Link
+                  href={`/messages/${userId}`}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
+                >
+                  💬 Message Seller
+                </Link>
+              </>
             )}
-            {user?.id === userId && (
+            {isOwner && (
               <Link
                 href="/profile"
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold"
               >
-                Manage Shop
+                ⚙️ Manage Shop
               </Link>
             )}
           </div>
         </div>
-        <div className="border-t pt-4">
-          <p className="text-gray-600">
-            {products.length} {products.length === 1 ? 'listing' : 'listings'} available
-          </p>
-        </div>
-      </div>
 
-      {/* About Section */}
-      {userAbout && (
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-3">About</h2>
-          <p className="text-gray-700 whitespace-pre-wrap">{userAbout}</p>
-        </div>
-      )}
-
-      {/* Reviews Section */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          Reviews ({reviews.length})
-        </h2>
-        
-        {reviewsLoading ? (
-          <div className="text-center py-4 text-gray-500">Loading reviews...</div>
-        ) : reviews.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <p>No reviews yet.</p>
-            {user && user.id !== userId && (
-              <p className="text-sm mt-2">Be the first to leave a review after making a purchase!</p>
-            )}
+        {/* Tabs - Etsy Style */}
+        <div className="bg-white rounded-lg shadow-sm mb-6 border-b border-gray-200">
+          <div className="flex gap-1 px-4">
+            <button
+              onClick={() => setActiveTab("items")}
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors ${
+                activeTab === "items"
+                  ? "border-purple-600 text-purple-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Items ({products.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("reviews")}
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors ${
+                activeTab === "reviews"
+                  ? "border-purple-600 text-purple-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Reviews ({reviews.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("about")}
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors ${
+                activeTab === "about"
+                  ? "border-purple-600 text-purple-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              About
+            </button>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {reviews.map((review: any) => (
-              <div key={review.id} className="border-b border-gray-200 pb-4 last:border-0 last:pb-0">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <span key={star} className="text-yellow-400 text-sm">
-                          {star <= review.rating ? '★' : '☆'}
-                        </span>
-                      ))}
-                    </div>
-                    <span className="font-semibold text-gray-900">
-                      {review.user.username || review.user.email.split('@')[0]}
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-500">
-                    {new Date(review.createdAt).toLocaleDateString()}
-                  </span>
+        </div>
+
+        {/* Tab Content */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          {/* Items Section */}
+          {activeTab === "items" && (
+            <div>
+              {products.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg mb-4">This shop has no active listings yet.</p>
+                  {isOwner && (
+                    <Link
+                      href="/sell"
+                      className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                    >
+                      Create Your First Listing
+                    </Link>
+                  )}
+                  {!isOwner && (
+                    <Link
+                      href="/marketplace"
+                      className="text-purple-600 hover:underline font-semibold"
+                    >
+                      Browse other shops →
+                    </Link>
+                  )}
                 </div>
-                {review.comment && (
-                  <p className="text-gray-700 mt-2">{review.comment}</p>
-                )}
-                {review.order?.listing && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Purchased: {review.order.listing.title}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {products.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-      {/* Listings Grid */}
-      {products.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-          <p className="text-gray-500 text-lg mb-4">This shop has no active listings yet.</p>
-          <Link
-            href="/marketplace"
-            className="text-purple-600 hover:underline font-semibold"
-          >
-            Browse other shops →
-          </Link>
+          {/* Reviews Section */}
+          {activeTab === "reviews" && (
+            <div>
+              {reviewsLoading ? (
+                <div className="text-center py-8 text-gray-500">Loading reviews...</div>
+              ) : reviews.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg mb-2">No reviews yet.</p>
+                  {user && user.id !== userId && (
+                    <p className="text-sm text-gray-400">Be the first to leave a review after making a purchase!</p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {reviews.map((review: any) => (
+                    <div key={review.id} className="border-b border-gray-200 pb-6 last:border-0 last:pb-0">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center">
+                              {[...Array(5)].map((_, i) => (
+                                <span key={i} className={i < review.rating ? "text-yellow-400" : "text-gray-300"}>
+                                  ★
+                                </span>
+                              ))}
+                            </div>
+                            <span className="font-semibold text-gray-900">
+                              {review.user?.username || review.user?.email?.split('@')[0] || "Anonymous"}
+                            </span>
+                          </div>
+                          {review.comment && (
+                            <p className="text-gray-700 mb-2">{review.comment}</p>
+                          )}
+                          {review.order?.listing && (
+                            <p className="text-xs text-gray-500">
+                              Purchased: {review.order.listing.title}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* About Section */}
+          {activeTab === "about" && (
+            <div>
+              {!userAbout ? (
+                <div className="text-center py-12">
+                  {isOwner ? (
+                    <>
+                      <p className="text-gray-500 text-lg mb-4">You haven't added an About section yet.</p>
+                      <Link
+                        href="/profile"
+                        className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                      >
+                        Add About Section
+                      </Link>
+                    </>
+                  ) : (
+                    <p className="text-gray-500">This seller hasn't added an About section yet.</p>
+                  )}
+                </div>
+              ) : (
+                <div className="prose max-w-none">
+                  <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{userAbout}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      )}
+      </div>
     </main>
   );
 }
@@ -327,12 +505,11 @@ function ShopContent() {
 export default function ShopPage() {
   return (
     <Suspense fallback={
-      <main className="p-4 sm:p-6 max-w-7xl mx-auto pb-24">
-        <div className="text-center py-10 text-gray-500">Loading shop...</div>
+      <main className="min-h-screen bg-gray-50">
+        <div className="text-center py-20 text-gray-500">Loading shop...</div>
       </main>
     }>
       <ShopContent />
     </Suspense>
   );
 }
-
