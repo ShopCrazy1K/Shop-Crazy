@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function BottomNav() {
   const { user } = useAuth();
@@ -29,9 +30,14 @@ export default function BottomNav() {
         ➕
       </Link>
       {user ? (
-        <Link href="/profile" className="text-2xl hover:scale-110 transition-transform">
-          👤
-        </Link>
+        <>
+          <div className="relative">
+            <NotificationBell />
+          </div>
+          <Link href="/profile" className="text-2xl hover:scale-110 transition-transform">
+            👤
+          </Link>
+        </>
       ) : (
         <Link href="/login" className="text-2xl hover:scale-110 transition-transform">
           🔐

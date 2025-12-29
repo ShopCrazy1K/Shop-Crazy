@@ -36,6 +36,7 @@ model User {
   messagesRecv    Message[]  @relation("ReceivedMessages")
   listings        Listing[]
   sellerOrders    Order[]    @relation("SellerOrders")
+  notifications   Notification[] // Notifications received by this user
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

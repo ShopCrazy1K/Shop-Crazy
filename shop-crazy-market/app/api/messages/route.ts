@@ -138,6 +138,22 @@ export async function POST(request: Request) {
       },
     });
 
+    // Create notification for the receiver
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: receiverId,
+          type: "message",
+          title: "New Message",
+          message: `You have a new message from ${message.sender.username || message.sender.email}`,
+          link: `/messages/${senderId}`,
+        },
+      });
+    } catch (notificationError) {
+      // Don't fail the message send if notification creation fails
+      console.error("Error creating notification:", notificationError);
+    }
+
     return NextResponse.json(message);
   } catch (error) {
     console.error("Error sending message:", error);
