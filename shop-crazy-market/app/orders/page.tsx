@@ -201,7 +201,7 @@ export default function OrdersPage() {
                         </Link>
                         {user && user.id !== order.listing.seller.id && (
                           <Link
-                            href={`/messages?userId=${order.listing.seller.id}`}
+                            href={`/messages/${order.listing.seller.id}`}
                             className="ml-2 text-xs text-blue-600 hover:text-blue-700 hover:underline"
                           >
                             💬 Message

@@ -25,7 +25,12 @@ function MessagesContent() {
       router.push("/login");
       return;
     }
-  }, [user, router]);
+    
+    // If a userId is provided in the URL, redirect to that conversation
+    if (targetUserId && targetUserId !== user.id) {
+      router.push(`/messages/${targetUserId}`);
+    }
+  }, [user, router, targetUserId]);
 
   const currentUserId = user?.id || "";
 

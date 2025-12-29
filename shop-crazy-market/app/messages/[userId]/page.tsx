@@ -48,10 +48,10 @@ export default function ConversationPage() {
       }
     }
 
-    if (userId) {
+    if (userId && currentUserId) {
       fetchMessages();
     }
-  }, [userId]);
+  }, [userId, currentUserId]);
 
   async function sendMessage() {
     if (!input.trim() || sending) return;
