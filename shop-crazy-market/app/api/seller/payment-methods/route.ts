@@ -100,8 +100,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get user's shop
-    const shop = await prisma.shop.findFirst({
+    // Get or create user's shop
+    let shop = await prisma.shop.findFirst({
       where: { ownerId: userId },
       select: {
         id: true,
@@ -110,10 +110,29 @@ export async function POST(req: NextRequest) {
     });
 
     if (!shop) {
-      return NextResponse.json(
-        { error: "Shop not found" },
-        { status: 404 }
-      );
+      // Create shop if it doesn't exist
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, username: true },
+      });
+
+      if (!user) {
+        return NextResponse.json(
+          { error: "User not found" },
+          { status: 404 }
+        );
+      }
+
+      shop = await prisma.shop.create({
+        data: {
+          name: `${user.username || user.email.split("@")[0]}'s Shop`,
+          ownerId: userId,
+        },
+        select: {
+          id: true,
+          stripeAccountId: true,
+        },
+      });
     }
 
     let stripeAccountId = shop.stripeAccountId;
