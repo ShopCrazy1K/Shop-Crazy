@@ -35,8 +35,6 @@ function SellerDashboard() {
   const [shopId, setShopId] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<any>(null);
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
-  const [paymentMethods, setPaymentMethods] = useState<any>(null);
-  const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
 
   useEffect(() => {
     if (!user) {
