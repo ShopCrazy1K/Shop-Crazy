@@ -132,7 +132,10 @@ function SellerDashboard() {
   }
 
   async function fetchPaymentMethods() {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setPaymentMethods({ hasStripeAccount: false });
+      return;
+    }
     setLoadingPaymentMethods(true);
     try {
       const res = await fetch("/api/seller/payment-methods", {
@@ -142,7 +145,8 @@ function SellerDashboard() {
         const data = await res.json();
         setPaymentMethods(data);
       } else {
-        // If API returns error, set paymentMethods to indicate no account
+        // If API returns error (e.g., shop not found), still show setup button
+        console.error("Error fetching payment methods:", await res.text());
         setPaymentMethods({ hasStripeAccount: false });
       }
     } catch (error) {
@@ -329,7 +333,7 @@ function SellerDashboard() {
         <h2 className="font-accent text-2xl mb-4">Payment Methods for Withdrawals</h2>
         {loadingPaymentMethods ? (
           <div className="text-center py-4 text-gray-500">Loading payment methods...</div>
-        ) : paymentMethods && paymentMethods.hasStripeAccount ? (
+        ) : paymentMethods && paymentMethods.hasStripeAccount === true ? (
           <div className="space-y-4">
             {paymentMethods.bankAccounts && paymentMethods.bankAccounts.length > 0 ? (
               <div>
