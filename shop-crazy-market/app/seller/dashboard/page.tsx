@@ -49,9 +49,12 @@ function SellerDashboard() {
   useEffect(() => {
     if (shopId) {
       fetchDashboardData();
+    }
+    // Always fetch payment methods, even without shopId (shop will be created if needed)
+    if (user?.id) {
       fetchPaymentMethods();
     }
-  }, [shopId]);
+  }, [shopId, user?.id]);
 
   // Handle Stripe Connect redirects
   useEffect(() => {
