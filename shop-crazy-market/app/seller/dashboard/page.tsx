@@ -35,6 +35,8 @@ function SellerDashboard() {
   const [shopId, setShopId] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<any>(null);
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
+  const [stripeConnectStatus, setStripeConnectStatus] = useState<any>(null);
+  const [checkingConnect, setCheckingConnect] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -51,6 +53,7 @@ function SellerDashboard() {
     // Always fetch payment methods, even without shopId (shop will be created if needed)
     if (user?.id) {
       fetchPaymentMethods();
+      checkStripeConnectStatus();
     }
   }, [shopId, user?.id]);
 
@@ -159,6 +162,36 @@ function SellerDashboard() {
     }
   }
 
+  async function checkStripeConnectStatus() {
+    if (!user?.id) return;
+    setCheckingConnect(true);
+    try {
+      const res = await fetch("/api/admin/check-stripe-connect", {
+        headers: { "x-user-id": user.id },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStripeConnectStatus(data);
+      } else {
+        const errorData = await res.json();
+        setStripeConnectStatus({
+          enabled: false,
+          error: errorData.error || "UNKNOWN",
+          message: errorData.message || "Unable to check Stripe Connect status",
+        });
+      }
+    } catch (error) {
+      console.error("Error checking Stripe Connect status:", error);
+      setStripeConnectStatus({
+        enabled: false,
+        error: "CHECK_FAILED",
+        message: "Failed to check Stripe Connect status",
+      });
+    } finally {
+      setCheckingConnect(false);
+    }
+  }
+
   async function setupPaymentMethod() {
     if (!user?.id) return;
     try {
@@ -190,6 +223,12 @@ function SellerDashboard() {
             connectNotEnabled: true,
             paymentMethods: [],
             bankAccounts: []
+          });
+          // Update Connect status
+          setStripeConnectStatus({
+            enabled: false,
+            error: "STRIPE_CONNECT_NOT_ENABLED",
+            message: "Stripe Connect is not enabled on this account",
           });
         } else {
           alert(errorData.error || errorData.message || "Failed to setup payment method");
@@ -280,6 +319,66 @@ function SellerDashboard() {
           </label>
         </div>
       </div>
+
+      {/* STRIPE CONNECT STATUS */}
+      {stripeConnectStatus && (
+        <div className={`rounded-xl shadow p-6 ${
+          stripeConnectStatus.enabled 
+            ? "bg-green-50 border-l-4 border-green-500" 
+            : "bg-red-50 border-l-4 border-red-500"
+        }`}>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h2 className="font-accent text-2xl mb-2 flex items-center gap-2">
+                {stripeConnectStatus.enabled ? (
+                  <>
+                    <span>✅</span>
+                    <span>Stripe Connect Status: Enabled</span>
+                  </>
+                ) : (
+                  <>
+                    <span>⚠️</span>
+                    <span>Stripe Connect Status: Not Enabled</span>
+                  </>
+                )}
+              </h2>
+              <p className={`text-sm mb-2 ${
+                stripeConnectStatus.enabled ? "text-green-700" : "text-red-700"
+              }`}>
+                {stripeConnectStatus.message}
+              </p>
+              {stripeConnectStatus.enabled && stripeConnectStatus.accountId && (
+                <p className="text-xs text-gray-600">
+                  Account ID: {stripeConnectStatus.accountId}
+                  {stripeConnectStatus.country && ` • Country: ${stripeConnectStatus.country}`}
+                </p>
+              )}
+              {!stripeConnectStatus.enabled && (
+                <div className="mt-3">
+                  <p className="text-sm text-red-600 mb-2 font-semibold">
+                    To enable Stripe Connect:
+                  </p>
+                  <ol className="list-decimal list-inside text-sm text-red-600 space-y-1">
+                    <li>Go to <a href="https://dashboard.stripe.com/settings/connect" target="_blank" rel="noopener noreferrer" className="underline">Stripe Dashboard → Settings → Connect</a></li>
+                    <li>Enable Stripe Connect</li>
+                    <li>Complete the Connect setup process</li>
+                  </ol>
+                  <p className="text-xs text-gray-500 mt-3">
+                    Learn more: <a href="https://stripe.com/docs/connect" target="_blank" rel="noopener noreferrer" className="underline">https://stripe.com/docs/connect</a>
+                  </p>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={checkStripeConnectStatus}
+              disabled={checkingConnect}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {checkingConnect ? "Checking..." : "Refresh Status"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* FEE SUMMARY */}
       {feeSummary && (

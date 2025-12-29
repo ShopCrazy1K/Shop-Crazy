@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
@@ -49,6 +49,9 @@ export default function SellPage() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [images, setImages] = useState<ImageItem[]>([]);
   const [imageUrls, setImageUrls] = useState<string>(""); // Manual URLs
+  
+  // Ref to prevent auto-save when canceling
+  const isCancelingRef = useRef(false);
 
   // Check if user is returning from Stripe checkout
   useEffect(() => {
@@ -65,6 +68,9 @@ export default function SellPage() {
 
   // Load saved form data from localStorage
   useEffect(() => {
+    // Reset cancel flag on mount
+    isCancelingRef.current = false;
+    
     if (typeof window !== 'undefined') {
       const savedData = localStorage.getItem('listing-form-data');
       if (savedData) {
@@ -80,6 +86,10 @@ export default function SellPage() {
 
   // Save form data to localStorage
   useEffect(() => {
+    // Don't save if we're canceling or if form is empty
+    if (isCancelingRef.current) {
+      return;
+    }
     if (typeof window !== 'undefined' && (formData.title || formData.description)) {
       localStorage.setItem('listing-form-data', JSON.stringify(formData));
     }
@@ -432,6 +442,66 @@ export default function SellPage() {
       setError(err.message || "An error occurred while creating your listing");
       setLoading(false);
     }
+  }
+
+  function handleCancel() {
+    // Set flag to prevent auto-save from running
+    isCancelingRef.current = true;
+    
+    // Clear localStorage FIRST to prevent any auto-save from restoring data
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('listing-form-data');
+      // Also clear any other related localStorage items
+      sessionStorage.removeItem('pendingListingId');
+    }
+    
+    // Clear all form data immediately - use empty object to force re-render
+    const emptyFormData: FormData = {
+      title: "",
+      description: "",
+      price: "",
+      quantity: "1",
+      category: "",
+      type: "PHYSICAL",
+      condition: "NEW",
+    };
+    
+    // Clear all state
+    setDigitalFiles([]);
+    setUploadedDigitalFileUrls([]);
+    setImageFiles([]);
+    setImages([]);
+    setImageUrls("");
+    setFormData(emptyFormData);
+    setError("");
+    setLoading(false);
+    setShowSuccess(false);
+    setCreatedProduct(null);
+    
+    // Force clear form inputs directly via DOM (as backup)
+    if (typeof window !== 'undefined') {
+      const form = document.querySelector('form');
+      if (form) {
+        const inputs = form.querySelectorAll('input, textarea, select');
+        inputs.forEach((input: any) => {
+          if (input.type === 'file') {
+            input.value = '';
+          } else if (input.type === 'checkbox' || input.type === 'radio') {
+            input.checked = false;
+          } else {
+            input.value = '';
+          }
+        });
+      }
+    }
+    
+    // Use window.location for a hard navigation to ensure everything is reset
+    // Small delay to ensure state updates are processed and form is visually cleared
+    setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        window.location.href = "/marketplace";
+      }
+    }, 150);
   }
 
   function handleCreateAnother() {
@@ -926,12 +996,13 @@ export default function SellPage() {
                 </>
               )}
             </button>
-            <Link
-              href="/marketplace"
+            <button
+              type="button"
+              onClick={handleCancel}
               className="px-8 py-4 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-all text-center flex items-center justify-center"
             >
               Cancel
-            </Link>
+            </button>
           </div>
         </form>
       </div>
