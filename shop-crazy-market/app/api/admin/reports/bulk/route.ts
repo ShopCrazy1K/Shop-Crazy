@@ -41,6 +41,16 @@ export async function PATCH(req: Request) {
                 },
               },
             },
+            listing: {
+              include: {
+                seller: {
+                  select: {
+                    email: true,
+                    id: true,
+                  },
+                },
+              },
+            },
           },
         })
       )
@@ -48,15 +58,35 @@ export async function PATCH(req: Request) {
 
     // Handle bulk actions
     if (action === "remove" && status === "APPROVED") {
-      // Hide all products
+      // Hide all products (legacy)
       const productIds = updatedReports
         .map((r) => r.productId)
         .filter((id) => id);
 
-      await prisma.product.updateMany({
-        where: { id: { in: productIds } },
-        data: { hidden: true },
-      });
+      // Filter out null values and ensure we have valid product IDs
+      const validProductIds = productIds.filter((id): id is string => id !== null);
+      
+      if (validProductIds.length > 0) {
+        await prisma.product.updateMany({
+          where: { id: { in: validProductIds } },
+          data: { hidden: true },
+        });
+      }
+
+      // Deactivate all listings (new schema)
+      const listingIds = updatedReports
+        .map((r) => r.listingId)
+        .filter((id) => id);
+
+      // Filter out null values and ensure we have valid listing IDs
+      const validListingIds = listingIds.filter((id): id is string => id !== null);
+      
+      if (validListingIds.length > 0) {
+        await prisma.listing.updateMany({
+          where: { id: { in: validListingIds } },
+          data: { isActive: false },
+        });
+      }
     }
 
     if (action === "restore" && status === "RESOLVED") {
@@ -65,19 +95,60 @@ export async function PATCH(req: Request) {
         .map((r) => r.productId)
         .filter((id) => id);
 
-      await prisma.product.updateMany({
-        where: { id: { in: productIds } },
-        data: { hidden: false },
-      });
+      // Filter out null values and ensure we have valid product IDs
+      const validProductIds = productIds.filter((id): id is string => id !== null);
+      
+      if (validProductIds.length > 0) {
+        await prisma.product.updateMany({
+          where: { id: { in: validProductIds } },
+          data: { hidden: false },
+        });
+      }
+
+      // Restore all listings (deactivate them)
+      const listingIds = updatedReports
+        .map((r) => r.listingId)
+        .filter((id) => id);
+
+      // Filter out null values and ensure we have valid listing IDs
+      const validListingIds = listingIds.filter((id): id is string => id !== null);
+      
+      if (validListingIds.length > 0) {
+        await prisma.listing.updateMany({
+          where: { id: { in: validListingIds } },
+          data: { isActive: true },
+        });
+      }
     }
 
     // Create strikes for approved reports
     if (status === "APPROVED") {
       for (const report of updatedReports) {
+        let shopId: string | null = null;
+        let sellerEmail: string | null = null;
+
+        // Handle legacy product-based reports
         if (report.product?.shop) {
+          shopId = report.product.shop.id;
+          sellerEmail = report.product.shop.owner?.email || null;
+        }
+        // Handle new listing-based reports
+        else if (report.listing?.seller) {
+          // Get shop for the seller
+          const shop = await prisma.shop.findUnique({
+            where: { ownerId: report.listing.seller.id },
+            select: { id: true },
+          });
+          if (shop) {
+            shopId = shop.id;
+            sellerEmail = report.listing.seller.email;
+          }
+        }
+
+        if (shopId) {
           const strike = await prisma.sellerStrike.create({
             data: {
-              sellerId: report.product.shop.id,
+              sellerId: shopId,
               reason: `Copyright violation: ${report.reason}`,
               reportId: report.id,
               status: "ACTIVE",
@@ -85,9 +156,9 @@ export async function PATCH(req: Request) {
           });
 
           // Send strike notification
-          if (report.product.shop.owner?.email) {
+          if (sellerEmail) {
             await sendStrikeNotification(
-              report.product.shop.owner.email,
+              sellerEmail,
               strike.reason,
               strike.id
             );
