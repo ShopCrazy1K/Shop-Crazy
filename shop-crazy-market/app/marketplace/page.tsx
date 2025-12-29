@@ -124,7 +124,8 @@ function MarketplaceContent() {
         } else if (sortBy === "price_high") {
           filtered.sort((a, b) => b.priceCents - a.priceCents);
         } else if (sortBy === "newest") {
-          filtered.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+          // Sort by listing ID (newer listings have higher IDs) or keep original order
+          filtered.reverse();
         }
 
         // Fetch seller stats for each listing
