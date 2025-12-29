@@ -175,14 +175,20 @@ function SellerDashboard() {
         
         // Handle Stripe Connect not enabled error
         if (errorData.error === "STRIPE_CONNECT_NOT_ENABLED") {
-          alert(
+          const message = 
             "⚠️ Stripe Connect is not enabled on this account.\n\n" +
             "To enable seller payouts, the platform owner needs to:\n" +
             "1. Go to https://dashboard.stripe.com/settings/connect\n" +
             "2. Enable Stripe Connect\n" +
             "3. Complete the Connect setup process\n\n" +
-            "Learn more: https://stripe.com/docs/connect"
-          );
+            "Learn more: https://stripe.com/docs/connect";
+          alert(message);
+          
+          // Also show a persistent notice on the page
+          setPaymentMethods({ 
+            hasStripeAccount: false, 
+            connectNotEnabled: true 
+          });
         } else {
           alert(errorData.error || errorData.message || "Failed to setup payment method");
         }
