@@ -359,8 +359,8 @@ export default function SellPage() {
         ];
       }
 
-      // Create the listing using new listings API
-      const response = await fetch("/api/listings", {
+      // Create the listing using listings/create API (handles Stripe subscription for listing fee)
+      const response = await fetch("/api/listings/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
