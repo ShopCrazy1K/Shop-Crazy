@@ -27,37 +27,40 @@ export async function GET(req: Request) {
     const queryMonth = month ? parseInt(month) : now.getMonth() + 1;
     const queryYear = year ? parseInt(year) : now.getFullYear();
 
-    // Get all orders for this shop's products this month
+    // Get the shop to find the owner
+    const shop = await prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { ownerId: true },
+    });
+
+    if (!shop) {
+      return NextResponse.json(
+        { error: "Shop not found" },
+        { status: 404 }
+      );
+    }
+
+    // Get all orders for this shop's listings this month
+    // Orders are linked to listings, and listings have a sellerId
+    // We need to match orders where the listing's sellerId matches the shop's ownerId
     const startDate = new Date(queryYear, queryMonth - 1, 1);
     const endDate = new Date(queryYear, queryMonth, 0, 23, 59, 59);
 
     const orders = await prisma.order.findMany({
       where: {
-        items: {
-          some: {
-            product: {
-              shopId,
-            },
-          },
-        },
+        sellerId: shop.ownerId, // Match orders where sellerId matches shop owner
         createdAt: {
           gte: startDate,
           lte: endDate,
         },
+        paymentStatus: "paid", // Only count paid orders
       },
       include: {
         listing: {
-          include: {
-            seller: {
-              include: {
-                shop: true,
-              },
-            },
-          },
-        },
-        items: {
-          include: {
-            product: true,
+          select: {
+            id: true,
+            title: true,
+            sellerId: true,
           },
         },
       },
@@ -70,34 +73,13 @@ export async function GET(req: Request) {
     let totalAdvertisingFees = 0;
 
     orders.forEach((order) => {
-      // Use new schema fields if available, otherwise fall back to metadata
       const orderSubtotal = order.orderSubtotalCents || 0;
       
-      // For legacy orders, calculate from items
-      let shopPercentage = 0;
-      if (order.items && order.items.length > 0) {
-        const shopItems = order.items.filter(
-          (item) => item.product.shopId === shopId
-        );
-        const shopItemTotal = shopItems.reduce(
-          (sum, item) => sum + item.price * item.quantity,
-          0
-        );
-        shopPercentage = orderSubtotal > 0 ? shopItemTotal / orderSubtotal : 0;
-      } else if (order.listing) {
-        // For marketplace orders, check if seller owns the shop
-        // If the order's sellerId matches the shop owner, it's 100% of this order
-        // This is a simplified approach - you may need to adjust based on your business logic
-        shopPercentage = 1; // Marketplace orders are typically single-seller
-      }
-
-      totalRevenue += Math.round(orderSubtotal * shopPercentage);
-      totalTransactionFees +=
-        (order.platformFeeCents || 0) * shopPercentage;
-      totalPaymentProcessingFees +=
-        (order.processingFeeCents || 0) * shopPercentage;
-      totalAdvertisingFees +=
-        (order.adFeeCents || 0) * shopPercentage;
+      // Since we're filtering by sellerId, all orders belong to this shop
+      totalRevenue += orderSubtotal;
+      totalTransactionFees += order.platformFeeCents || 0;
+      totalPaymentProcessingFees += order.processingFeeCents || 0;
+      totalAdvertisingFees += order.adFeeCents || 0;
     });
 
     // Get listing fees for this month

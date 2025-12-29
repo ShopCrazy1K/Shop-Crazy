@@ -53,14 +53,22 @@ export default function SellerDashboard() {
       if (response.ok) {
         const shop = await response.json();
         setShopId(shop.id);
+      } else {
+        const errorData = await response.json();
+        console.error("Error fetching shop:", errorData);
+        setLoading(false);
       }
     } catch (error) {
       console.error("Error fetching shop:", error);
+      setLoading(false);
     }
   }
 
   async function fetchDashboardData() {
-    if (!shopId) return;
+    if (!shopId) {
+      setLoading(false);
+      return;
+    }
     
     try {
       // Fetch fee summary
@@ -68,6 +76,9 @@ export default function SellerDashboard() {
       if (summaryRes.ok) {
         const summaryData = await summaryRes.json();
         setFeeSummary(summaryData);
+      } else {
+        const errorData = await summaryRes.json();
+        console.error("Error fetching fee summary:", errorData);
       }
 
       // Fetch recent fees
@@ -75,13 +86,20 @@ export default function SellerDashboard() {
       if (feesRes.ok) {
         const feesData = await feesRes.json();
         setRecentFees(feesData.fees || []);
+      } else {
+        const errorData = await feesRes.json();
+        console.error("Error fetching recent fees:", errorData);
       }
 
       // Fetch advertising status
       const advRes = await fetch(`/api/shops/${shopId}/advertising`);
       if (advRes.ok) {
         const advData = await advRes.json();
-        setHasAdvertising(advData.hasAdvertising);
+        setHasAdvertising(advData.hasAdvertising || false);
+      } else {
+        const errorData = await advRes.json();
+        console.error("Error fetching advertising status:", errorData);
+        setHasAdvertising(false);
       }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
