@@ -139,23 +139,43 @@ export async function POST(req: NextRequest) {
 
     // Create Stripe Connect account if it doesn't exist
     if (!stripeAccountId) {
-      const account = await stripe.accounts.create({
-        type: "express",
-        country: "US", // Default to US, can be made configurable
-        email: (await prisma.user.findUnique({ where: { id: userId }, select: { email: true } }))?.email,
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-      });
+      try {
+        const account = await stripe.accounts.create({
+          type: "express",
+          country: "US", // Default to US, can be made configurable
+          email: (await prisma.user.findUnique({ where: { id: userId }, select: { email: true } }))?.email,
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+        });
 
-      stripeAccountId = account.id;
+        stripeAccountId = account.id;
 
-      // Update shop with Stripe account ID
-      await prisma.shop.update({
-        where: { id: shop.id },
-        data: { stripeAccountId },
-      });
+        // Update shop with Stripe account ID
+        await prisma.shop.update({
+          where: { id: shop.id },
+          data: { stripeAccountId },
+        });
+      } catch (stripeError: any) {
+        console.error("Stripe Connect account creation error:", stripeError);
+        
+        // Check if error is about Connect not being enabled
+        if (stripeError.code === "account_invalid" || 
+            stripeError.message?.includes("Connect") || 
+            stripeError.message?.includes("signed up for Connect")) {
+          return NextResponse.json(
+            { 
+              error: "STRIPE_CONNECT_NOT_ENABLED",
+              message: "Stripe Connect is not enabled on this account. Please enable Stripe Connect in your Stripe Dashboard to allow seller payouts.",
+              helpUrl: "https://stripe.com/docs/connect"
+            },
+            { status: 400 }
+          );
+        }
+        
+        throw stripeError; // Re-throw other errors
+      }
     }
 
     // Create account link for onboarding or adding payment methods

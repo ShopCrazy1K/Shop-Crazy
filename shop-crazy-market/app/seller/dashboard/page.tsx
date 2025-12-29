@@ -172,7 +172,20 @@ function SellerDashboard() {
         window.location.href = data.url;
       } else {
         const errorData = await res.json();
-        alert(errorData.error || "Failed to setup payment method");
+        
+        // Handle Stripe Connect not enabled error
+        if (errorData.error === "STRIPE_CONNECT_NOT_ENABLED") {
+          alert(
+            "⚠️ Stripe Connect is not enabled on this account.\n\n" +
+            "To enable seller payouts, the platform owner needs to:\n" +
+            "1. Go to https://dashboard.stripe.com/settings/connect\n" +
+            "2. Enable Stripe Connect\n" +
+            "3. Complete the Connect setup process\n\n" +
+            "Learn more: https://stripe.com/docs/connect"
+          );
+        } else {
+          alert(errorData.error || errorData.message || "Failed to setup payment method");
+        }
       }
     } catch (error) {
       console.error("Error setting up payment method:", error);
