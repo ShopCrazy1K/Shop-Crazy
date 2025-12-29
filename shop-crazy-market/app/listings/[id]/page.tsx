@@ -40,6 +40,11 @@ export default function ListingPage() {
   const [activeDeal, setActiveDeal] = useState<any | null>(null);
   const [hasPaidOrder, setHasPaidOrder] = useState(false);
   const [isSeller, setIsSeller] = useState(false);
+  const [sellerStats, setSellerStats] = useState<any>(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [averageRating, setAverageRating] = useState(0);
   const feeStatus = searchParams.get("fee");
 
   // Handle "new" route - redirect to create page
@@ -262,11 +267,14 @@ export default function ListingPage() {
     }
   }, [listingId, listing, loading, searchParams]);
 
-  // Fetch deals when listing loads
+  // Fetch deals, stats, reviews, and follow status when listing loads
   useEffect(() => {
     if (listingId && listing) {
       fetchDeals();
       checkPurchaseStatus();
+      fetchSellerStats();
+      fetchReviews();
+      checkFollowStatus();
     }
   }, [listingId, listing, user]);
 
@@ -309,6 +317,97 @@ export default function ListingPage() {
       }
     } catch (error) {
       console.error("Error fetching deals:", error);
+    }
+  }
+
+  async function fetchSellerStats() {
+    if (!listing?.seller?.id) return;
+    try {
+      const response = await fetch(`/api/users/${listing.seller.id}/stats`);
+      if (response.ok) {
+        const stats = await response.json();
+        setSellerStats(stats);
+      }
+    } catch (error) {
+      console.error("Error fetching seller stats:", error);
+    }
+  }
+
+  async function fetchReviews() {
+    if (!listing?.seller?.id) return;
+    try {
+      const response = await fetch(`/api/users/${listing.seller.id}/reviews`);
+      if (response.ok) {
+        const reviewsData = await response.json();
+        setReviews(reviewsData);
+        // Calculate average rating
+        if (reviewsData.length > 0) {
+          const avg = reviewsData.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewsData.length;
+          setAverageRating(Math.round(avg * 10) / 10);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    }
+  }
+
+  async function checkFollowStatus() {
+    if (!user || !listing?.seller?.id || user.id === listing.seller.id) return;
+    try {
+      const response = await fetch(`/api/users/${listing.seller.id}/follow?followerId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setIsFollowing(data.isFollowing || false);
+      }
+    } catch (error) {
+      console.error("Error checking follow status:", error);
+    }
+  }
+
+  async function toggleFollow() {
+    if (!user || !listing?.seller?.id) {
+      router.push("/login");
+      return;
+    }
+
+    if (user.id === listing.seller.id) return;
+
+    setFollowLoading(true);
+    try {
+      if (isFollowing) {
+        // Unfollow
+        const response = await fetch(`/api/users/${listing.seller.id}/follow`, {
+          method: "DELETE",
+          headers: {
+            "x-user-id": user.id,
+          },
+        });
+        if (response.ok) {
+          setIsFollowing(false);
+          if (sellerStats) {
+            setSellerStats({ ...sellerStats, followersCount: Math.max(0, sellerStats.followersCount - 1) });
+          }
+        }
+      } else {
+        // Follow
+        const response = await fetch(`/api/users/${listing.seller.id}/follow`, {
+          method: "POST",
+          headers: {
+            "x-user-id": user.id,
+            "Content-Type": "application/json",
+          },
+        });
+        if (response.ok) {
+          setIsFollowing(true);
+          if (sellerStats) {
+            setSellerStats({ ...sellerStats, followersCount: (sellerStats.followersCount || 0) + 1 });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling follow:", error);
+    } finally {
+      setFollowLoading(false);
     }
   }
 
@@ -696,28 +795,64 @@ export default function ListingPage() {
                 <p className="text-gray-700 whitespace-pre-wrap">{listing.description}</p>
               </div>
 
-              <div className="mb-6">
-                <p className="text-sm text-gray-500">
-                  Listed by:{" "}
-                  <Link
-                    href={`/shop/${listing.seller.id}`}
-                    className="text-purple-600 hover:text-purple-700 hover:underline font-semibold"
-                  >
-                    {listing.seller.username || listing.seller.email}
-                  </Link>
-                </p>
-                <p className="text-sm text-gray-500">
-                  Status: {listing.isActive ? (
-                    <span className="text-green-600 font-semibold">Active</span>
-                  ) : (
-                    <span className="text-red-600 font-semibold">Inactive</span>
+              {/* Seller Info Box - Etsy Style */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <Link
+                      href={`/shop/${listing.seller.id}`}
+                      className="text-lg font-semibold text-gray-900 hover:text-purple-600 transition-colors"
+                    >
+                      {listing.seller.username || listing.seller.email}
+                    </Link>
+                    {sellerStats && (
+                      <div className="mt-2 space-y-1">
+                        {/* Rating */}
+                        {averageRating > 0 && (
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center">
+                              {[...Array(5)].map((_, i) => (
+                                <span key={i} className={i < Math.round(averageRating) ? "text-yellow-400" : "text-gray-300"}>
+                                  ★
+                                </span>
+                              ))}
+                            </div>
+                            <span className="text-sm text-gray-600">
+                              {averageRating.toFixed(1)} ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                            </span>
+                          </div>
+                        )}
+                        {/* Sales Count */}
+                        <p className="text-sm text-gray-600">
+                          {sellerStats.salesCount || 0} {sellerStats.salesCount === 1 ? 'sale' : 'sales'}
+                        </p>
+                        {/* Followers */}
+                        <p className="text-sm text-gray-600">
+                          {sellerStats.followersCount || 0} {sellerStats.followersCount === 1 ? 'follower' : 'followers'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {/* Follow Button */}
+                  {user && user.id !== listing.seller.id && (
+                    <button
+                      onClick={toggleFollow}
+                      disabled={followLoading}
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                        isFollowing
+                          ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          : "bg-purple-600 text-white hover:bg-purple-700"
+                      } disabled:opacity-50`}
+                    >
+                      {followLoading ? "..." : isFollowing ? "Following" : "Follow"}
+                    </button>
                   )}
-                </p>
+                </div>
                 {/* Message Seller Button */}
                 {user && user.id !== listing.seller.id && (
                   <Link
                     href={`/messages/${listing.seller.id}`}
-                    className="mt-3 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
+                    className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
                   >
                     💬 Message Seller
                   </Link>
@@ -776,38 +911,69 @@ export default function ListingPage() {
                 </div>
               )}
 
+              {/* Purchase Section - Etsy Style */}
               {listing.isActive && (
-                <button
-                  onClick={() => {
-                    if (!user) {
-                      router.push("/login");
-                      return;
-                    }
-                    if (!listing.isActive) {
-                      alert("This listing is not active. Please contact the seller.");
-                      return;
-                    }
-                    // Add to cart
-                    const imageUrl = Array.isArray(listing.images) && listing.images.length > 0
-                      ? listing.images[0]
-                      : typeof (listing.images as any) === 'string' && (listing.images as any).trim()
-                        ? (listing.images as any)
-                        : null;
-                    addItem({
-                      id: listing.id,
-                      listingId: listing.id,
-                      title: listing.title,
-                      price: listing.priceCents,
-                      quantity: 1,
-                      image: imageUrl || undefined,
-                      sellerId: listing.seller.id,
-                    });
-                    alert("✅ Added to cart!");
-                  }}
-                  className="block w-full bg-purple-600 text-white text-center py-3 sm:py-4 px-6 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-base sm:text-lg cursor-pointer"
-                >
-                  🛒 Add to Cart
-                </button>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      if (!user) {
+                        router.push("/login");
+                        return;
+                      }
+                      if (!listing.isActive) {
+                        alert("This listing is not active. Please contact the seller.");
+                        return;
+                      }
+                      // Add to cart
+                      const imageUrl = Array.isArray(listing.images) && listing.images.length > 0
+                        ? listing.images[0]
+                        : typeof (listing.images as any) === 'string' && (listing.images as any).trim()
+                          ? (listing.images as any)
+                          : null;
+                      addItem({
+                        id: listing.id,
+                        listingId: listing.id,
+                        title: listing.title,
+                        price: listing.priceCents,
+                        quantity: 1,
+                        image: imageUrl || undefined,
+                        sellerId: listing.seller.id,
+                      });
+                      alert("✅ Added to cart!");
+                    }}
+                    className="block w-full bg-purple-600 text-white text-center py-3 sm:py-4 px-6 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-base sm:text-lg cursor-pointer"
+                  >
+                    🛒 Add to Cart
+                  </button>
+                  <Link
+                    href={`/cart/checkout?listingId=${listing.id}`}
+                    className="block w-full bg-green-600 text-white text-center py-3 sm:py-4 px-6 rounded-lg hover:bg-green-700 transition-colors font-semibold text-base sm:text-lg"
+                    onClick={(e) => {
+                      if (!user) {
+                        e.preventDefault();
+                        router.push("/login");
+                        return;
+                      }
+                      // Add to cart first, then redirect
+                      const imageUrl = Array.isArray(listing.images) && listing.images.length > 0
+                        ? listing.images[0]
+                        : typeof (listing.images as any) === 'string' && (listing.images as any).trim()
+                          ? (listing.images as any)
+                          : null;
+                      addItem({
+                        id: listing.id,
+                        listingId: listing.id,
+                        title: listing.title,
+                        price: listing.priceCents,
+                        quantity: 1,
+                        image: imageUrl || undefined,
+                        sellerId: listing.seller.id,
+                      });
+                    }}
+                  >
+                    💳 Buy Now (Apple Pay, Google Pay, Cards)
+                  </Link>
+                </div>
               )}
 
               <div className="mt-6 pt-6 border-t">
@@ -821,6 +987,56 @@ export default function ListingPage() {
             </div>
           </div>
         </div>
+
+        {/* Reviews Section - Etsy Style */}
+        {reviews.length > 0 && (
+          <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-bold mb-6">Reviews ({reviews.length})</h2>
+            <div className="space-y-6">
+              {reviews.slice(0, 10).map((review: any) => (
+                <div key={review.id} className="border-b border-gray-200 pb-6 last:border-0 last:pb-0">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {review.user?.username || review.user?.email || "Anonymous"}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <span key={i} className={i < review.rating ? "text-yellow-400" : "text-gray-300"}>
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                        <span className="text-sm text-gray-500">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {review.comment && (
+                    <p className="text-gray-700 mt-2">{review.comment}</p>
+                  )}
+                  {review.listing && (
+                    <p className="text-sm text-gray-500 mt-2">
+                      Purchased: {review.listing.title}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            {reviews.length > 10 && (
+              <div className="mt-6 text-center">
+                <Link
+                  href={`/shop/${listing.seller.id}#reviews`}
+                  className="text-purple-600 hover:text-purple-700 font-semibold"
+                >
+                  View All Reviews →
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Image Modal */}

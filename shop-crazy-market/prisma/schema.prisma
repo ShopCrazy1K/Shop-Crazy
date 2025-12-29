@@ -37,6 +37,8 @@ model User {
   listings        Listing[]
   sellerOrders    Order[]        @relation("SellerOrders")
   notifications   Notification[] // Notifications received by this user
+  followers       Follow[]       @relation("Followers") // Users who follow this user
+  following       Follow[]       @relation("Following") // Users this user follows
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -107,6 +109,23 @@ model SellerStrike {
 
   @@index([sellerId])
   @@index([status])
+}
+
+//////////////////////////////////////
+// FOLLOW (USER FOLLOWING)
+//////////////////////////////////////
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String // User who is following
+  follower    User     @relation("Following", fields: [followerId], references: [id])
+  followingId String // User being followed
+  following   User     @relation("Followers", fields: [followingId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }
 
 //////////////////////////////////////
