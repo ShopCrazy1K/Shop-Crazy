@@ -44,6 +44,10 @@ export default function SellerStrikesPage() {
       if (response.ok) {
         const shop = await response.json();
         setShopId(shop.id);
+      } else {
+        const errorData = await response.json();
+        console.error("Error fetching shop:", errorData);
+        setLoading(false);
       }
     } catch (error) {
       console.error("Error fetching shop:", error);

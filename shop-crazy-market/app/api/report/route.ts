@@ -2,14 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendAdminReportNotification, sendSellerNotification } from "@/lib/email";
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { productId, reporterEmail, reason } = body;
+    const { productId, listingId, reporterEmail, reason } = body;
 
-    if (!productId || !reporterEmail || !reason) {
+    // Support both productId (legacy) and listingId (new)
+    if ((!productId && !listingId) || !reporterEmail || !reason) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields. Please provide either productId or listingId, reporterEmail, and reason." },
         { status: 400 }
       );
     }
@@ -23,41 +27,72 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if product exists
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    });
+    let itemTitle = "";
+    let sellerEmail = "";
+    let itemId = "";
 
-    if (!product) {
-      return NextResponse.json(
-        { error: "Product not found" },
-        { status: 404 }
-      );
-    }
+    // Check if listing exists (new schema)
+    if (listingId) {
+      const listing = await prisma.listing.findUnique({
+        where: { id: listingId },
+        include: {
+          seller: {
+            select: {
+              email: true,
+              username: true,
+            },
+          },
+        },
+      });
 
-    // Create copyright report
-    const report = await prisma.copyrightReport.create({
-      data: {
-        productId,
-        reporterEmail,
-        reason,
-        status: "PENDING",
-      },
-      include: {
-        product: {
-          select: {
-            title: true,
-            shop: {
-              include: {
-                owner: {
-                  select: {
-                    email: true,
-                  },
+      if (!listing) {
+        return NextResponse.json(
+          { error: "Listing not found" },
+          { status: 404 }
+        );
+      }
+
+      itemTitle = listing.title;
+      sellerEmail = listing.seller.email;
+      itemId = listingId;
+    } 
+    // Legacy: Check if product exists
+    else if (productId) {
+      const product = await prisma.product.findUnique({
+        where: { id: productId },
+        include: {
+          shop: {
+            include: {
+              owner: {
+                select: {
+                  email: true,
                 },
               },
             },
           },
         },
+      });
+
+      if (!product) {
+        return NextResponse.json(
+          { error: "Product not found" },
+          { status: 404 }
+        );
+      }
+
+      itemTitle = product.title;
+      sellerEmail = product.shop?.owner?.email || "";
+      itemId = productId;
+    }
+
+    // Create copyright report
+    const report = await prisma.copyrightReport.create({
+      data: {
+        productId: productId || null,
+        listingId: listingId || null,
+        reporterEmail,
+        reason,
+        status: "PENDING",
       },
     });
 
@@ -66,41 +101,52 @@ export async function POST(req: Request) {
     // Send email notification to admin
     await sendAdminReportNotification({
       id: report.id,
-      productId: report.productId,
-      productTitle: report.product?.title,
+      productId: report.productId || undefined,
+      listingId: report.listingId || undefined,
+      productTitle: itemTitle,
       reporterEmail: report.reporterEmail,
       reason: report.reason,
     });
 
     // Send notification to seller
-    if (report.product?.shop?.owner?.email) {
+    if (sellerEmail) {
       await sendSellerNotification(
-        report.product.shop.owner.email,
-        report.product.title,
-        report.reason
+        sellerEmail,
+        itemTitle,
+        reason
       );
     }
 
-    // Auto-hide product if it has 3+ pending reports
+    // Auto-hide listing/product if it has 3+ pending reports
     const reportCount = await prisma.copyrightReport.count({
       where: {
-        productId,
-        status: "PENDING",
+        OR: [
+          listingId ? { listingId, status: "PENDING" } : {},
+          productId ? { productId, status: "PENDING" } : {},
+        ],
       },
     });
 
     if (reportCount >= 3) {
-      await prisma.product.update({
-        where: { id: productId },
-        data: { hidden: true },
-      });
-      console.log(`⚠️ Product ${productId} auto-hidden due to ${reportCount} reports`);
+      if (listingId) {
+        await prisma.listing.update({
+          where: { id: listingId },
+          data: { isActive: false },
+        });
+        console.log(`⚠️ Listing ${listingId} auto-deactivated due to ${reportCount} reports`);
+      } else if (productId) {
+        await prisma.product.update({
+          where: { id: productId },
+          data: { hidden: true },
+        });
+        console.log(`⚠️ Product ${productId} auto-hidden due to ${reportCount} reports`);
+      }
     }
 
     return NextResponse.json({
       success: true,
       reportId: report.id,
-      message: "Report submitted successfully",
+      message: "Copyright report submitted successfully. We will review your report.",
     });
   } catch (error: any) {
     console.error("Error creating copyright report:", error);

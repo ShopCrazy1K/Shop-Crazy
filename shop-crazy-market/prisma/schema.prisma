@@ -77,8 +77,10 @@ model Shop {
 
 model CopyrightReport {
   id            String   @id @default(uuid())
-  productId     String
-  product       Product  @relation(fields: [productId], references: [id])
+  productId     String? // Legacy: for old Product-based reports
+  product       Product? @relation(fields: [productId], references: [id])
+  listingId     String? // New: for Listing-based reports
+  listing       Listing? @relation(fields: [listingId], references: [id])
   reporterEmail String
   reason        String
   status        String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED", "RESOLVED"
@@ -87,6 +89,7 @@ model CopyrightReport {
   updatedAt     DateTime @updatedAt
 
   @@index([productId])
+  @@index([listingId])
   @@index([status])
   @@index([reporterEmail])
 }
@@ -174,8 +177,9 @@ model Listing {
   orders Order[]
   deals  Deal[] // Promotions and discounts
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  CopyrightReport CopyrightReport[]
 }
 
 //////////////////////////////////////
