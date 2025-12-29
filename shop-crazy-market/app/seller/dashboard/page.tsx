@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 interface FeeSummary {
@@ -26,12 +26,15 @@ interface RecentFee {
 export default function SellerDashboard() {
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [feeSummary, setFeeSummary] = useState<FeeSummary | null>(null);
   const [recentFees, setRecentFees] = useState<RecentFee[]>([]);
   const [hasAdvertising, setHasAdvertising] = useState(false);
   const [loading, setLoading] = useState(true);
   const [updatingAdvertising, setUpdatingAdvertising] = useState(false);
   const [shopId, setShopId] = useState<string | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<any>(null);
+  const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<any>(null);
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
 
@@ -49,6 +52,23 @@ export default function SellerDashboard() {
       fetchPaymentMethods();
     }
   }, [shopId]);
+
+  // Handle Stripe Connect redirects
+  useEffect(() => {
+    const success = searchParams?.get("success");
+    const refresh = searchParams?.get("refresh");
+    
+    if (success === "true") {
+      alert("✅ Payment method setup successful! Your bank account has been added.");
+      fetchPaymentMethods(); // Refresh payment methods
+      // Remove query param from URL
+      router.replace("/seller/dashboard");
+    } else if (refresh === "true") {
+      fetchPaymentMethods(); // Refresh payment methods
+      // Remove query param from URL
+      router.replace("/seller/dashboard");
+    }
+  }, [searchParams, router]);
 
   async function fetchShop() {
     try {
