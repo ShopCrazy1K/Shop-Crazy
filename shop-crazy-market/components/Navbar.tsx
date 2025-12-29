@@ -17,9 +17,9 @@ export default function Navbar() {
       </Link>
       <div className="flex items-center gap-3 sm:gap-5 font-semibold">
         <Link href="/marketplace" className="hover:text-purple-600 transition-colors">Marketplace</Link>
-        <Link href="/shop-4-us" className="hover:text-purple-600 transition-colors">Shop 4 Us</Link>
-        <Link href="/game-zone" className="hover:text-purple-600 transition-colors">Game Zone</Link>
-        <Link href="/fresh-out-world" className="hover:text-purple-600 transition-colors">Fresh Out World</Link>
+        <Link href="/category/shop-4-us" className="hover:text-purple-600 transition-colors">🧸 Shop 4 Us</Link>
+        <Link href="/category/game-zone" className="hover:text-purple-600 transition-colors">🎮 Game Zone</Link>
+        <Link href="/category/fresh-out-world" className="hover:text-purple-600 transition-colors">👕 Fresh Out World</Link>
         <Link href="/messages" className="hover:text-purple-600 transition-colors">Messages</Link>
         <Link href="/cart" className="relative hover:text-purple-600 transition-colors">
           🛒 Cart
