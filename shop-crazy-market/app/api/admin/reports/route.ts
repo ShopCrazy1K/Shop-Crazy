@@ -19,6 +19,12 @@ export async function GET(request: Request) {
             title: true,
           },
         },
+        listing: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -69,49 +75,104 @@ export async function PATCH(req: Request) {
       },
       include: {
         product: true,
+        listing: {
+          include: {
+            seller: {
+              select: {
+                email: true,
+                id: true,
+              },
+            },
+          },
+        },
       },
     });
 
     // Handle actions
     if (action === "remove" && status === "APPROVED") {
-      // Hide the product
-      await prisma.product.update({
-        where: { id: report.productId },
-        data: { hidden: true },
-      });
-      console.log(`Product ${report.productId} hidden`);
+      // Hide the product (legacy)
+      if (report.productId) {
+        await prisma.product.update({
+          where: { id: report.productId },
+          data: { hidden: true },
+        });
+        console.log(`Product ${report.productId} hidden`);
+      }
+
+      // Deactivate the listing (new schema)
+      if (report.listingId) {
+        await prisma.listing.update({
+          where: { id: report.listingId },
+          data: { isActive: false },
+        });
+        console.log(`Listing ${report.listingId} deactivated`);
+      }
     }
 
     if (action === "restore" && status === "RESOLVED") {
-      // Restore the product if it was hidden
-      await prisma.product.update({
-        where: { id: report.productId },
-        data: { hidden: false },
-      });
-      console.log(`Product ${report.productId} restored`);
+      // Restore the product if it was hidden (legacy)
+      if (report.productId) {
+        await prisma.product.update({
+          where: { id: report.productId },
+          data: { hidden: false },
+        });
+        console.log(`Product ${report.productId} restored`);
+      }
+
+      // Reactivate the listing (new schema)
+      if (report.listingId) {
+        await prisma.listing.update({
+          where: { id: report.listingId },
+          data: { isActive: true },
+        });
+        console.log(`Listing ${report.listingId} reactivated`);
+      }
     }
 
     // Add seller strike if approved
-    if (status === "APPROVED" && report.product) {
-      const product = await prisma.product.findUnique({
-        where: { id: report.productId },
-        include: {
-          shop: {
-            include: {
-              owner: {
-                select: {
-                  email: true,
+    if (status === "APPROVED") {
+      let shopId: string | null = null;
+      let sellerEmail: string | null = null;
+
+      // Handle legacy product-based reports
+      if (report.productId && report.product) {
+        const product = await prisma.product.findUnique({
+          where: { id: report.productId },
+          include: {
+            shop: {
+              include: {
+                owner: {
+                  select: {
+                    email: true,
+                  },
                 },
               },
             },
           },
-        },
-      });
+        });
 
-      if (product?.shop) {
+        if (product?.shop) {
+          shopId = product.shop.id;
+          sellerEmail = product.shop.owner?.email || null;
+        }
+      }
+      // Handle new listing-based reports
+      else if (report.listingId && report.listing) {
+        // Get shop for the seller
+        const shop = await prisma.shop.findUnique({
+          where: { ownerId: report.listing.seller.id },
+          select: { id: true },
+        });
+        if (shop) {
+          shopId = shop.id;
+          sellerEmail = report.listing.seller.email;
+        }
+      }
+
+      if (shopId) {
         const strike = await prisma.sellerStrike.create({
           data: {
-            sellerId: product.shop.id,
+            sellerId: shopId,
             reason: `Copyright violation: ${report.reason}`,
             reportId: report.id,
             status: "ACTIVE",
@@ -119,9 +180,9 @@ export async function PATCH(req: Request) {
         });
 
         // Send strike notification email
-        if (product.shop.owner?.email) {
+        if (sellerEmail) {
           await sendStrikeNotification(
-            product.shop.owner.email,
+            sellerEmail,
             strike.reason,
             strike.id
           );
