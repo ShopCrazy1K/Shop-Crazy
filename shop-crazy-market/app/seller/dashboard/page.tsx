@@ -32,6 +32,8 @@ export default function SellerDashboard() {
   const [loading, setLoading] = useState(true);
   const [updatingAdvertising, setUpdatingAdvertising] = useState(false);
   const [shopId, setShopId] = useState<string | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<any>(null);
+  const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -44,6 +46,7 @@ export default function SellerDashboard() {
   useEffect(() => {
     if (shopId) {
       fetchDashboardData();
+      fetchPaymentMethods();
     }
   }, [shopId]);
 
@@ -105,6 +108,45 @@ export default function SellerDashboard() {
       console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchPaymentMethods() {
+    if (!user?.id) return;
+    setLoadingPaymentMethods(true);
+    try {
+      const res = await fetch("/api/seller/payment-methods", {
+        headers: { "x-user-id": user.id },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPaymentMethods(data);
+      }
+    } catch (error) {
+      console.error("Error fetching payment methods:", error);
+    } finally {
+      setLoadingPaymentMethods(false);
+    }
+  }
+
+  async function setupPaymentMethod() {
+    if (!user?.id) return;
+    try {
+      const res = await fetch("/api/seller/payment-methods", {
+        method: "POST",
+        headers: { "x-user-id": user.id },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Redirect to Stripe Connect onboarding
+        window.location.href = data.url;
+      } else {
+        const errorData = await res.json();
+        alert(errorData.error || "Failed to setup payment method");
+      }
+    } catch (error) {
+      console.error("Error setting up payment method:", error);
+      alert("Error setting up payment method");
     }
   }
 
@@ -256,6 +298,82 @@ export default function SellerDashboard() {
           </div>
         </div>
       )}
+
+      {/* PAYMENT METHODS FOR WITHDRAWALS */}
+      <div className="bg-white rounded-xl shadow p-6">
+        <h2 className="font-accent text-2xl mb-4">Payment Methods for Withdrawals</h2>
+        {loadingPaymentMethods ? (
+          <div className="text-center py-4 text-gray-500">Loading payment methods...</div>
+        ) : paymentMethods?.hasStripeAccount ? (
+          <div className="space-y-4">
+            {paymentMethods.bankAccounts && paymentMethods.bankAccounts.length > 0 ? (
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Bank Accounts</h3>
+                <div className="space-y-2">
+                  {paymentMethods.bankAccounts.map((account: any) => (
+                    <div
+                      key={account.id}
+                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                    >
+                      <div>
+                        <p className="font-semibold">{account.bankName}</p>
+                        <p className="text-sm text-gray-600">
+                          •••• {account.last4} • {account.currency.toUpperCase()}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Status: {account.status === "verified" ? "✅ Verified" : "⏳ Pending"}
+                        </p>
+                      </div>
+                      {account.defaultForCurrency && (
+                        <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                          Default
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={setupPaymentMethod}
+                  className="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                >
+                  Add Another Bank Account
+                </button>
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-600 mb-4">No bank accounts added yet.</p>
+                <button
+                  onClick={setupPaymentMethod}
+                  className="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                >
+                  Add Bank Account for Withdrawals
+                </button>
+              </div>
+            )}
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                💡 <strong>Note:</strong> Your payouts will be sent to your default bank account. 
+                You can add multiple accounts and set one as default in your Stripe dashboard.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <p className="text-gray-600 mb-4">
+              Set up your payment method to receive payouts from your sales.
+            </p>
+            <button
+              onClick={setupPaymentMethod}
+              className="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+            >
+              Set Up Payment Method
+            </button>
+            <p className="text-xs text-gray-500 mt-3">
+              You'll be redirected to Stripe to securely add your bank account information.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* QUICK LINKS */}
       <div className="bg-white rounded-xl shadow p-6">
