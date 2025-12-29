@@ -166,7 +166,7 @@ function MarketplaceContent() {
             })(),
             shop: {
               name: listing.seller.username || listing.seller.email || "Unknown Seller",
-              id: listing.seller.id, // Add seller ID for shop page link
+              id: listing.seller.id || listing.sellerId, // Add seller ID for shop page link (fallback to sellerId)
             },
           };
         });
