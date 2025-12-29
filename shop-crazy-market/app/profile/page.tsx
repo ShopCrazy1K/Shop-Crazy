@@ -289,6 +289,66 @@ export default function ProfilePage() {
         </div>
       </section>
 
+      {/* About Section */}
+      <section className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0 mb-4">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold">About</h2>
+          {!editingAbout && (
+            <button
+              onClick={() => setEditingAbout(true)}
+              className="text-sm text-purple-600 hover:text-purple-700 font-semibold"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+        {editingAbout ? (
+          <div className="space-y-3">
+            <textarea
+              value={about}
+              onChange={(e) => setAbout(e.target.value)}
+              placeholder="Tell customers about yourself, your shop, and what makes your products special..."
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              rows={6}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={saveAbout}
+                disabled={savingAbout}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                {savingAbout ? "Saving..." : "Save"}
+              </button>
+              <button
+                onClick={() => {
+                  setEditingAbout(false);
+                  fetchAbout(); // Reset to original
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {about ? (
+              <p className="text-gray-700 whitespace-pre-wrap">{about}</p>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500 mb-3">No about section yet.</p>
+                <button
+                  onClick={() => setEditingAbout(true)}
+                  className="text-purple-600 hover:text-purple-700 font-semibold"
+                >
+                  Add an about section →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
       {/* Quick Links */}
       <section className="grid grid-cols-2 gap-2 sm:gap-3">
         <QuickLinkCard 
