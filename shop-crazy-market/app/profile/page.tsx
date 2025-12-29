@@ -393,6 +393,257 @@ export default function ProfilePage() {
         )}
       </section>
 
+      {/* Shop Policies Section */}
+      <section className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0 mb-4">
+        <div className="flex justify-between items-center mb-3 sm:mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-center flex-1">Shop Policies</h2>
+          {user?.id && (
+            <button
+              onClick={() => {
+                if (!editingPolicies && !shopPolicies) {
+                  setShopPolicies({
+                    shopAnnouncement: "",
+                    shopAbout: "",
+                    shippingPolicy: "",
+                    returnsPolicy: "",
+                    cancellationsPolicy: "",
+                    faqs: [],
+                    digitalDownloadsPolicy: "",
+                    paymentMethods: "",
+                  });
+                }
+                setEditingPolicies(!editingPolicies);
+              }}
+              className="text-purple-600 hover:text-purple-700 text-sm font-semibold flex items-center gap-1"
+            >
+              {editingPolicies ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                  Cancel
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>
+                  Edit
+                </>
+              )}
+            </button>
+          )}
+        </div>
+        {editingPolicies ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Shop Announcements</label>
+              <textarea
+                value={shopPolicies?.shopAnnouncement || ""}
+                onChange={(e) => setShopPolicies({ ...shopPolicies, shopAnnouncement: e.target.value })}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
+                placeholder="Share important announcements with your customers..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">About Your Shop</label>
+              <textarea
+                value={shopPolicies?.shopAbout || ""}
+                onChange={(e) => setShopPolicies({ ...shopPolicies, shopAbout: e.target.value })}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
+                placeholder="Tell customers about your shop..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Shipping Policy</label>
+              <textarea
+                value={shopPolicies?.shippingPolicy || ""}
+                onChange={(e) => setShopPolicies({ ...shopPolicies, shippingPolicy: e.target.value })}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
+                placeholder="Describe your shipping policy..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Returns and Exchanges</label>
+              <textarea
+                value={shopPolicies?.returnsPolicy || ""}
+                onChange={(e) => setShopPolicies({ ...shopPolicies, returnsPolicy: e.target.value })}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
+                placeholder="Describe your returns and exchanges policy..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Cancellations</label>
+              <textarea
+                value={shopPolicies?.cancellationsPolicy || ""}
+                onChange={(e) => setShopPolicies({ ...shopPolicies, cancellationsPolicy: e.target.value })}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
+                placeholder="Describe your cancellation policy..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Digital Downloads</label>
+              <textarea
+                value={shopPolicies?.digitalDownloadsPolicy || ""}
+                onChange={(e) => setShopPolicies({ ...shopPolicies, digitalDownloadsPolicy: e.target.value })}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
+                placeholder="Describe your digital downloads policy..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Payment Methods</label>
+              <textarea
+                value={shopPolicies?.paymentMethods || ""}
+                onChange={(e) => setShopPolicies({ ...shopPolicies, paymentMethods: e.target.value })}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
+                placeholder="List accepted payment methods..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">FAQs</label>
+              <div className="space-y-2">
+                {(shopPolicies?.faqs || []).map((faq: any, index: number) => (
+                  <div key={index} className="border border-gray-300 rounded-lg p-3">
+                    <input
+                      type="text"
+                      value={faq.question || faq.q || ""}
+                      onChange={(e) => {
+                        const newFaqs = [...(shopPolicies?.faqs || [])];
+                        newFaqs[index] = { ...newFaqs[index], question: e.target.value, q: e.target.value };
+                        setShopPolicies({ ...shopPolicies, faqs: newFaqs });
+                      }}
+                      className="w-full mb-2 p-2 border border-gray-300 rounded-lg"
+                      placeholder="Question"
+                    />
+                    <textarea
+                      value={faq.answer || faq.a || ""}
+                      onChange={(e) => {
+                        const newFaqs = [...(shopPolicies?.faqs || [])];
+                        newFaqs[index] = { ...newFaqs[index], answer: e.target.value, a: e.target.value };
+                        setShopPolicies({ ...shopPolicies, faqs: newFaqs });
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded-lg"
+                      placeholder="Answer"
+                      rows={2}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newFaqs = (shopPolicies?.faqs || []).filter((_: any, i: number) => i !== index);
+                        setShopPolicies({ ...shopPolicies, faqs: newFaqs });
+                      }}
+                      className="mt-2 text-red-600 hover:text-red-700 text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShopPolicies({
+                      ...shopPolicies,
+                      faqs: [...(shopPolicies?.faqs || []), { question: "", answer: "" }],
+                    });
+                  }}
+                  className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-500 hover:text-purple-600 transition-colors"
+                >
+                  + Add FAQ
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={saveShopPolicies}
+              disabled={savingPolicies}
+              className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
+            >
+              {savingPolicies ? "Saving..." : "Save Shop Policies"}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {shopPolicies && (
+              <>
+                {shopPolicies.shopAnnouncement && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Shop Announcements</h3>
+                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.shopAnnouncement}</p>
+                  </div>
+                )}
+                {shopPolicies.shopAbout && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">About Your Shop</h3>
+                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.shopAbout}</p>
+                  </div>
+                )}
+                {shopPolicies.shippingPolicy && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Shipping</h3>
+                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.shippingPolicy}</p>
+                  </div>
+                )}
+                {shopPolicies.returnsPolicy && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Returns and Exchanges</h3>
+                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.returnsPolicy}</p>
+                  </div>
+                )}
+                {shopPolicies.cancellationsPolicy && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Cancellations</h3>
+                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.cancellationsPolicy}</p>
+                  </div>
+                )}
+                {shopPolicies.digitalDownloadsPolicy && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Digital Downloads</h3>
+                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.digitalDownloadsPolicy}</p>
+                  </div>
+                )}
+                {shopPolicies.paymentMethods && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Payment Methods</h3>
+                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.paymentMethods}</p>
+                  </div>
+                )}
+                {shopPolicies.faqs && shopPolicies.faqs.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">FAQs</h3>
+                    <div className="space-y-2">
+                      {shopPolicies.faqs.map((faq: any, index: number) => (
+                        <div key={index} className="border-l-2 border-purple-500 pl-3">
+                          <p className="font-semibold text-gray-900 text-sm">{faq.question || faq.q}</p>
+                          <p className="text-gray-700 text-sm">{faq.answer || faq.a}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+            {(!shopPolicies || (!shopPolicies.shopAnnouncement && !shopPolicies.shopAbout && !shopPolicies.shippingPolicy && !shopPolicies.returnsPolicy && !shopPolicies.cancellationsPolicy && !shopPolicies.faqs && !shopPolicies.digitalDownloadsPolicy && !shopPolicies.paymentMethods)) && (
+              <div className="text-gray-500 text-center py-4">
+                <p className="mb-3">No shop policies added yet.</p>
+                <button
+                  onClick={() => {
+                    setShopPolicies({
+                      shopAnnouncement: "",
+                      shopAbout: "",
+                      shippingPolicy: "",
+                      returnsPolicy: "",
+                      cancellationsPolicy: "",
+                      faqs: [],
+                      digitalDownloadsPolicy: "",
+                      paymentMethods: "",
+                    });
+                    setEditingPolicies(true);
+                  }}
+                  className="text-purple-600 hover:text-purple-700 font-semibold"
+                >
+                  Add Shop Policies →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
       {/* Quick Links */}
       <section className="grid grid-cols-2 gap-2 sm:gap-3">
         <QuickLinkCard 
