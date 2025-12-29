@@ -174,12 +174,12 @@ model Listing {
   feeCustomerId         String?
 
   // Orders for this listing
-  orders Order[]
-  deals  Deal[] // Promotions and discounts
+  orders           Order[]
+  deals            Deal[] // Promotions and discounts
+  copyrightReports CopyrightReport[] // Copyright reports for this listing
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  CopyrightReport CopyrightReport[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 //////////////////////////////////////
