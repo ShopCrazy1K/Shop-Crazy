@@ -30,7 +30,7 @@ export default function Logo({ className = "" }: LogoProps) {
         />
         
         {/* Fallback text logo (hidden by default, shown if image fails to load) */}
-        <div className="logo-fallback hidden relative" style={{ background: 'black', minHeight: '300px', borderRadius: '12px' }}>
+        <div className="logo-fallback hidden relative" style={{ background: 'transparent', minHeight: '300px', borderRadius: '12px' }}>
           <div className="relative flex flex-col items-center justify-center p-8 md:p-12">
             {/* "SHOP" - Yellow text at top */}
             <div className="relative mb-2 md:mb-4">
