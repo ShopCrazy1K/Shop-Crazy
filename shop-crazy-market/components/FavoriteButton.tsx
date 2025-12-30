@@ -113,16 +113,13 @@ export default function FavoriteButton({ productId, listingId, className = "" }:
     }
   }
 
-  if (!user) {
-    return null;
-  }
-
   return (
     <button
       onClick={toggleFavorite}
       disabled={loading}
-      className={`${className} transition-transform hover:scale-110 disabled:opacity-50 z-10`}
+      className={`${className} transition-transform hover:scale-110 disabled:opacity-50 z-10 relative`}
       aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+      style={{ zIndex: 20 }}
     >
       {isFavorited ? (
         <span className="text-2xl">❤️</span>

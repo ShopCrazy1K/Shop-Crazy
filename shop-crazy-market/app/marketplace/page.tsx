@@ -429,7 +429,17 @@ function MarketplaceContent() {
                         })()}
                         
                         {/* Favorite Button - Top Right */}
-                        <div className="absolute top-2 right-2">
+                        <div 
+                          className="absolute top-2 right-2 z-20" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                        >
                           <FavoriteButton 
                             listingId={product.id} 
                             className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-md hover:bg-white transition-colors"
