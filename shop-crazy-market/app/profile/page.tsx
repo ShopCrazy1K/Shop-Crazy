@@ -222,11 +222,21 @@ export default function ProfilePage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Remove the listing from the list
-        setMyListings((prev) => prev.filter((l) => l.id !== listingId));
-        // Update the listings count
-        setStats((prev) => ({ ...prev, listings: prev.listings - 1 }));
-        alert("Listing deleted successfully!");
+        // If listing was deactivated (not deleted), update it in the list
+        if (data.deactivated) {
+          setMyListings((prev) => 
+            prev.map((l) => 
+              l.id === listingId ? { ...l, isActive: false } : l
+            )
+          );
+          alert(data.message || "Listing has been deactivated. It cannot be permanently deleted because it has associated orders, deals, or reports.");
+        } else {
+          // Listing was actually deleted, remove it from the list
+          setMyListings((prev) => prev.filter((l) => l.id !== listingId));
+          // Update the listings count
+          setStats((prev) => ({ ...prev, listings: prev.listings - 1 }));
+          alert("Listing deleted successfully!");
+        }
       } else {
         alert(data.error || "Failed to delete listing");
       }
