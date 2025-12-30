@@ -5,9 +5,37 @@ import { useAuth } from "@/contexts/AuthContext";
 import { categories } from "@/lib/categories";
 import Logo from "@/components/Logo";
 import SearchBar from "@/components/SearchBar";
+import { useEffect, useState } from "react";
+
+interface FeaturedListing {
+  id: string;
+  title: string;
+  priceCents: number;
+  images: string[];
+  slug: string;
+}
 
 export default function HomePage() {
   const { user } = useAuth();
+  const [featuredListings, setFeaturedListings] = useState<FeaturedListing[]>([]);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+
+  useEffect(() => {
+    async function fetchFeaturedListings() {
+      try {
+        const response = await fetch("/api/listings/featured");
+        if (response.ok) {
+          const data = await response.json();
+          setFeaturedListings(data.listings || []);
+        }
+      } catch (error) {
+        console.error("Error fetching featured listings:", error);
+      } finally {
+        setLoadingFeatured(false);
+      }
+    }
+    fetchFeaturedListings();
+  }, []);
 
   return (
     <main className="p-4 space-y-8 pb-24">
@@ -86,12 +114,44 @@ export default function HomePage() {
       {/* Featured Section */}
       <section className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
         <h2 className="text-2xl font-bold mb-4 text-center">✨ Featured This Week</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <FeatureCard emoji="🎮" title="Retro Consoles" price="$129" />
-          <FeatureCard emoji="👟" title="Sneaker Drops" price="$89" />
-          <FeatureCard emoji="🎨" title="Art Prints" price="$45" />
-          <FeatureCard emoji="📱" title="Tech Gear" price="$199" />
-        </div>
+        {loadingFeatured ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-gray-200 rounded-xl p-4 animate-pulse h-32"></div>
+            ))}
+          </div>
+        ) : featuredListings.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {featuredListings.slice(0, 4).map((listing) => (
+              <Link key={listing.id} href={`/listings/${listing.id}`}>
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 text-center hover:scale-105 transition-transform shadow-md cursor-pointer border-2 border-transparent hover:border-purple-300">
+                  {listing.images && listing.images.length > 0 ? (
+                    <img
+                      src={listing.images[0]}
+                      alt={listing.title}
+                      className="w-full h-24 object-cover rounded-lg mb-2"
+                    />
+                  ) : (
+                    <div className="w-full h-24 bg-gray-200 rounded-lg mb-2 flex items-center justify-center text-4xl">
+                      📦
+                    </div>
+                  )}
+                  <div className="font-bold text-sm mb-1 line-clamp-2">{listing.title}</div>
+                  <div className="text-purple-600 font-semibold">
+                    ${(listing.priceCents / 100).toFixed(2)}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <FeatureCard emoji="🎮" title="Retro Consoles" price="$129" />
+            <FeatureCard emoji="👟" title="Sneaker Drops" price="$89" />
+            <FeatureCard emoji="🎨" title="Art Prints" price="$45" />
+            <FeatureCard emoji="📱" title="Tech Gear" price="$199" />
+          </div>
+        )}
       </section>
 
       {/* CTA Section */}
@@ -159,11 +219,13 @@ function StatCard({ number, label, emoji }: { number: string; label: string; emo
 
 function FeatureCard({ emoji, title, price }: { emoji: string; title: string; price: string }) {
   return (
-    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 text-center hover:scale-105 transition-transform shadow-md cursor-pointer border-2 border-transparent hover:border-purple-300">
-      <div className="text-4xl mb-2">{emoji}</div>
-      <div className="font-bold text-sm mb-1">{title}</div>
-      <div className="text-purple-600 font-semibold">{price}</div>
-    </div>
+    <Link href="/marketplace">
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 text-center hover:scale-105 transition-transform shadow-md cursor-pointer border-2 border-transparent hover:border-purple-300">
+        <div className="text-4xl mb-2">{emoji}</div>
+        <div className="font-bold text-sm mb-1">{title}</div>
+        <div className="text-purple-600 font-semibold">{price}</div>
+      </div>
+    </Link>
   );
 }
 
