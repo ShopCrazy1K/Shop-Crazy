@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ReportButtonProps {
   productId?: string;
@@ -8,11 +9,19 @@ interface ReportButtonProps {
 }
 
 export default function ReportButton({ productId, listingId }: ReportButtonProps) {
+  const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [email, setEmail] = useState("");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Pre-fill email if user is logged in
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email);
+    }
+  }, [user]);
 
   async function handleReport() {
     if (!email || !reason) {
@@ -86,7 +95,11 @@ export default function ReportButton({ productId, listingId }: ReportButtonProps
                     placeholder="your@email.com"
                     className="w-full border rounded-lg px-4 py-2"
                     required
+                    disabled={!!user?.email} // Disable if user is logged in
                   />
+                  {user?.email && (
+                    <p className="text-xs text-gray-500 mt-1">Using your account email</p>
+                  )}
                 </div>
 
                 <div>
