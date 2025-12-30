@@ -207,9 +207,10 @@ function MarketplaceContent() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="md:hidden px-4 py-2 bg-gray-100 rounded-lg font-semibold text-sm hover:bg-gray-200 transition-colors"
+                className="md:hidden px-4 py-2 bg-gray-100 rounded-lg font-semibold text-sm hover:bg-gray-200 transition-colors flex items-center gap-2"
               >
-                {showFilters ? "Hide" : "Show"} Filters
+                <span>🔍</span>
+                {showFilters ? "Hide Filters" : "Show Filters"}
               </button>
               <select
                 value={sortBy}
