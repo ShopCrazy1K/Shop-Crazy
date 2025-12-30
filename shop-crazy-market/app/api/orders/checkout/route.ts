@@ -33,14 +33,21 @@ export async function POST(req: Request) {
 
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
-      include: { seller: true },
+      include: { 
+        seller: {
+          include: {
+            shop: true, // Include shop to check hasAdvertising
+          },
+        },
+      },
     });
 
     if (!listing) return NextResponse.json({ ok: false, message: "Listing not found" }, { status: 404 });
     if (!listing.isActive) return NextResponse.json({ ok: false, message: "Listing is not active" }, { status: 400 });
 
     // Seller ads opt-in decides whether to apply 15% ad fee
-    const adsEnabled = listing.seller.adsEnabled;
+    // Check shop.hasAdvertising (primary) or fallback to seller.adsEnabled (legacy)
+    const adsEnabled = listing.seller.shop?.hasAdvertising ?? listing.seller.adsEnabled ?? false;
 
     const breakdown = calcOrderBreakdown({
       itemsSubtotalCents,
