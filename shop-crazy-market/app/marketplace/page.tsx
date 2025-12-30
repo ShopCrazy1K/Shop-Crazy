@@ -227,10 +227,10 @@ function MarketplaceContent() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <div className="flex gap-6">
+        <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar Filters - Etsy Style */}
-          <aside className={`hidden md:block w-64 flex-shrink-0 ${showFilters ? 'block' : 'hidden'}`}>
-            <div className="bg-white rounded-lg border border-gray-200 p-4 sticky top-24">
+          <aside className={`${showFilters ? 'block' : 'hidden'} md:block w-full md:w-64 flex-shrink-0`}>
+            <div className="bg-white rounded-lg border border-gray-200 p-4 md:sticky md:top-24">
               <h2 className="text-lg font-bold mb-4">Filters</h2>
               
               {/* Category Filter */}
