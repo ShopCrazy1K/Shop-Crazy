@@ -259,6 +259,50 @@ main, [role="main"], .main-content {
   }
 }
 
+/* Enhanced firework animation for New Year's Day */
+@keyframes new-year-firework {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5) rotate(180deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 30px rgba(255, 215, 0, 1)) 
+            drop-shadow(0 0 50px rgba(255, 100, 100, 0.8))
+            drop-shadow(0 0 70px rgba(100, 150, 255, 0.6));
+  }
+  100% {
+    transform: scale(2) rotate(360deg);
+    opacity: 0.3;
+  }
+}
+
+/* Sparkle animation for New Year's Day */
+@keyframes new-year-sparkle {
+  0%, 100% {
+    transform: scale(0.8) rotate(0deg);
+    opacity: 0.5;
+  }
+  25% {
+    transform: scale(1.2) rotate(90deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.9));
+  }
+  50% {
+    transform: scale(1) rotate(180deg);
+    opacity: 0.8;
+  }
+  75% {
+    transform: scale(1.3) rotate(270deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 1));
+  }
+}
+
 /* Pulse glow animation */
 @keyframes pulse-glow {
   0%, 100% {
