@@ -250,7 +250,51 @@ export async function DELETE(req: NextRequest, context: Ctx) {
       );
     }
 
-    // Delete the listing
+    // Check if there are any orders for this listing
+    const orderCount = await prisma.order.count({
+      where: { listingId: id },
+    });
+
+    if (orderCount > 0) {
+      // If there are orders, we can't delete the listing (would violate foreign key constraint)
+      // Instead, we'll deactivate it (soft delete)
+      await prisma.listing.update({
+        where: { id },
+        data: { isActive: false },
+      });
+
+      return NextResponse.json({ 
+        success: true, 
+        message: `Listing deactivated successfully. It cannot be permanently deleted because it has ${orderCount} order(s) associated with it.`,
+        deactivated: true,
+      });
+    }
+
+    // If no orders exist, we can safely delete the listing
+    // But first, check for other relations that might prevent deletion
+    const dealCount = await prisma.deal.count({
+      where: { listingId: id },
+    });
+
+    const reportCount = await prisma.copyrightReport.count({
+      where: { listingId: id },
+    });
+
+    if (dealCount > 0 || reportCount > 0) {
+      // If there are deals or reports, deactivate instead of delete
+      await prisma.listing.update({
+        where: { id },
+        data: { isActive: false },
+      });
+
+      return NextResponse.json({ 
+        success: true, 
+        message: "Listing deactivated successfully. It cannot be permanently deleted because it has associated deals or reports.",
+        deactivated: true,
+      });
+    }
+
+    // Safe to delete - no orders, deals, or reports
     await prisma.listing.delete({
       where: { id },
     });
