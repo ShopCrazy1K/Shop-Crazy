@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { categories } from "@/lib/categories";
 import SearchBar from "@/components/SearchBar";
+import FavoriteButton from "@/components/FavoriteButton";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Listing {
@@ -426,6 +427,14 @@ function MarketplaceContent() {
                             </div>
                           );
                         })()}
+                        
+                        {/* Favorite Button - Top Right */}
+                        <div className="absolute top-2 right-2">
+                          <FavoriteButton 
+                            listingId={product.id} 
+                            className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-md hover:bg-white transition-colors"
+                          />
+                        </div>
                         
                         {/* Badges */}
                         <div className="absolute top-2 left-2 flex flex-col gap-1">
