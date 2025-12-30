@@ -546,7 +546,23 @@ function SellerDashboard() {
       {/* QUICK LINKS */}
       <div className="bg-white rounded-xl shadow p-6">
         <h2 className="font-accent text-2xl mb-4">Quick Links</h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Link
+            href="/seller/promotions"
+            className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
+          >
+            <div className="text-2xl mb-2">🎁</div>
+            <h3 className="font-semibold text-lg mb-1">Promotions & Discounts</h3>
+            <p className="text-sm text-gray-600">Create shop-wide promotions, discount codes, and abandoned cart offers</p>
+          </Link>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <Link
+            href="/seller/promotions"
+            className="bg-purple-100 hover:bg-purple-200 rounded-lg p-4 text-center transition-colors"
+          >
+            <div className="text-2xl mb-1">🎁</div>
+            <div className="font-semibold text-sm">Promotions</div>
+          </Link>
           <Link
             href="/seller/platforms"
             className="bg-purple-100 hover:bg-purple-200 rounded-lg p-4 text-center transition-colors"

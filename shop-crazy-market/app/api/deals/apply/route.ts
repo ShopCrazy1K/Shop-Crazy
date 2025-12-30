@@ -1,71 +1,88 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const applyDealSchema = z.object({
-  listingId: z.string(),
-  promoCode: z.string().optional(),
-  dealId: z.string().optional(),
-  itemsSubtotalCents: z.number().int().nonnegative(),
-});
-
-// POST - Apply a deal/promo code and calculate discount
+/**
+ * POST /api/deals/apply
+ * Apply a deal or promo code to a listing
+ */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const parsed = applyDealSchema.safeParse(body);
+    const { listingId, dealId, promoCode, itemsSubtotalCents, shopId } = body;
 
-    if (!parsed.success) {
+    if (!listingId || itemsSubtotalCents === undefined) {
       return NextResponse.json(
-        { error: "Validation failed", details: parsed.error.issues },
+        { error: "listingId and itemsSubtotalCents are required" },
         { status: 400 }
       );
     }
 
-    const { listingId, promoCode, dealId, itemsSubtotalCents } = parsed.data;
-    const now = new Date();
+    let deal = null;
 
-    // Find the deal
-    let deal;
+    // If dealId is provided, use that
     if (dealId) {
       deal = await prisma.deal.findUnique({
         where: { id: dealId },
+        include: {
+          listing: {
+            select: {
+              id: true,
+              sellerId: true,
+            },
+          },
+          shop: {
+            select: {
+              id: true,
+              ownerId: true,
+            },
+          },
+        },
       });
-    } else if (promoCode) {
+    } 
+    // If promoCode is provided, find by code
+    else if (promoCode) {
       deal = await prisma.deal.findUnique({
-        where: { promoCode },
-      });
-    } else {
-      // Get the best active deal for this listing
-      const deals = await prisma.deal.findMany({
-        where: {
-          listingId,
-          isActive: true,
-          startsAt: { lte: now },
-          endsAt: { gte: now },
+        where: { promoCode: promoCode.toUpperCase() },
+        include: {
+          listing: {
+            select: {
+              id: true,
+              sellerId: true,
+            },
+          },
+          shop: {
+            select: {
+              id: true,
+              ownerId: true,
+            },
+          },
         },
-        orderBy: {
-          discountValue: "desc",
-        },
-        take: 1,
       });
-      deal = deals[0] || null;
     }
 
     if (!deal) {
       return NextResponse.json(
-        { error: "Deal not found or expired" },
+        { error: "Deal or promo code not found" },
         { status: 404 }
       );
     }
 
-    // Verify deal is active and valid
-    if (!deal.isActive || deal.startsAt > now || deal.endsAt < now) {
+    // Check if deal is active
+    if (!deal.isActive) {
       return NextResponse.json(
-        { error: "Deal is not currently active" },
+        { error: "This deal is no longer active" },
+        { status: 400 }
+      );
+    }
+
+    // Check date range
+    const now = new Date();
+    if (now < new Date(deal.startsAt) || now > new Date(deal.endsAt)) {
+      return NextResponse.json(
+        { error: "This deal has expired or hasn't started yet" },
         { status: 400 }
       );
     }
@@ -73,7 +90,7 @@ export async function POST(req: NextRequest) {
     // Check usage limits
     if (deal.maxUses && deal.currentUses >= deal.maxUses) {
       return NextResponse.json(
-        { error: "Deal has reached maximum uses" },
+        { error: "This deal has reached its usage limit" },
         { status: 400 }
       );
     }
@@ -81,25 +98,39 @@ export async function POST(req: NextRequest) {
     // Check minimum purchase
     if (deal.minPurchaseCents && itemsSubtotalCents < deal.minPurchaseCents) {
       return NextResponse.json(
-        {
+        { 
           error: `Minimum purchase of $${(deal.minPurchaseCents / 100).toFixed(2)} required`,
+          minPurchaseCents: deal.minPurchaseCents,
         },
         { status: 400 }
       );
     }
 
-    // Calculate discount
+    // Check if deal applies to this listing/shop
+    if (deal.promotionType === "LISTING" && deal.listingId !== listingId) {
+      return NextResponse.json(
+        { error: "This deal is not valid for this listing" },
+        { status: 400 }
+      );
+    }
+
+    if (deal.promotionType === "SHOP_WIDE" && shopId && deal.shopId !== shopId) {
+      return NextResponse.json(
+        { error: "This deal is not valid for this shop" },
+        { status: 400 }
+      );
+    }
+
+    // Calculate discount amount
     let discountCents = 0;
     if (deal.discountType === "PERCENTAGE") {
-      discountCents = Math.round((itemsSubtotalCents * deal.discountValue) / 100);
+      discountCents = Math.round(itemsSubtotalCents * (deal.discountValue / 100));
     } else {
-      // FIXED_AMOUNT
       discountCents = deal.discountValue;
-      // Don't allow discount to exceed item price
-      if (discountCents > itemsSubtotalCents) {
-        discountCents = itemsSubtotalCents;
-      }
     }
+
+    // Don't allow discount to exceed subtotal
+    discountCents = Math.min(discountCents, itemsSubtotalCents);
 
     return NextResponse.json({
       success: true,
@@ -108,16 +139,16 @@ export async function POST(req: NextRequest) {
         title: deal.title,
         discountType: deal.discountType,
         discountValue: deal.discountValue,
+        promoCode: deal.promoCode,
       },
       discountCents,
-      discountedSubtotalCents: itemsSubtotalCents - discountCents,
+      finalTotalCents: itemsSubtotalCents - discountCents,
     });
   } catch (error: any) {
-    console.error("[API DEALS] Error applying deal:", error);
+    console.error("Error applying deal:", error);
     return NextResponse.json(
       { error: error.message || "Failed to apply deal" },
       { status: 500 }
     );
   }
 }
-

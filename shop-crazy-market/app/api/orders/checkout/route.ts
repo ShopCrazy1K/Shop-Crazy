@@ -15,6 +15,8 @@ const schema = z.object({
   giftWrapCents: z.coerce.number().int().nonnegative().default(0),
   taxCents: z.coerce.number().int().nonnegative().default(0),
   country: z.string().default("DEFAULT"),
+  promoCode: z.string().optional(), // Discount code
+  discountCents: z.coerce.number().int().nonnegative().default(0), // Applied discount
 });
 
 export async function POST(req: Request) {
@@ -28,8 +30,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const { listingId, buyerEmail, itemsSubtotalCents, shippingCents, giftWrapCents, taxCents } = parsed.data;
+    const { listingId, buyerEmail, itemsSubtotalCents, shippingCents, giftWrapCents, taxCents, promoCode, discountCents } = parsed.data;
     const country = (parsed.data.country.toUpperCase() as CountryCode) || "DEFAULT";
+    
+    // Apply discount if provided
+    const finalItemsSubtotalCents = Math.max(0, itemsSubtotalCents - discountCents);
 
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
@@ -50,13 +55,34 @@ export async function POST(req: Request) {
     const adsEnabled = listing.seller.shop?.hasAdvertising ?? listing.seller.adsEnabled ?? false;
 
     const breakdown = calcOrderBreakdown({
-      itemsSubtotalCents,
+      itemsSubtotalCents: finalItemsSubtotalCents,
       shippingCents,
       giftWrapCents,
       taxCents,
       country,
       adsEnabled,
     });
+    
+    // Track discount code usage if provided
+    if (promoCode) {
+      try {
+        const promotion = await prisma.deal.findUnique({
+          where: { promoCode: promoCode.toUpperCase() },
+        });
+        
+        if (promotion) {
+          await prisma.deal.update({
+            where: { id: promotion.id },
+            data: {
+              currentUses: { increment: 1 },
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Error tracking promo code usage:", error);
+        // Don't fail checkout if tracking fails
+      }
+    }
 
     // Get buyer ID from request (if authenticated)
     const buyerId = req.headers.get("x-user-id") || null;
@@ -70,10 +96,12 @@ export async function POST(req: Request) {
         listingId: listing.id,
         currency: listing.currency,
 
-        itemsSubtotalCents,
+        itemsSubtotalCents: finalItemsSubtotalCents,
         shippingCents,
         giftWrapCents,
         taxCents,
+        discountCents: discountCents || 0,
+        promoCode: promoCode || null,
 
         orderSubtotalCents: breakdown.orderSubtotalCents,
         orderTotalCents: breakdown.orderTotalCents,

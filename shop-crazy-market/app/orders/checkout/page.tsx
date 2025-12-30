@@ -68,6 +68,7 @@ function CheckoutContent() {
           dealId,
           promoCode: code,
           itemsSubtotalCents: listing.priceCents,
+          shopId: listing.seller?.shop?.id || null, // Include shopId for shop-wide promotions
         }),
       });
 
@@ -77,9 +78,14 @@ function CheckoutContent() {
         if (data.deal) {
           setActiveDeal(data.deal);
         }
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || "Failed to apply promo code");
+        setPromoCode("");
       }
     } catch (err) {
       console.error("Error applying deal:", err);
+      alert("Failed to apply promo code. Please try again.");
     }
   }
 
@@ -110,11 +116,13 @@ function CheckoutContent() {
         body: JSON.stringify({
           listingId: listing.id,
           buyerEmail: user.email,
-          itemsSubtotalCents,
+          itemsSubtotalCents: listing.priceCents, // Use original price
           shippingCents,
           giftWrapCents,
           taxCents,
           country: "DEFAULT",
+          promoCode: activeDeal?.promoCode || promoCode || null,
+          discountCents,
         }),
       });
 

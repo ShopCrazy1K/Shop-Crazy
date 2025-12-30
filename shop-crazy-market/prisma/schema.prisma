@@ -78,6 +78,7 @@ model Shop {
   feeTransactions     FeeTransaction[]
   platformConnections PlatformConnection[]
   sellerStrikes       SellerStrike[]
+  promotions          Deal[] // Shop-wide promotions and discount codes
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -232,6 +233,8 @@ model Order {
   shippingCents      Int @default(0)
   giftWrapCents      Int @default(0)
   taxCents           Int @default(0)
+  discountCents     Int @default(0) // Discount from promo code or deal
+  promoCode          String? // Promo code used (if any)
 
   // Computed
   orderSubtotalCents Int // items + shipping + gift wrap
@@ -252,10 +255,10 @@ model Order {
   paymentStatus String @default("pending") // pending, paid, failed, refunded
 
   // Shipping & Tracking
-  shippingStatus    String? // processing, shipped, delivered
-  trackingCarrier   String? // USPS, UPS, FedEx, DHL, Other
-  trackingNumber    String?
-  shippedAt         DateTime?
+  shippingStatus  String? // processing, shipped, delivered
+  trackingCarrier String? // USPS, UPS, FedEx, DHL, Other
+  trackingNumber  String?
+  shippedAt       DateTime?
 
   // For audit/debug
   processingRule   String? // e.g. "US_2%_20c"
@@ -450,8 +453,11 @@ model PlatformConnection {
 model Deal {
   id String @id @default(cuid())
 
-  listingId String
-  listing   Listing @relation(fields: [listingId], references: [id])
+  listingId String?
+  listing   Listing? @relation(fields: [listingId], references: [id])
+
+  shopId String? // For shop-wide promotions
+  shop   Shop?   @relation(fields: [shopId], references: [id])
 
   // Deal details
   title         String // e.g., "20% Off Sale", "Flash Sale"
@@ -459,6 +465,9 @@ model Deal {
   discountType  String // "PERCENTAGE" or "FIXED_AMOUNT"
   discountValue Int // e.g., 20 for 20% or 500 for $5.00
   promoCode     String? @unique // Optional promo code (e.g., "SAVE20")
+
+  // Promotion type
+  promotionType String @default("LISTING") // "LISTING", "SHOP_WIDE", "ABANDONED_CART", "CUSTOM_CODE"
 
   // Timing
   startsAt DateTime
@@ -470,6 +479,10 @@ model Deal {
   currentUses      Int  @default(0) // Track how many times it's been used
   minPurchaseCents Int? // Minimum purchase amount to use this deal
 
+  // Abandoned cart specific
+  abandonedCartDelayHours Int? // Hours to wait before sending abandoned cart offer (e.g., 24)
+  abandonedCartEmailSent  Boolean @default(false) // Track if email was sent
+
   // Display
   badgeText  String? // e.g., "Limited Time", "Flash Sale"
   badgeColor String? // e.g., "red", "green", "purple"
@@ -478,7 +491,9 @@ model Deal {
   updatedAt DateTime @updatedAt
 
   @@index([listingId])
+  @@index([shopId])
   @@index([isActive, endsAt])
   @@index([promoCode])
   @@index([startsAt, endsAt])
+  @@index([promotionType])
 }
