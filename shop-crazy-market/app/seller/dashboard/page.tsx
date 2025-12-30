@@ -320,54 +320,31 @@ function SellerDashboard() {
         </div>
       </div>
 
-      {/* STRIPE CONNECT STATUS */}
-      {stripeConnectStatus && (
-        <div className={`rounded-xl shadow p-6 ${
-          stripeConnectStatus.enabled 
-            ? "bg-green-50 border-l-4 border-green-500" 
-            : "bg-red-50 border-l-4 border-red-500"
-        }`}>
+      {/* STRIPE CONNECT STATUS - Only show when NOT enabled */}
+      {stripeConnectStatus && !stripeConnectStatus.enabled && (
+        <div className="bg-red-50 border-l-4 border-red-500 rounded-xl shadow p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h2 className="font-accent text-2xl mb-2 flex items-center gap-2">
-                {stripeConnectStatus.enabled ? (
-                  <>
-                    <span>✅</span>
-                    <span>Stripe Connect Status: Enabled</span>
-                  </>
-                ) : (
-                  <>
-                    <span>⚠️</span>
-                    <span>Stripe Connect Status: Not Enabled</span>
-                  </>
-                )}
+                <span>⚠️</span>
+                <span>Stripe Connect Status: Not Enabled</span>
               </h2>
-              <p className={`text-sm mb-2 ${
-                stripeConnectStatus.enabled ? "text-green-700" : "text-red-700"
-              }`}>
+              <p className="text-sm mb-2 text-red-700">
                 {stripeConnectStatus.message}
               </p>
-              {stripeConnectStatus.enabled && stripeConnectStatus.accountId && (
-                <p className="text-xs text-gray-600">
-                  Account ID: {stripeConnectStatus.accountId}
-                  {stripeConnectStatus.country && ` • Country: ${stripeConnectStatus.country}`}
+              <div className="mt-3">
+                <p className="text-sm text-red-600 mb-2 font-semibold">
+                  To enable Stripe Connect:
                 </p>
-              )}
-              {!stripeConnectStatus.enabled && (
-                <div className="mt-3">
-                  <p className="text-sm text-red-600 mb-2 font-semibold">
-                    To enable Stripe Connect:
-                  </p>
-                  <ol className="list-decimal list-inside text-sm text-red-600 space-y-1">
-                    <li>Go to <a href="https://dashboard.stripe.com/settings/connect" target="_blank" rel="noopener noreferrer" className="underline">Stripe Dashboard → Settings → Connect</a></li>
-                    <li>Enable Stripe Connect</li>
-                    <li>Complete the Connect setup process</li>
-                  </ol>
-                  <p className="text-xs text-gray-500 mt-3">
-                    Learn more: <a href="https://stripe.com/docs/connect" target="_blank" rel="noopener noreferrer" className="underline">https://stripe.com/docs/connect</a>
-                  </p>
-                </div>
-              )}
+                <ol className="list-decimal list-inside text-sm text-red-600 space-y-1">
+                  <li>Go to <a href="https://dashboard.stripe.com/settings/connect" target="_blank" rel="noopener noreferrer" className="underline">Stripe Dashboard → Settings → Connect</a></li>
+                  <li>Enable Stripe Connect</li>
+                  <li>Complete the Connect setup process</li>
+                </ol>
+                <p className="text-xs text-gray-500 mt-3">
+                  Learn more: <a href="https://stripe.com/docs/connect" target="_blank" rel="noopener noreferrer" className="underline">https://stripe.com/docs/connect</a>
+                </p>
+              </div>
             </div>
             <button
               onClick={checkStripeConnectStatus}
