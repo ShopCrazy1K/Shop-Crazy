@@ -61,9 +61,31 @@ if (process.env.DATABASE_URL) {
 }
 
 const { withSentryConfig } = require("@sentry/nextjs");
+const withPWA = require("next-pwa")({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === "development", // Disable PWA in development
+  runtimeCaching: [
+    {
+      urlPattern: /^https?.*/,
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "offlineCache",
+        expiration: {
+          maxEntries: 200,
+        },
+      },
+    },
+  ],
+});
 
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    domains: [],
+    unoptimized: false,
+  },
 }
 
 // Only add Sentry if DSN is configured
@@ -83,8 +105,10 @@ const sentryWebpackPluginOptions = {
   disableLogger: true,
 };
 
-// Export the config with Sentry if DSN is available, otherwise export without
-module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN
-  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
-  : nextConfig;
+// Export the config with PWA and Sentry if DSN is available
+let config = withPWA(nextConfig);
+config = process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN
+  ? withSentryConfig(config, sentryWebpackPluginOptions)
+  : config;
+module.exports = config;
 

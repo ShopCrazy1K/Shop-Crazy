@@ -38,4 +38,12 @@ next-env.d.ts
 # prisma
 prisma/migrations
 
+# PWA
+public/sw.js
+public/workbox-*.js
+public/worker-*.js
+public/sw.js.map
+public/workbox-*.js.map
+public/worker-*.js.map
+
 dj-pro-software/

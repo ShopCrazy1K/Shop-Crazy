@@ -9,15 +9,36 @@ import ChristmasDecorations from "@/components/ChristmasDecorations";
 import NewYearDecorations from "@/components/NewYearDecorations";
 import WinterDecorations from "@/components/WinterDecorations";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import MobileMetaTags from "@/components/MobileMetaTags";
 
 export const metadata = {
   title: "Shop Crazy Market",
-  description: "Where the deals get crazy",
+  description: "Where the deals get crazy - Your one-stop shop for unique items, digital products, and more",
   viewport: {
     width: "device-width",
     initialScale: 1,
     maximumScale: 5,
     userScalable: true,
+  },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Shop Crazy Market",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Shop Crazy Market",
+    title: "Shop Crazy Market",
+    description: "Where the deals get crazy",
+  },
+  twitter: {
+    card: "summary",
+    title: "Shop Crazy Market",
+    description: "Where the deals get crazy",
   },
 };
 
@@ -25,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <MobileMetaTags />
         <ErrorBoundary>
           <ThemeProvider>
             <AuthProvider>
@@ -44,4 +66,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
-
