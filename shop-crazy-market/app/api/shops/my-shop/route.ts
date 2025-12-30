@@ -10,7 +10,8 @@ export const runtime = 'nodejs';
  */
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    // Try to get userId from header first, then from query params (for compatibility)
+    const userId = req.headers.get("x-user-id") || new URL(req.url).searchParams.get("userId");
     if (!userId) {
       return NextResponse.json(
         { error: "Authentication required" },

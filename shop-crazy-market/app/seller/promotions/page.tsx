@@ -68,7 +68,8 @@ export default function PromotionsPage() {
   async function fetchShop() {
     if (!user) return;
     try {
-      const response = await fetch("/api/shops/my-shop", {
+      // Use query param as fallback for compatibility
+      const response = await fetch(`/api/shops/my-shop?userId=${user.id}`, {
         headers: {
           "x-user-id": user.id,
         },
@@ -78,6 +79,9 @@ export default function PromotionsPage() {
         if (data.shop?.id) {
           setShopId(data.shop.id);
         }
+      } else {
+        const errorData = await response.json();
+        console.error("Error fetching shop:", errorData);
       }
     } catch (error) {
       console.error("Error fetching shop:", error);
