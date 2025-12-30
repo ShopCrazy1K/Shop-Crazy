@@ -5,6 +5,58 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 /**
+ * GET /api/deals/[id]
+ * Get a specific deal
+ */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    const deal = await prisma.deal.findUnique({
+      where: { id },
+      include: {
+        listing: {
+          include: {
+            seller: {
+              select: {
+                id: true,
+                username: true,
+                email: true,
+              },
+            },
+          },
+        },
+        shop: {
+          select: {
+            id: true,
+            name: true,
+            ownerId: true,
+          },
+        },
+      },
+    });
+
+    if (!deal) {
+      return NextResponse.json(
+        { error: "Deal not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(deal);
+  } catch (error: any) {
+    console.error("[API DEALS] Error fetching deal:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to fetch deal" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * PATCH /api/deals/[id]
  * Update a deal (e.g., toggle active status)
  */
