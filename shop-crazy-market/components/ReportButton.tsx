@@ -3,10 +3,11 @@
 import { useState } from "react";
 
 interface ReportButtonProps {
-  productId: string;
+  productId?: string;
+  listingId?: string;
 }
 
-export default function ReportButton({ productId }: ReportButtonProps) {
+export default function ReportButton({ productId, listingId }: ReportButtonProps) {
   const [showModal, setShowModal] = useState(false);
   const [email, setEmail] = useState("");
   const [reason, setReason] = useState("");
@@ -25,7 +26,12 @@ export default function ReportButton({ productId }: ReportButtonProps) {
       const response = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId, reporterEmail: email, reason }),
+        body: JSON.stringify({ 
+          productId, 
+          listingId,
+          reporterEmail: email, 
+          reason 
+        }),
       });
 
       if (response.ok) {
@@ -51,9 +57,10 @@ export default function ReportButton({ productId }: ReportButtonProps) {
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="text-sm text-red-600 underline hover:text-red-700"
+        className="text-sm text-red-600 hover:text-red-700 underline transition-colors"
+        title="Report this item for copyright violation or other issues"
       >
-        Report Copyright Violation
+        🚩 Report This Item
       </button>
 
       {showModal && (

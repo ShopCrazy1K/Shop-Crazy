@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import DealBadge from "@/components/DealBadge";
+import ReportButton from "@/components/ReportButton";
 
 interface Listing {
   id: string;
@@ -856,6 +857,20 @@ export default function ListingPage() {
                   >
                     💬 Message Seller
                   </Link>
+                )}
+                
+                {/* Report Button - Show for all users except the seller */}
+                {user && user.id !== listing.seller.id && (
+                  <div className="mt-2">
+                    <ReportButton listingId={listingId} />
+                  </div>
+                )}
+                
+                {/* Report Button for non-logged-in users */}
+                {!user && (
+                  <div className="mt-2">
+                    <ReportButton listingId={listingId} />
+                  </div>
                 )}
               </div>
 
