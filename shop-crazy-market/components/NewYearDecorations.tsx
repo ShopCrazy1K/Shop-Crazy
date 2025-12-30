@@ -67,7 +67,7 @@ export default function NewYearDecorations() {
           animationDuration: `${3 + Math.random() * 4}s`,
           fontSize: `${15 + Math.random() * 15}px`,
           pointerEvents: 'none',
-          zIndex: 1,
+          zIndex: isNewYearsDay ? 99997 : 1,
         }}
       >
         {emojis[Math.floor(Math.random() * emojis.length)]}
@@ -88,7 +88,7 @@ export default function NewYearDecorations() {
           animationDelay: `${Math.random() * 2}s`,
           animationDuration: `${1.5 + Math.random() * 1.5}s`,
           pointerEvents: 'none',
-          zIndex: 1,
+          zIndex: isNewYearsDay ? 99996 : 1,
         }}
       >
         ✨
@@ -97,7 +97,7 @@ export default function NewYearDecorations() {
   });
 
   return (
-    <>
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 999999 }}>
       {confetti}
       {sparkles}
       {/* Party poppers */}
@@ -105,7 +105,7 @@ export default function NewYearDecorations() {
         className="fixed top-20 left-10 text-5xl opacity-70 pointer-events-none"
         style={{
           animation: "party-pop 2s ease-in-out infinite",
-          zIndex: 1,
+          zIndex: isNewYearsDay ? 99995 : 1,
         }}
       >
         🎊
@@ -114,7 +114,7 @@ export default function NewYearDecorations() {
         className="fixed top-32 right-16 text-4xl opacity-60 pointer-events-none"
         style={{
           animation: "party-pop 2.5s ease-in-out infinite",
-          zIndex: 1,
+          zIndex: isNewYearsDay ? 99995 : 1,
         }}
       >
         🎉
@@ -147,7 +147,7 @@ export default function NewYearDecorations() {
                   ...pos,
                   animation: `new-year-firework ${2 + Math.random() * 2}s ease-in-out infinite`,
                   animationDelay: `${i * 0.4}s`,
-                  zIndex: 9999,
+                  zIndex: 99999,
                   fontSize: `${35 + Math.random() * 25}px`,
                 }}
               >
@@ -166,7 +166,7 @@ export default function NewYearDecorations() {
                 left: `${Math.random() * 100}%`,
                 animation: `new-year-sparkle ${1.5 + Math.random() * 1.5}s ease-in-out infinite`,
                 animationDelay: `${Math.random() * 3}s`,
-                zIndex: 9998,
+                zIndex: 99998,
               }}
             >
               ✨
@@ -203,12 +203,12 @@ export default function NewYearDecorations() {
         className="fixed top-60 left-1/2 transform -translate-x-1/2 text-3xl opacity-60 pointer-events-none"
         style={{
           animation: "pulse-glow 2s ease-in-out infinite",
-          zIndex: 1,
+          zIndex: isNewYearsDay ? 99994 : 1,
         }}
       >
         🕐
       </div>
-    </>
+    </div>
   );
 }
 
