@@ -60,9 +60,31 @@ if (process.env.DATABASE_URL) {
   }
 }
 
+const { withSentryConfig } = require("@sentry/nextjs");
+
 const nextConfig = {
   reactStrictMode: true,
 }
 
-module.exports = nextConfig
+// Only add Sentry if DSN is configured
+const sentryWebpackPluginOptions = {
+  // For all available options, see:
+  // https://github.com/getsentry/sentry-webpack-plugin#options
+
+  // Suppresses source map uploading logs during build
+  silent: true,
+  
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  
+  // Only upload source maps in production
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+};
+
+// Export the config with Sentry if DSN is available, otherwise export without
+module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN
+  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
+  : nextConfig;
 
