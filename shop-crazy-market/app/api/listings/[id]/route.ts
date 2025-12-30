@@ -38,6 +38,11 @@ export async function GET(req: NextRequest, context: Ctx) {
               id: true,
               email: true,
               username: true,
+              shop: {
+                select: {
+                  id: true,
+                },
+              },
             },
           },
         },
@@ -74,6 +79,11 @@ export async function GET(req: NextRequest, context: Ctx) {
               id: true,
               email: true,
               username: true,
+              shop: {
+                select: {
+                  id: true,
+                },
+              },
             },
           },
         },
