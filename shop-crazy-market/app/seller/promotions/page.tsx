@@ -66,11 +66,18 @@ export default function PromotionsPage() {
   }, [shopId, selectedType]);
 
   async function fetchShop() {
+    if (!user) return;
     try {
-      const response = await fetch("/api/shops/my-shop");
+      const response = await fetch("/api/shops/my-shop", {
+        headers: {
+          "x-user-id": user.id,
+        },
+      });
       if (response.ok) {
         const data = await response.json();
-        setShopId(data.shop?.id || null);
+        if (data.shop?.id) {
+          setShopId(data.shop.id);
+        }
       }
     } catch (error) {
       console.error("Error fetching shop:", error);
