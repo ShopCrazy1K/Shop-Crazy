@@ -4,6 +4,18 @@ Allow: /favicon.ico
 Allow: /favicon-*.png
 Allow: /apple-touch-icon.png
 Allow: /android-chrome-*.png
+Allow: /sitemap.xml
+
+# Disallow admin and API routes
+Disallow: /api/
+Disallow: /admin/
+Disallow: /seller/
+
+# Allow public pages
+Allow: /marketplace
+Allow: /listings/
+Allow: /shop/
+Allow: /category/
 
 Sitemap: https://shopcrazymarket.com/sitemap.xml
 
