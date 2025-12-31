@@ -64,6 +64,18 @@ export const metadata = {
     card: "summary",
     title: "Shop Crazy Market",
     description: "Where the deals get crazy",
+    images: ["/favicon-96x96.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
