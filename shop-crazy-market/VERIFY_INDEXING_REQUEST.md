@@ -14,10 +14,11 @@
 - ✅ **"Request Indexing"** button (if you see this, you haven't requested yet)
 - ✅ **"Indexing requested"** or **"Requested"** (if you already requested it)
 
-**If you see "Indexing requested":**
+**If you see "Indexing requested" or "URL was added to a priority crawl queue":**
 - ✅ **You did it correctly!** 
 - Google will crawl your page within 24-48 hours
 - You're all set!
+- This message means Google received your request and queued it for priority crawling
 
 **If you see "Request Indexing" button:**
 - Click it now to request indexing
