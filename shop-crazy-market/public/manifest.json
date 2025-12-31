@@ -60,6 +60,57 @@
   ],
   "categories": ["shopping", "marketplace", "ecommerce"],
   "screenshots": [],
+  "splash_screens": [
+    {
+      "src": "/splash/iphone-6-7-8.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "iPhone 6/7/8"
+    },
+    {
+      "src": "/splash/iphone-6-7-8-plus.png",
+      "sizes": "1242x2208",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "iPhone 6/7/8 Plus"
+    },
+    {
+      "src": "/splash/iphone-x-xs.png",
+      "sizes": "1125x2436",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "iPhone X/XS"
+    },
+    {
+      "src": "/splash/iphone-xr.png",
+      "sizes": "828x1792",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "iPhone XR"
+    },
+    {
+      "src": "/splash/iphone-xs-max.png",
+      "sizes": "1242x2688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "iPhone XS Max"
+    },
+    {
+      "src": "/splash/ipad.png",
+      "sizes": "1536x2048",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "iPad"
+    },
+    {
+      "src": "/splash/ipad-pro.png",
+      "sizes": "2048x2732",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "iPad Pro"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Marketplace",

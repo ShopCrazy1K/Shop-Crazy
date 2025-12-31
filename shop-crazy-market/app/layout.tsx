@@ -101,8 +101,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" sizes="72x72" href="/icons/icon-72x72.png" />
         <link rel="apple-touch-icon" sizes="60x60" href="/icons/icon-60x60.png" />
         <link rel="apple-touch-icon" sizes="57x57" href="/icons/icon-57x57.png" />
-        {/* Manifest */}
-        <link rel="manifest" href="/site.webmanifest" />
+        {/* iOS Splash Screens - Apple Touch Startup Images */}
+        <link rel="apple-touch-startup-image" href="/splash/iphone-6-7-8.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
+        <link rel="apple-touch-startup-image" href="/splash/iphone-6-7-8-plus.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" />
+        <link rel="apple-touch-startup-image" href="/splash/iphone-x-xs.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
+        <link rel="apple-touch-startup-image" href="/splash/iphone-xr.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" />
+        <link rel="apple-touch-startup-image" href="/splash/iphone-xs-max.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" />
+        <link rel="apple-touch-startup-image" href="/splash/iphone-12-13.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" />
+        <link rel="apple-touch-startup-image" href="/splash/iphone-12-13-pro-max.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" />
+        <link rel="apple-touch-startup-image" href="/splash/ipad.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)" />
+        <link rel="apple-touch-startup-image" href="/splash/ipad-pro.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)" />
+        {/* Manifest - includes Android splash screens */}
+        <link rel="manifest" href="/manifest.json" />
         {/* Google Search Console verification - add your verification code if you have one */}
       </head>
       <body>

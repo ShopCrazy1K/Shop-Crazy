@@ -20,14 +20,23 @@ const iconSizes = [
 ];
 
 // Splash screen sizes: [width, height, filename]
+// iOS and Android splash screens
 const splashSizes = [
-  [750, 1334, 'iphone-6-7-8.png'],
-  [1242, 2208, 'iphone-6-7-8-plus.png'],
-  [1125, 2436, 'iphone-x-xs.png'],
-  [828, 1792, 'iphone-xr.png'],
-  [1242, 2688, 'iphone-xs-max.png'],
-  [1536, 2048, 'ipad.png'],
-  [2048, 2732, 'ipad-pro.png'],
+  // iPhone sizes
+  [750, 1334, 'iphone-6-7-8.png'],           // iPhone 6/7/8
+  [1242, 2208, 'iphone-6-7-8-plus.png'],     // iPhone 6/7/8 Plus
+  [1125, 2436, 'iphone-x-xs.png'],           // iPhone X/XS
+  [828, 1792, 'iphone-xr.png'],              // iPhone XR
+  [1242, 2688, 'iphone-xs-max.png'],         // iPhone XS Max
+  [1170, 2532, 'iphone-12-13.png'],          // iPhone 12/13
+  [1284, 2778, 'iphone-12-13-pro-max.png'],  // iPhone 12/13 Pro Max
+  [1290, 2796, 'iphone-14-pro-max.png'],     // iPhone 14 Pro Max
+  // iPad sizes
+  [1536, 2048, 'ipad.png'],                  // iPad
+  [2048, 2732, 'ipad-pro.png'],              // iPad Pro
+  // Android sizes (common)
+  [1080, 1920, 'android-1080x1920.png'],     // Android standard
+  [1440, 2560, 'android-1440x2560.png'],     // Android high-res
 ];
 
 async function generateIcons() {
