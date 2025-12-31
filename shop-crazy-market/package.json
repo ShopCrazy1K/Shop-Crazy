@@ -13,7 +13,8 @@
     "test:checkout": "bash scripts/test-checkout.sh",
     "test:security-headers": "bash scripts/test-security-headers.sh",
     "test:security": "npm run test:checkout && npm run test:security-headers",
-    "setup:postgres": "bash scripts/setup-postgres.sh"
+    "setup:postgres": "bash scripts/setup-postgres.sh",
+    "update-favicon": "bash scripts/update-favicon.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
