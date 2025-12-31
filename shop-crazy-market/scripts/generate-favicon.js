@@ -1,6 +1,7 @@
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
+const toIco = require('to-ico');
 
 const logoPath = path.join(__dirname, '../public/logo.png');
 const outputDir = path.join(__dirname, '../public');
@@ -45,22 +46,27 @@ async function generateFavicons() {
       console.log(`✅ Generated ${name} (${size}x${size})`);
     }
 
-    // Generate favicon.ico (multi-size ICO file)
-    // Note: sharp doesn't support ICO directly, so we'll create a 32x32 PNG and rename it
-    // Most browsers will accept a PNG as favicon.ico
-    await sharp(logoPath)
-      .resize(32, 32, {
-        fit: 'contain',
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-        kernel: sharp.kernel.lanczos3, // Better quality for small sizes
-      })
-      .png({
-        quality: 100,
-        compressionLevel: 9,
-        adaptiveFiltering: true,
-      })
-      .toFile(path.join(outputDir, 'favicon.ico'));
-    console.log('✅ Generated favicon.ico (32x32 PNG format)');
+    // Generate favicon.ico (real ICO file with multiple sizes for Safari and Google)
+    // Create multiple sizes for the ICO file
+    const icoSizes = [16, 32, 48];
+    const icoBuffers = [];
+    
+    for (const size of icoSizes) {
+      const buffer = await sharp(logoPath)
+        .resize(size, size, {
+          fit: 'contain',
+          background: { r: 0, g: 0, b: 0, alpha: 0 },
+          kernel: sharp.kernel.lanczos3,
+        })
+        .png()
+        .toBuffer();
+      icoBuffers.push(buffer);
+    }
+    
+    // Convert to real ICO format
+    const icoBuffer = await toIco(icoBuffers);
+    fs.writeFileSync(path.join(outputDir, 'favicon.ico'), icoBuffer);
+    console.log('✅ Generated favicon.ico (real ICO format with 16x16, 32x32, 48x48)');
 
     // Generate site.webmanifest entry
     const manifest = {

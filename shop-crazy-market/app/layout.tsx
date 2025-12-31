@@ -45,6 +45,20 @@ export const metadata = {
     siteName: "Shop Crazy Market",
     title: "Shop Crazy Market",
     description: "Where the deals get crazy",
+    images: [
+      {
+        url: "/favicon-96x96.png",
+        width: 96,
+        height: 96,
+        alt: "Shop Crazy Market Logo",
+      },
+      {
+        url: "/android-chrome-192x192.png",
+        width: 192,
+        height: 192,
+        alt: "Shop Crazy Market Logo",
+      },
+    ],
   },
   twitter: {
     card: "summary",
@@ -57,14 +71,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        {/* Safari favicon - must be first and use .ico */}
-        <link rel="shortcut icon" href="/favicon.ico" />
-        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
-        {/* Standard favicons */}
+        {/* Safari and Google favicon - must be first and use real .ico */}
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="any" />
+        <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+        {/* Standard favicons for other browsers */}
+        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
-        {/* Apple touch icons for Safari */}
+        {/* Apple touch icons for Safari iOS */}
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
         <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
@@ -76,6 +90,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" sizes="57x57" href="/icons/icon-57x57.png" />
         {/* Manifest */}
         <link rel="manifest" href="/site.webmanifest" />
+        {/* Google Search Console verification - add your verification code if you have one */}
       </head>
       <body>
         <MobileMetaTags />
