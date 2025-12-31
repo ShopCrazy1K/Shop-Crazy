@@ -28,14 +28,19 @@ async function generateFavicons() {
       process.exit(1);
     }
 
-    // Generate PNG favicons
+    // Generate PNG favicons with optimized settings for colorful logos
     for (const { size, name } of faviconSizes) {
       await sharp(logoPath)
         .resize(size, size, {
           fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 0 }, // Transparent background
+          background: { r: 0, g: 0, b: 0, alpha: 0 }, // Transparent background
+          kernel: sharp.kernel.lanczos3, // Better quality for small sizes
         })
-        .png()
+        .png({
+          quality: 100,
+          compressionLevel: 9,
+          adaptiveFiltering: true,
+        })
         .toFile(path.join(outputDir, name));
       console.log(`✅ Generated ${name} (${size}x${size})`);
     }
@@ -46,9 +51,14 @@ async function generateFavicons() {
     await sharp(logoPath)
       .resize(32, 32, {
         fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 0 },
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+        kernel: sharp.kernel.lanczos3, // Better quality for small sizes
       })
-      .png()
+      .png({
+        quality: 100,
+        compressionLevel: 9,
+        adaptiveFiltering: true,
+      })
       .toFile(path.join(outputDir, 'favicon.ico'));
     console.log('✅ Generated favicon.ico (32x32 PNG format)');
 
