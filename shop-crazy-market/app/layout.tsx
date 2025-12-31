@@ -22,9 +22,15 @@ export const metadata = {
   },
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
     shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   appleWebApp: {
     capable: true,
@@ -51,10 +57,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <link rel="manifest" href="/site.webmanifest" />
+        {/* Safari favicon - must be first and use .ico */}
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        {/* Standard favicons */}
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+        {/* Apple touch icons for Safari */}
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-120x120.png" />
+        <link rel="apple-touch-icon" sizes="114x114" href="/icons/icon-114x114.png" />
+        <link rel="apple-touch-icon" sizes="76x76" href="/icons/icon-76x76.png" />
+        <link rel="apple-touch-icon" sizes="72x72" href="/icons/icon-72x72.png" />
+        <link rel="apple-touch-icon" sizes="60x60" href="/icons/icon-60x60.png" />
+        <link rel="apple-touch-icon" sizes="57x57" href="/icons/icon-57x57.png" />
+        {/* Manifest */}
+        <link rel="manifest" href="/site.webmanifest" />
       </head>
       <body>
         <MobileMetaTags />
