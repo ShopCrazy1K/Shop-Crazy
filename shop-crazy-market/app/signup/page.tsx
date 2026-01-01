@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -12,8 +12,18 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
   const { signup } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Get referral code from URL
+    const ref = searchParams?.get("ref");
+    if (ref) {
+      setReferralCode(ref);
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,7 +42,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      await signup(email, password, username || undefined);
+      await signup(email, password, username || undefined, referralCode || undefined);
       router.push("/");
     } catch (err: any) {
       setError(err.message || "Signup failed");
@@ -105,6 +115,14 @@ export default function SignupPage() {
               placeholder="••••••••"
             />
           </div>
+
+          {referralCode && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+              <p className="text-sm text-green-800">
+                🎉 You're signing up with a referral code! The referrer will receive a $5 reward.
+              </p>
+            </div>
+          )}
 
           <button
             type="submit"

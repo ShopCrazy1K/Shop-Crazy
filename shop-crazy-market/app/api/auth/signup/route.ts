@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { createUser, getUserByEmail } from "@/lib/auth";
+import { processReferral, generateReferralCode } from "@/lib/referrals";
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const { email, username, password } = await req.json();
+    const { email, username, password, referralCode } = await req.json();
 
     // Validation
     if (!email || !password) {
@@ -37,6 +38,30 @@ export async function POST(req: Request) {
       username,
       password,
     });
+
+    // Process referral if code provided
+    if (referralCode && typeof referralCode === "string") {
+      try {
+        const referralResult = await processReferral(user.id, referralCode);
+        if (referralResult.success) {
+          console.log(`[SIGNUP] Referral processed for new user ${user.id}`);
+        } else {
+          console.log(`[SIGNUP] Referral processing failed: ${referralResult.error}`);
+          // Don't fail signup if referral fails
+        }
+      } catch (referralError) {
+        console.error("[SIGNUP] Error processing referral:", referralError);
+        // Don't fail signup if referral fails
+      }
+    }
+
+    // Generate referral code for the new user
+    try {
+      await generateReferralCode(user.id);
+    } catch (codeError) {
+      console.error("[SIGNUP] Error generating referral code:", codeError);
+      // Don't fail signup if code generation fails
+    }
 
     return NextResponse.json({
       success: true,

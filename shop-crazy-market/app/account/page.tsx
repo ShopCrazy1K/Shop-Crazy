@@ -11,6 +11,11 @@ export default function AccountPage() {
   const router = useRouter();
   const [storeCredit, setStoreCredit] = useState<number>(0);
   const [loadingCredit, setLoadingCredit] = useState(false);
+  const [referralCode, setReferralCode] = useState<string>("");
+  const [referralLink, setReferralLink] = useState<string>("");
+  const [referralStats, setReferralStats] = useState({ referralCount: 0, totalEarned: 0 });
+  const [loadingReferral, setLoadingReferral] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -20,6 +25,7 @@ export default function AccountPage() {
 
     if (user) {
       fetchStoreCredit();
+      fetchReferralInfo();
     }
   }, [user, authLoading, router]);
 
@@ -37,6 +43,30 @@ export default function AccountPage() {
     } finally {
       setLoadingCredit(false);
     }
+  }
+
+  async function fetchReferralInfo() {
+    if (!user?.id) return;
+    setLoadingReferral(true);
+    try {
+      const response = await fetch(`/api/referrals/code?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setReferralCode(data.referralCode || "");
+        setReferralLink(data.referralLink || "");
+        setReferralStats(data.stats || { referralCount: 0, totalEarned: 0 });
+      }
+    } catch (error) {
+      console.error("Error fetching referral info:", error);
+    } finally {
+      setLoadingReferral(false);
+    }
+  }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   if (authLoading) {
@@ -118,6 +148,77 @@ export default function AccountPage() {
               </span>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Referral Program Section */}
+      <section className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0 max-w-2xl mx-auto">
+        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center">Referral Program</h2>
+        
+        <div className="space-y-4">
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border-2 border-purple-200">
+            <p className="text-sm sm:text-base text-gray-700 mb-4">
+              💰 <strong>Earn $5</strong> in store credit for every friend you refer! Share your unique referral link and get rewarded when they sign up.
+            </p>
+          </div>
+
+          {loadingReferral ? (
+            <div className="text-center py-4 text-gray-500">Loading referral info...</div>
+          ) : (
+            <>
+              {/* Referral Code */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">Your Referral Code</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={referralCode}
+                    readOnly
+                    className="flex-1 px-4 py-2 border-2 border-purple-300 rounded-lg font-mono font-bold text-lg bg-white"
+                  />
+                  <button
+                    onClick={() => copyToClipboard(referralCode)}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                  >
+                    {copied ? "✓ Copied!" : "Copy"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Referral Link */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">Your Referral Link</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={referralLink}
+                    readOnly
+                    className="flex-1 px-4 py-2 border-2 border-purple-300 rounded-lg text-sm bg-white truncate"
+                  />
+                  <button
+                    onClick={() => copyToClipboard(referralLink)}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors whitespace-nowrap"
+                  >
+                    {copied ? "✓ Copied!" : "Copy Link"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Referral Stats */}
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="bg-white rounded-lg p-4 border-2 border-green-200">
+                  <p className="text-sm text-gray-600">Total Referrals</p>
+                  <p className="text-2xl font-bold text-green-600">{referralStats.referralCount}</p>
+                </div>
+                <div className="bg-white rounded-lg p-4 border-2 border-yellow-200">
+                  <p className="text-sm text-gray-600">Total Earned</p>
+                  <p className="text-2xl font-bold text-yellow-600">
+                    ${(referralStats.totalEarned / 100).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </section>
     </main>

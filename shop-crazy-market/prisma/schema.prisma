@@ -52,6 +52,12 @@ model User {
   // Store Credit
   storeCredit            Int      @default(0) // Stored in cents (500 = $5.00)
 
+  // Referral System
+  referralCode           String?  @unique // Unique referral code for this user
+  referredBy             String?  // User ID who referred this user
+  referredByUser         User?    @relation("Referrals", fields: [referredBy], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  referrals              User[]   @relation("Referrals") // Users referred by this user
+
   // Etsy-style relationships
   shop            Shop?
   buyerOrders     Order[]        @relation("BuyerOrders") // Orders as a buyer
