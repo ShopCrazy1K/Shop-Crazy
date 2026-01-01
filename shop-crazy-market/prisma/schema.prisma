@@ -525,3 +525,27 @@ model Deal {
   @@index([startsAt, endsAt])
   @@index([promotionType])
 }
+
+//////////////////////////////////////
+// CREDIT LEDGER
+//////////////////////////////////////
+
+model CreditLedger {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  sellerId  String?  // If seller-funded, track which seller
+  seller    User?    @relation("SellerCredits", fields: [sellerId], references: [id])
+  
+  funder    String   // "PLATFORM" or "SELLER"
+  reason    String   // e.g. "REFUND", "PROMOTION", "WELCOME_BONUS"
+  amount    Int      // cents
+  
+  expiresAt DateTime? // Optional expiration date
+  
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([sellerId])
+}
