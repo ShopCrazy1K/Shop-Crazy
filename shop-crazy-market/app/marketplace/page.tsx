@@ -538,7 +538,14 @@ function MarketplaceContent() {
                         </div>
                         
                         {/* Badges */}
-                        <div className="absolute top-2 left-2 flex flex-col gap-1">
+                        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                          {product.activeDeal && (
+                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded font-bold shadow-lg">
+                              🔥 {product.activeDeal.discountType === "PERCENTAGE" 
+                                ? `${product.activeDeal.discountValue}% OFF`
+                                : `$${(product.activeDeal.discountValue / 100).toFixed(2)} OFF`}
+                            </span>
+                          )}
                           {product.type === "DIGITAL" && (
                             <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded font-semibold">
                               💾 Digital
@@ -598,9 +605,36 @@ function MarketplaceContent() {
                         )}
 
                         {/* Price */}
-                        <p className="text-lg font-bold text-gray-900">
-                          ${(product.price / 100).toFixed(2)}
-                        </p>
+                        {product.activeDeal ? (
+                          <div>
+                            <div className="flex items-baseline gap-2">
+                              <p className="text-lg font-bold text-red-600">
+                                ${(() => {
+                                  const discountCents = product.activeDeal!.discountType === "PERCENTAGE"
+                                    ? Math.round((product.price * product.activeDeal!.discountValue) / 100)
+                                    : product.activeDeal!.discountValue;
+                                  const discountedPrice = product.price - discountCents;
+                                  return (discountedPrice / 100).toFixed(2);
+                                })()}
+                              </p>
+                              <p className="text-sm text-gray-400 line-through">
+                                ${(product.price / 100).toFixed(2)}
+                              </p>
+                            </div>
+                            <p className="text-xs text-red-600 font-semibold">
+                              Save ${(() => {
+                                const discountCents = product.activeDeal!.discountType === "PERCENTAGE"
+                                  ? Math.round((product.price * product.activeDeal!.discountValue) / 100)
+                                  : product.activeDeal!.discountValue;
+                                return (discountCents / 100).toFixed(2);
+                              })()}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-lg font-bold text-gray-900">
+                            ${(product.price / 100).toFixed(2)}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </Link>
