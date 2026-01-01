@@ -26,12 +26,71 @@ export async function GET() {
         priceCents: true,
         images: true,
         slug: true,
+        seller: {
+          select: {
+            shop: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
       },
     });
 
+    // Fetch active deals for each listing
+    const now = new Date();
+    const listingsWithDeals = await Promise.all(
+      listings.map(async (listing) => {
+        const shopId = listing.seller?.shop?.id;
+        
+        // Build where clause to find applicable deals
+        const whereClause: any = {
+          isActive: true,
+          startsAt: { lte: now },
+          endsAt: { gte: now },
+          OR: [
+            { listingId: listing.id },
+          ],
+        };
+
+        // Add shop-wide deals if shop exists
+        if (shopId) {
+          whereClause.OR.push({
+            shopId: shopId,
+            listingId: null,
+            promotionType: "SHOP_WIDE",
+          });
+        }
+
+        // Get the best deal (highest discount)
+        const deals = await prisma.deal.findMany({
+          where: whereClause,
+          orderBy: {
+            discountValue: "desc",
+          },
+          take: 1, // Only get the best deal
+          select: {
+            id: true,
+            title: true,
+            discountType: true,
+            discountValue: true,
+            badgeText: true,
+            badgeColor: true,
+            endsAt: true,
+          },
+        });
+
+        return {
+          ...listing,
+          activeDeal: deals.length > 0 ? deals[0] : null,
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      listings,
+      listings: listingsWithDeals,
     });
   } catch (error: any) {
     console.error("Error fetching featured listings:", error);

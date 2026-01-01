@@ -13,6 +13,15 @@ interface FeaturedListing {
   priceCents: number;
   images: string[];
   slug: string;
+  activeDeal?: {
+    id: string;
+    title: string;
+    discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+    discountValue: number;
+    badgeText?: string | null;
+    badgeColor?: string | null;
+    endsAt: string;
+  } | null;
 }
 
 export default function HomePage() {
@@ -122,27 +131,65 @@ export default function HomePage() {
           </div>
         ) : featuredListings.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {featuredListings.slice(0, 4).map((listing) => (
-              <Link key={listing.id} href={`/listings/${listing.id}`}>
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 text-center hover:scale-105 transition-transform shadow-md cursor-pointer border-2 border-transparent hover:border-purple-300">
-                  {listing.images && listing.images.length > 0 ? (
-                    <img
-                      src={listing.images[0]}
-                      alt={listing.title}
-                      className="w-full h-24 object-cover rounded-lg mb-2"
-                    />
-                  ) : (
-                    <div className="w-full h-24 bg-gray-200 rounded-lg mb-2 flex items-center justify-center text-4xl">
-                      📦
-                    </div>
-                  )}
-                  <div className="font-bold text-sm mb-1 line-clamp-2">{listing.title}</div>
-                  <div className="text-purple-600 font-semibold">
-                    ${(listing.priceCents / 100).toFixed(2)}
+            {featuredListings.slice(0, 4).map((listing) => {
+              const discountCents = listing.activeDeal
+                ? listing.activeDeal.discountType === "PERCENTAGE"
+                  ? Math.round((listing.priceCents * listing.activeDeal.discountValue) / 100)
+                  : listing.activeDeal.discountValue
+                : 0;
+              const discountedPrice = listing.priceCents - discountCents;
+
+              return (
+                <Link key={listing.id} href={`/listings/${listing.id}`}>
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 text-center hover:scale-105 transition-transform shadow-md cursor-pointer border-2 border-transparent hover:border-purple-300 relative">
+                    {/* Discount Badge */}
+                    {listing.activeDeal && (
+                      <div className="absolute top-2 left-2 z-10">
+                        <span className="bg-red-500 text-white text-xs px-2 py-1 rounded font-bold shadow-lg">
+                          🔥 {listing.activeDeal.discountType === "PERCENTAGE" 
+                            ? `${listing.activeDeal.discountValue}% OFF`
+                            : `$${(listing.activeDeal.discountValue / 100).toFixed(2)} OFF`}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {listing.images && listing.images.length > 0 ? (
+                      <img
+                        src={listing.images[0]}
+                        alt={listing.title}
+                        className="w-full h-24 object-cover rounded-lg mb-2"
+                      />
+                    ) : (
+                      <div className="w-full h-24 bg-gray-200 rounded-lg mb-2 flex items-center justify-center text-4xl">
+                        📦
+                      </div>
+                    )}
+                    <div className="font-bold text-sm mb-1 line-clamp-2">{listing.title}</div>
+                    
+                    {/* Price Display */}
+                    {listing.activeDeal ? (
+                      <div>
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="text-red-600 font-bold text-sm">
+                            ${(discountedPrice / 100).toFixed(2)}
+                          </span>
+                          <span className="text-gray-400 line-through text-xs">
+                            ${(listing.priceCents / 100).toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-red-600 font-semibold mt-0.5">
+                          Save ${(discountCents / 100).toFixed(2)}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-purple-600 font-semibold">
+                        ${(listing.priceCents / 100).toFixed(2)}
+                      </div>
+                    )}
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
