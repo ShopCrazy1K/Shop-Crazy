@@ -108,13 +108,20 @@ export default function PromotionsPage() {
     if (!shopId) return;
     try {
       setLoading(true);
-      const url = selectedType === "all" 
+      const baseUrl = selectedType === "all" 
         ? `/api/shops/${shopId}/promotions`
         : `/api/shops/${shopId}/promotions?type=${selectedType}`;
-      const response = await fetch(url);
+      // Add cache busting to ensure fresh data after updates
+      const url = `${baseUrl}${selectedType === "all" ? "?" : "&"}_=${Date.now()}`;
+      const response = await fetch(url, {
+        cache: 'no-store',
+      });
       if (response.ok) {
         const data = await response.json();
+        console.log("[PROMOTIONS] Fetched promotions:", data.length);
         setPromotions(data);
+      } else {
+        console.error("[PROMOTIONS] Failed to fetch:", response.status);
       }
     } catch (error) {
       console.error("Error fetching promotions:", error);
