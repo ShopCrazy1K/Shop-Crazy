@@ -212,17 +212,22 @@ export async function PATCH(
       }
     }
 
+    // Use update to replace the deal data (updates in place, doesn't create new)
     const updated = await prisma.deal.update({
       where: { id },
       data: updateData,
     });
 
-    console.log("[API DEALS] Updated deal:", {
+    console.log("[API DEALS] Updated deal (replaced old data):", {
       id: updated.id,
       title: updated.title,
       isActive: updated.isActive,
+      discountValue: updated.discountValue,
+      startsAt: updated.startsAt.toISOString(),
+      endsAt: updated.endsAt.toISOString(),
     });
 
+    // Return the updated deal (same ID, updated data)
     return NextResponse.json(updated);
   } catch (error: any) {
     console.error("Error updating deal:", error);

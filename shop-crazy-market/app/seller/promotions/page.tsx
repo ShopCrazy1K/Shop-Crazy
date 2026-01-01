@@ -278,23 +278,30 @@ export default function PromotionsPage() {
 
     setSaving(true);
     try {
+      // Ensure we update ALL fields to replace the old promotion completely
       const payload = {
-        ...formData,
+        title: formData.title,
+        description: formData.description || null,
+        discountType: formData.discountType,
         discountValue: parseInt(formData.discountValue.toString()),
         promoCode: formData.promoCode || null,
+        startsAt: new Date(formData.startsAt).toISOString(),
+        endsAt: new Date(formData.endsAt).toISOString(),
         maxUses: formData.maxUses ? parseInt(formData.maxUses) : null,
         minPurchaseCents: formData.minPurchaseCents
           ? Math.round(parseFloat(formData.minPurchaseCents) * 100)
           : null,
-        startsAt: new Date(formData.startsAt).toISOString(),
-        endsAt: new Date(formData.endsAt).toISOString(),
         badgeText: formData.badgeText || null,
         badgeColor: formData.badgeColor || null,
         abandonedCartDelayHours: formData.abandonedCartDelayHours
           ? parseInt(formData.abandonedCartDelayHours)
           : null,
         listingId: formData.listingId || null,
+        // Keep the same promotion type and shopId (cannot be changed)
+        // isActive is preserved unless explicitly changed via toggle
       };
+
+      console.log("[PROMOTIONS] Updating promotion:", editingPromotion.id, payload);
 
       const response = await fetch(`/api/deals/${editingPromotion.id}?userId=${user.id}`, {
         method: "PATCH",
@@ -303,13 +310,21 @@ export default function PromotionsPage() {
       });
 
       if (response.ok) {
+        const updatedPromotion = await response.json();
+        console.log("[PROMOTIONS] Promotion updated successfully:", updatedPromotion.id);
+        
+        // Clear form and refresh list
         setShowCreateForm(false);
         setEditingPromotion(null);
         resetForm();
-        fetchPromotions();
-        alert("Promotion updated successfully!");
+        
+        // Force refresh promotions list to show updated data
+        await fetchPromotions();
+        
+        alert("Promotion updated successfully! The old version has been replaced.");
       } else {
         const data = await response.json();
+        console.error("[PROMOTIONS] Update failed:", data);
         alert(data.error || "Failed to update promotion");
       }
     } catch (error) {
