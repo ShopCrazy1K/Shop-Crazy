@@ -9,9 +9,22 @@ datasource db {
 }
 
 //////////////////////////////////////
-// ENUMS (using String type for compatibility)
-// Note: Use string values "USER", "ADMIN", etc. in code
+// ENUMS
 //////////////////////////////////////
+
+enum RefundType {
+  CREDIT
+  CASH
+}
+
+enum RefundStatus {
+  NONE
+  REQUESTED
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
 
 //////////////////////////////////////
 // USER
@@ -259,6 +272,13 @@ model Order {
   stripePaymentIntent String?
 
   paymentStatus String @default("pending") // pending, paid, failed, refunded
+
+  // Refund fields
+  refundType      RefundType?
+  refundStatus    RefundStatus @default(NONE)
+  refundAmount    Int          @default(0) // cents
+  refundReason    String?
+  refundedAt      DateTime?
 
   // Shipping & Tracking
   shippingStatus  String? // processing, shipped, delivered
