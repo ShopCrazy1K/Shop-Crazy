@@ -119,11 +119,40 @@ export async function POST(
       );
     }
 
+    // Validate listingId if promotionType is LISTING
+    if (promotionType === "LISTING" && listingId) {
+      // Verify the listing belongs to this shop
+      const listing = await prisma.listing.findUnique({
+        where: { id: listingId },
+        include: {
+          seller: {
+            include: {
+              shop: true,
+            },
+          },
+        },
+      });
+
+      if (!listing) {
+        return NextResponse.json(
+          { error: "Listing not found" },
+          { status: 404 }
+        );
+      }
+
+      if (listing.seller.shop?.id !== shopId) {
+        return NextResponse.json(
+          { error: "Listing does not belong to this shop" },
+          { status: 403 }
+        );
+      }
+    }
+
     // Create promotion
     const promotion = await prisma.deal.create({
       data: {
         shopId,
-        listingId: listingId || null,
+        listingId: promotionType === "LISTING" ? listingId : null,
         title,
         description: description || null,
         discountType,
@@ -137,7 +166,19 @@ export async function POST(
         badgeText: badgeText || null,
         badgeColor: badgeColor || null,
         abandonedCartDelayHours: abandonedCartDelayHours ? parseInt(abandonedCartDelayHours.toString()) : null,
+        isActive: true, // Promotions are active by default
       },
+    });
+
+    console.log("[API SHOPS PROMOTIONS] Created promotion:", {
+      id: promotion.id,
+      title: promotion.title,
+      promotionType: promotion.promotionType,
+      listingId: promotion.listingId,
+      shopId: promotion.shopId,
+      isActive: promotion.isActive,
+      startsAt: promotion.startsAt.toISOString(),
+      endsAt: promotion.endsAt.toISOString(),
     });
 
     return NextResponse.json(promotion, { status: 201 });

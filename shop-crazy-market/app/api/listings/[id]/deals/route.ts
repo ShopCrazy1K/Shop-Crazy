@@ -27,16 +27,81 @@ export async function GET(req: NextRequest, context: Ctx) {
     const { id: listingId } = await context.params;
     const now = new Date();
 
-    const deals = await prisma.deal.findMany({
-      where: {
-        listingId,
-        isActive: true,
-        startsAt: { lte: now },
-        endsAt: { gte: now },
+    console.log("[API LISTINGS DEALS] Fetching deals for listing:", listingId);
+    console.log("[API LISTINGS DEALS] Current time:", now.toISOString());
+
+    // Fetch deals that apply to this listing:
+    // 1. Direct listing deals (listingId matches)
+    // 2. Shop-wide deals (shopId matches, listingId is null)
+    // Both must be active and within date range
+    
+    // First, get the listing to find its shop
+    const listing = await prisma.listing.findUnique({
+      where: { id: listingId },
+      select: { 
+        sellerId: true,
+        seller: {
+          select: {
+            shop: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
       },
+    });
+
+    if (!listing) {
+      return NextResponse.json(
+        { error: "Listing not found" },
+        { status: 404 }
+      );
+    }
+
+    const shopId = listing.seller?.shop?.id;
+
+    // Build where clause to find applicable deals
+    const whereClause: any = {
+      isActive: true,
+      startsAt: { lte: now },
+      endsAt: { gte: now },
+      OR: [
+        // Direct listing deals
+        { listingId: listingId },
+      ],
+    };
+
+    // Add shop-wide deals if shop exists
+    if (shopId) {
+      whereClause.OR.push({
+        shopId: shopId,
+        listingId: null, // Shop-wide deals have null listingId
+        promotionType: "SHOP_WIDE",
+      });
+    }
+
+    console.log("[API LISTINGS DEALS] Where clause:", JSON.stringify(whereClause, null, 2));
+
+    const deals = await prisma.deal.findMany({
+      where: whereClause,
       orderBy: {
         discountValue: "desc", // Show best deals first
       },
+    });
+
+    console.log("[API LISTINGS DEALS] Found deals:", deals.length);
+    deals.forEach((deal, index) => {
+      console.log(`[API LISTINGS DEALS] Deal ${index + 1}:`, {
+        id: deal.id,
+        title: deal.title,
+        listingId: deal.listingId,
+        shopId: deal.shopId,
+        promotionType: deal.promotionType,
+        isActive: deal.isActive,
+        startsAt: deal.startsAt.toISOString(),
+        endsAt: deal.endsAt.toISOString(),
+      });
     });
 
     return NextResponse.json(deals);
