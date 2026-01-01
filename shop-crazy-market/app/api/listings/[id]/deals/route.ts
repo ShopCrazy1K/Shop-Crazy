@@ -81,12 +81,6 @@ export async function GET(req: NextRequest, context: Ctx) {
       });
     }
 
-    // Also include LISTING type promotions that have this listingId
-    // (in case they were created with both shopId and listingId)
-    whereClause.OR.push({
-      listingId: listingId,
-      promotionType: "LISTING",
-    });
 
     console.log("[API LISTINGS DEALS] Where clause:", JSON.stringify(whereClause, null, 2));
 
