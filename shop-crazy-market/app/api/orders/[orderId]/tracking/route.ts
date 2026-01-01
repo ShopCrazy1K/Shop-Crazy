@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { awardFirstOrderCredit } from "@/lib/store-credit";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -31,7 +32,9 @@ export async function PUT(
       select: {
         id: true,
         sellerId: true,
+        userId: true,
         paymentStatus: true,
+        shippingStatus: true,
         shippedAt: true,
       },
     });
@@ -81,6 +84,19 @@ export async function PUT(
         },
       },
     });
+
+    // Award welcome credit if order is marked as delivered and user has completed their first order
+    if (shippingStatus === "delivered" && order.userId && order.paymentStatus === "paid") {
+      // Check if this is the first time this order is being marked as delivered
+      if (order.shippingStatus !== "delivered") {
+        try {
+          await awardFirstOrderCredit(order.userId);
+        } catch (error) {
+          console.error("Error awarding first order credit:", error);
+          // Don't fail the request if credit awarding fails
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
