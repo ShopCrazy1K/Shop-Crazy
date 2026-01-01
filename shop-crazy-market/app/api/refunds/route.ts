@@ -57,10 +57,17 @@ export async function POST(req: Request) {
       },
     });
 
-    // Update order payment status
+    // Update order with refund information
     await prisma.order.update({
       where: { id: orderId },
-      data: { paymentStatus: "refunded" },
+      data: {
+        paymentStatus: "refunded",
+        refundType: "CASH", // Default to cash refund via Stripe
+        refundStatus: "COMPLETED",
+        refundAmount: refundAmount,
+        refundReason: reason || null,
+        refundedAt: new Date(),
+      },
     });
 
     return NextResponse.json({
