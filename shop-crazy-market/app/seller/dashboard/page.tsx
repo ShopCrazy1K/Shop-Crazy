@@ -575,6 +575,18 @@ function SellerDashboard() {
         <h2 className="font-accent text-2xl mb-4">Quick Links</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <Link
+            href="/seller/refunds"
+            className="bg-yellow-100 hover:bg-yellow-200 rounded-lg p-4 text-center transition-colors relative"
+          >
+            {refundCount > 0 && (
+              <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                {refundCount}
+              </span>
+            )}
+            <div className="text-2xl mb-1">💰</div>
+            <div className="font-semibold text-sm">Refunds</div>
+          </Link>
+          <Link
             href="/seller/promotions"
             className="bg-purple-100 hover:bg-purple-200 rounded-lg p-4 text-center transition-colors"
           >

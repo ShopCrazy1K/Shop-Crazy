@@ -34,12 +34,14 @@ export async function POST(req: Request) {
         id: true,
         userId: true,
         sellerId: true,
+        buyerEmail: true,
         paymentStatus: true,
         shippingStatus: true,
         orderTotalCents: true,
         storeCreditUsedCents: true,
         refundStatus: true,
         refundType: true,
+        createdAt: true,
       },
     });
 
@@ -207,7 +209,7 @@ export async function POST(req: Request) {
             <h2>New Refund Request</h2>
             <p>A customer has requested a refund for order #${orderId.slice(0, 8)}.</p>
             <p><strong>Amount:</strong> $${(refundAmount / 100).toFixed(2)}</p>
-            <p><strong>Type:</strong> ${type === "CREDIT" ? "Store Credit" : "Cash Refund"}</p>
+            <p><strong>Type:</strong> Cash Refund</p>
             ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
             <p><a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://shopcrazymarket.com"}/seller/refunds">Review Refund Request</a></p>
           `,
