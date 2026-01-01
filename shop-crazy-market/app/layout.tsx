@@ -5,9 +5,10 @@ import { CartProvider } from "@/contexts/CartContext";
 import BottomNav from "@/components/BottomNav";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import ChristmasDecorations from "@/components/ChristmasDecorations";
-import NewYearDecorations from "@/components/NewYearDecorations";
-import WinterDecorations from "@/components/WinterDecorations";
+// Decorations disabled for better mobile performance
+// import ChristmasDecorations from "@/components/ChristmasDecorations";
+// import NewYearDecorations from "@/components/NewYearDecorations";
+// import WinterDecorations from "@/components/WinterDecorations";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import MobileMetaTags from "@/components/MobileMetaTags";
 
@@ -121,9 +122,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeProvider>
             <AuthProvider>
               <CartProvider>
-                <ChristmasDecorations />
-                <NewYearDecorations />
-                <WinterDecorations />
+                {/* Decorations disabled for better mobile performance */}
+                {/* <ChristmasDecorations /> */}
+                {/* <NewYearDecorations /> */}
+                {/* <WinterDecorations /> */}
                 <Navbar />
                 <div className="pb-20 md:pb-0 min-h-screen flex flex-col">{children}</div>
                 <Footer />
