@@ -314,17 +314,25 @@ export default function ListingPage() {
 
   async function fetchDeals() {
     try {
+      console.log("[LISTING PAGE] Fetching deals for listing:", listingId);
       const response = await fetch(`/api/listings/${listingId}/deals`);
       if (response.ok) {
         const dealsData = await response.json();
+        console.log("[LISTING PAGE] Fetched deals:", dealsData.length);
         setDeals(dealsData);
         // Set the best deal as active (first one, already sorted by discount value)
         if (dealsData.length > 0) {
+          console.log("[LISTING PAGE] Setting active deal:", dealsData[0].title);
           setActiveDeal(dealsData[0]);
+        } else {
+          console.log("[LISTING PAGE] No active deals found");
+          setActiveDeal(null);
         }
+      } else {
+        console.error("[LISTING PAGE] Failed to fetch deals:", response.status);
       }
     } catch (error) {
-      console.error("Error fetching deals:", error);
+      console.error("[LISTING PAGE] Error fetching deals:", error);
     }
   }
 
