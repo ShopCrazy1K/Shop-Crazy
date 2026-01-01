@@ -171,21 +171,31 @@ export async function GET(request: Request) {
       }
     }
     
+    console.log("[API LISTINGS] Total listings found:", listings.length);
+    console.log("[API LISTINGS] isActive filter:", where.isActive);
+    console.log("[API LISTINGS] excludeUserId:", excludeUserId);
+    console.log("[API LISTINGS] userId:", userId);
+    
     // Exclude user's own listings if excludeUserId is provided (for marketplace view)
     if (excludeUserId) {
+      const beforeExclude = listings.length;
       listings = listings.filter((listing: any) => 
         listing.sellerId !== excludeUserId && listing.seller?.id !== excludeUserId
       );
+      console.log("[API LISTINGS] After excluding user listings:", listings.length, "(removed", beforeExclude - listings.length, ")");
     }
     
     // If user is authenticated, filter out inactive listings that don't belong to them
     if (userId) {
+      const beforeActiveFilter = listings.length;
       const filteredListings = listings.filter((listing: any) => 
         listing.isActive || listing.sellerId === userId || listing.seller?.id === userId
       );
+      console.log("[API LISTINGS] After active filter:", filteredListings.length, "(removed", beforeActiveFilter - filteredListings.length, ")");
       return NextResponse.json(filteredListings);
     }
     
+    console.log("[API LISTINGS] Returning", listings.length, "listings");
     return NextResponse.json(listings);
   } catch (error: any) {
     console.error("Error fetching listings:", error);

@@ -89,10 +89,24 @@ function MarketplaceContent() {
       }
 
       const response = await fetch(url);
+      console.log("[MARKETPLACE] Fetch URL:", url);
+      console.log("[MARKETPLACE] Response status:", response.status);
+      
       if (response.ok) {
-        const listings: Listing[] = await response.json();
+        const data = await response.json();
+        console.log("[MARKETPLACE] Response data:", data);
+        
+        // Handle both array and object responses
+        const listings: Listing[] = Array.isArray(data) ? data : (data.listings || data.items || []);
         
         console.log("[MARKETPLACE] Fetched listings:", listings.length);
+        
+        if (!Array.isArray(listings)) {
+          console.error("[MARKETPLACE] Invalid response format - not an array:", listings);
+          setProducts([]);
+          setLoading(false);
+          return;
+        }
         
         // Filter by type
         let filtered = listings.filter(listing => {
@@ -197,9 +211,15 @@ function MarketplaceContent() {
         );
         
         setProducts(productsWithStats);
+      } else {
+        console.error("[MARKETPLACE] Response not OK:", response.status, response.statusText);
+        const errorText = await response.text();
+        console.error("[MARKETPLACE] Error response:", errorText);
+        setProducts([]);
       }
     } catch (error) {
-      console.error("Error fetching listings:", error);
+      console.error("[MARKETPLACE] Error fetching listings:", error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
