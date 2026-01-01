@@ -42,6 +42,7 @@ export default function PromotionsPage() {
   const [loadingListings, setLoadingListings] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
   const [selectedType, setSelectedType] = useState<string>("SHOP_WIDE");
   const [saving, setSaving] = useState(false);
 
