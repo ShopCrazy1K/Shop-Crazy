@@ -320,21 +320,48 @@ export default function ListingPage() {
       });
       if (response.ok) {
         const dealsData = await response.json();
-        console.log("[LISTING PAGE] Fetched deals:", dealsData.length, dealsData);
-        setDeals(dealsData);
+        console.log("[LISTING PAGE] Fetched deals response:", {
+          status: response.status,
+          dealsCount: Array.isArray(dealsData) ? dealsData.length : 0,
+          deals: dealsData,
+        });
+        
+        // Ensure dealsData is an array
+        const dealsArray = Array.isArray(dealsData) ? dealsData : [];
+        setDeals(dealsArray);
+        
         // Set the best deal as active (first one, already sorted by discount value)
-        if (dealsData && dealsData.length > 0) {
-          const bestDeal = dealsData[0];
-          console.log("[LISTING PAGE] Setting active deal:", bestDeal.title, {
+        if (dealsArray.length > 0) {
+          const bestDeal = dealsArray[0];
+          const now = new Date();
+          const startsAt = new Date(bestDeal.startsAt);
+          const endsAt = new Date(bestDeal.endsAt);
+          
+          console.log("[LISTING PAGE] Best deal details:", {
+            title: bestDeal.title,
             discountType: bestDeal.discountType,
             discountValue: bestDeal.discountValue,
             isActive: bestDeal.isActive,
-            startsAt: bestDeal.startsAt,
-            endsAt: bestDeal.endsAt,
+            startsAt: startsAt.toISOString(),
+            endsAt: endsAt.toISOString(),
+            now: now.toISOString(),
+            isDateValid: startsAt <= now && endsAt >= now,
+            listingIsActive: listing?.isActive,
           });
-          setActiveDeal(bestDeal);
+          
+          // Only set as active if dates are valid
+          if (bestDeal.isActive && startsAt <= now && endsAt >= now) {
+            console.log("[LISTING PAGE] ✅ Setting active deal:", bestDeal.title);
+            setActiveDeal(bestDeal);
+          } else {
+            console.log("[LISTING PAGE] ❌ Deal not valid:", {
+              isActive: bestDeal.isActive,
+              dateValid: startsAt <= now && endsAt >= now,
+            });
+            setActiveDeal(null);
+          }
         } else {
-          console.log("[LISTING PAGE] No active deals found");
+          console.log("[LISTING PAGE] No deals found in response");
           setActiveDeal(null);
         }
       } else {
@@ -798,7 +825,7 @@ export default function ListingPage() {
               )}
 
               <div className="mb-4 sm:mb-6">
-                {activeDeal && listing.isActive ? (
+                {activeDeal ? (
                   <>
                     <div className="flex items-baseline gap-2 sm:gap-3">
                       <p className="text-3xl sm:text-4xl font-bold text-red-600">
