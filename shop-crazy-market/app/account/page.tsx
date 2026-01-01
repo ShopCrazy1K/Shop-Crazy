@@ -155,7 +155,7 @@ export default function AccountPage() {
       {/* Referral Program Section */}
       <section className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0 max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold">Referral Program</h2>
+          <h2 className="text-xl sm:text-2xl font-bold">💰 Referral Program</h2>
           <Link
             href="/referrals"
             className="text-sm sm:text-base text-purple-600 hover:underline font-semibold"
@@ -169,6 +169,12 @@ export default function AccountPage() {
             <p className="text-sm sm:text-base text-gray-700 mb-4">
               💰 <strong>Earn $5</strong> in store credit for every friend you refer! Share your unique referral link and get rewarded when they sign up.
             </p>
+            <Link
+              href="/referrals"
+              className="inline-block mt-3 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors text-sm"
+            >
+              Get Your Referral Link →
+            </Link>
           </div>
 
           {loadingReferral ? (
