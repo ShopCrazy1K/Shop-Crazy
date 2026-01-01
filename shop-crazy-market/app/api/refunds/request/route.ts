@@ -83,9 +83,16 @@ export async function POST(req: Request) {
 
     // If CREDIT refund, issue store credit immediately (no Stripe balance required)
     if (type === "CREDIT") {
+      if (!order.userId) {
+        return NextResponse.json(
+          { error: "Cannot issue credit refund: Order has no associated user" },
+          { status: 400 }
+        );
+      }
+
       try {
         await issueStoreCredit({
-          userId: order.userId!,
+          userId: order.userId,
           sellerId: order.sellerId,
           amount: refundAmount,
           reason: reason || `Refund for Order #${orderId}`,
