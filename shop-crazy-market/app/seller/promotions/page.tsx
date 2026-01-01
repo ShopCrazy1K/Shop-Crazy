@@ -228,8 +228,9 @@ export default function PromotionsPage() {
   }
 
   async function handleToggleActive(promotionId: string, currentStatus: boolean) {
+    if (!user?.id) return;
     try {
-      const response = await fetch(`/api/deals/${promotionId}`, {
+      const response = await fetch(`/api/deals/${promotionId}?userId=${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !currentStatus }),
@@ -238,11 +239,84 @@ export default function PromotionsPage() {
       if (response.ok) {
         fetchPromotions();
       } else {
-        alert("Failed to update promotion");
+        const data = await response.json();
+        alert(data.error || "Failed to update promotion");
       }
     } catch (error) {
       console.error("Error updating promotion:", error);
       alert("Failed to update promotion");
+    }
+  }
+
+  function handleEdit(promotion: Promotion) {
+    // Populate form with promotion data
+    setFormData({
+      title: promotion.title,
+      description: promotion.description || "",
+      discountType: promotion.discountType as "PERCENTAGE" | "FIXED_AMOUNT",
+      discountValue: promotion.discountValue,
+      promoCode: promotion.promoCode || "",
+      promotionType: promotion.promotionType,
+      startsAt: new Date(promotion.startsAt).toISOString().slice(0, 16),
+      endsAt: new Date(promotion.endsAt).toISOString().slice(0, 16),
+      maxUses: promotion.maxUses?.toString() || "",
+      minPurchaseCents: promotion.minPurchaseCents ? (promotion.minPurchaseCents / 100).toFixed(2) : "",
+      badgeText: promotion.badgeText || "Limited Time",
+      badgeColor: promotion.badgeColor || "red",
+      abandonedCartDelayHours: promotion.abandonedCartDelayHours?.toString() || "24",
+      listingId: promotion.listing?.id || "",
+    });
+    setEditingPromotion(promotion);
+    setShowCreateForm(true);
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!shopId || !user || !editingPromotion) return;
+
+    setSaving(true);
+    try {
+      const payload = {
+        ...formData,
+        discountValue: parseInt(formData.discountValue.toString()),
+        promoCode: formData.promoCode || null,
+        maxUses: formData.maxUses ? parseInt(formData.maxUses) : null,
+        minPurchaseCents: formData.minPurchaseCents
+          ? Math.round(parseFloat(formData.minPurchaseCents) * 100)
+          : null,
+        startsAt: new Date(formData.startsAt).toISOString(),
+        endsAt: new Date(formData.endsAt).toISOString(),
+        badgeText: formData.badgeText || null,
+        badgeColor: formData.badgeColor || null,
+        abandonedCartDelayHours: formData.abandonedCartDelayHours
+          ? parseInt(formData.abandonedCartDelayHours)
+          : null,
+        listingId: formData.listingId || null,
+      };
+
+      const response = await fetch(`/api/deals/${editingPromotion.id}?userId=${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        setShowCreateForm(false);
+        setEditingPromotion(null);
+        resetForm();
+        fetchPromotions();
+        alert("Promotion updated successfully!");
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to update promotion");
+      }
+    } catch (error) {
+      console.error("Error updating promotion:", error);
+      alert("Failed to update promotion");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -566,12 +640,15 @@ export default function PromotionsPage() {
                 disabled={saving}
                 className="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
               >
-                {saving ? "Creating..." : "Create Promotion"}
+                {saving 
+                  ? (editingPromotion ? "Updating..." : "Creating...") 
+                  : (editingPromotion ? "Update Promotion" : "Create Promotion")}
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setShowCreateForm(false);
+                  setEditingPromotion(null);
                   resetForm();
                 }}
                 className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
@@ -617,13 +694,14 @@ export default function PromotionsPage() {
                       </span>
                       <button
                         onClick={() => handleToggleActive(promo.id, promo.isActive)}
-                        className={`px-3 py-1 rounded text-xs font-semibold ${
+                        className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
                           promo.isActive
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-700"
+                            ? "bg-green-100 text-green-700 hover:bg-green-200"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}
+                        title={promo.isActive ? "Click to deactivate" : "Click to activate"}
                       >
-                        {promo.isActive ? "Active" : "Inactive"}
+                        {promo.isActive ? "✅ Active" : "⏸️ Inactive"}
                       </button>
                     </div>
                     {promo.description && (
@@ -635,12 +713,20 @@ export default function PromotionsPage() {
                       </p>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleDelete(promo.id)}
-                    className="text-red-600 hover:text-red-700 text-sm font-semibold ml-4"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(promo)}
+                      className="text-blue-600 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-300 rounded hover:bg-blue-50 transition-colors"
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(promo.id)}
+                      className="text-red-600 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-300 rounded hover:bg-red-50 transition-colors"
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
