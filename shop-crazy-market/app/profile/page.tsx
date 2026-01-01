@@ -90,6 +90,22 @@ export default function ProfilePage() {
     }
   }
 
+  async function fetchStoreCredit() {
+    if (!user?.id) return;
+    setLoadingStoreCredit(true);
+    try {
+      const response = await fetch(`/api/users/${user.id}/store-credit`);
+      if (response.ok) {
+        const data = await response.json();
+        setStoreCredit(data.storeCredit || 0);
+      }
+    } catch (error) {
+      console.error("Error fetching store credit:", error);
+    } finally {
+      setLoadingStoreCredit(false);
+    }
+  }
+
   async function saveShopPolicies() {
     if (!user?.id) return;
     setSavingPolicies(true);
