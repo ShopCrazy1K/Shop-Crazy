@@ -269,13 +269,20 @@ export default function ListingPage() {
   }, [listingId, listing, loading, searchParams]);
 
   // Fetch deals, stats, reviews, and follow status when listing loads
+  // Deals should be fetched for everyone (guests, customers, sellers)
   useEffect(() => {
     if (listingId && listing) {
-      fetchDeals();
-      checkPurchaseStatus();
-      fetchSellerStats();
-      fetchReviews();
-      checkFollowStatus();
+      fetchDeals(); // Always fetch deals - visible to everyone
+      if (user) {
+        checkPurchaseStatus();
+        fetchSellerStats();
+        fetchReviews();
+        checkFollowStatus();
+      } else {
+        // For guests, still fetch seller stats and reviews (public info)
+        fetchSellerStats();
+        fetchReviews();
+      }
     }
   }, [listingId, listing, user]);
 

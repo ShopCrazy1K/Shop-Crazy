@@ -199,6 +199,21 @@ function MarketplaceContent() {
               console.error("Error fetching seller stats:", error);
             }
 
+            // Fetch active deals for this listing (visible to everyone)
+            let activeDeal = null;
+            try {
+              const dealsResponse = await fetch(`/api/listings/${listing.id}/deals`);
+              if (dealsResponse.ok) {
+                const deals = await dealsResponse.json();
+                if (deals && deals.length > 0) {
+                  // Get the best deal (first one, already sorted by discount value)
+                  activeDeal = deals[0];
+                }
+              }
+            } catch (error) {
+              console.error("Error fetching deals:", error);
+            }
+
             return {
               id: listing.id,
               title: listing.title,
@@ -218,6 +233,7 @@ function MarketplaceContent() {
               },
               sellerId: listing.seller.id,
               sellerStats: sellerStats,
+              activeDeal: activeDeal, // Include active deal for display
             };
           })
         );
