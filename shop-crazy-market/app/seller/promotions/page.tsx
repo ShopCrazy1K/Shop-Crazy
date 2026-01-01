@@ -27,10 +27,19 @@ interface Promotion {
   } | null;
 }
 
+interface Listing {
+  id: string;
+  title: string;
+  priceCents: number;
+  isActive: boolean;
+}
+
 export default function PromotionsPage() {
   const { user } = useAuth();
   const [shopId, setShopId] = useState<string | null>(null);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loadingListings, setLoadingListings] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedType, setSelectedType] = useState<string>("SHOP_WIDE");
@@ -64,6 +73,12 @@ export default function PromotionsPage() {
       fetchPromotions();
     }
   }, [shopId, selectedType]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserListings();
+    }
+  }, [user]);
 
   async function fetchShop() {
     if (!user) return;
@@ -104,6 +119,24 @@ export default function PromotionsPage() {
       console.error("Error fetching promotions:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchUserListings() {
+    if (!user?.id) return;
+    try {
+      setLoadingListings(true);
+      const response = await fetch(`/api/listings/my-listings?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Only show active listings for promotions
+        const activeListings = (data.listings || []).filter((listing: Listing) => listing.isActive);
+        setListings(activeListings);
+      }
+    } catch (error) {
+      console.error("Error fetching listings:", error);
+    } finally {
+      setLoadingListings(false);
     }
   }
 
@@ -255,7 +288,7 @@ export default function PromotionsPage() {
 
       {/* Filter Tabs */}
       <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
-        {["all", "SHOP_WIDE", "CUSTOM_CODE", "ABANDONED_CART"].map((type) => (
+        {["all", "SHOP_WIDE", "LISTING", "CUSTOM_CODE", "ABANDONED_CART"].map((type) => (
           <button
             key={type}
             onClick={() => setSelectedType(type)}
@@ -265,7 +298,11 @@ export default function PromotionsPage() {
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            {type === "all" ? "All" : type === "SHOP_WIDE" ? "Shop-Wide" : type === "CUSTOM_CODE" ? "Discount Codes" : "Abandoned Cart"}
+            {type === "all" ? "All" : 
+             type === "SHOP_WIDE" ? "Shop-Wide" : 
+             type === "LISTING" ? "Listing Sales" :
+             type === "CUSTOM_CODE" ? "Discount Codes" : 
+             "Abandoned Cart"}
           </button>
         ))}
       </div>
@@ -288,15 +325,63 @@ export default function PromotionsPage() {
               <label className="block text-sm font-semibold mb-2">Promotion Type *</label>
               <select
                 value={formData.promotionType}
-                onChange={(e) => setFormData({ ...formData, promotionType: e.target.value })}
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  setFormData({ 
+                    ...formData, 
+                    promotionType: newType,
+                    // Clear listingId if switching away from LISTING type
+                    listingId: newType !== "LISTING" ? "" : formData.listingId
+                  });
+                }}
                 className="w-full px-4 py-2 border rounded-lg"
                 required
               >
                 <option value="SHOP_WIDE">Shop-Wide Promotion (applies to all listings)</option>
+                <option value="LISTING">Specific Listing Sale (choose one listing)</option>
                 <option value="CUSTOM_CODE">Custom Discount Code (customer enters code)</option>
                 <option value="ABANDONED_CART">Abandoned Cart Offer (sent via email)</option>
               </select>
             </div>
+
+            {/* Listing Selector - Show when LISTING type is selected */}
+            {formData.promotionType === "LISTING" && (
+              <div>
+                <label className="block text-sm font-semibold mb-2">Select Listing *</label>
+                {loadingListings ? (
+                  <div className="px-4 py-2 border rounded-lg bg-gray-50 text-gray-500">
+                    Loading your listings...
+                  </div>
+                ) : listings.length === 0 ? (
+                  <div className="px-4 py-2 border rounded-lg bg-yellow-50 text-yellow-700">
+                    <p className="text-sm mb-2">No active listings found.</p>
+                    <Link 
+                      href="/sell" 
+                      className="text-sm text-purple-600 hover:underline font-semibold"
+                    >
+                      Create a listing first →
+                    </Link>
+                  </div>
+                ) : (
+                  <select
+                    value={formData.listingId}
+                    onChange={(e) => setFormData({ ...formData, listingId: e.target.value })}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required={formData.promotionType === "LISTING"}
+                  >
+                    <option value="">-- Select a listing --</option>
+                    {listings.map((listing) => (
+                      <option key={listing.id} value={listing.id}>
+                        {listing.title} - ${(listing.priceCents / 100).toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  This discount will only apply to the selected listing
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-semibold mb-1">Promotion Title *</label>
@@ -502,6 +587,7 @@ export default function PromotionsPage() {
         <h2 className="text-2xl font-bold mb-4">
           {selectedType === "all" ? "All Promotions" : 
            selectedType === "SHOP_WIDE" ? "Shop-Wide Promotions" :
+           selectedType === "LISTING" ? "Listing-Specific Sales" :
            selectedType === "CUSTOM_CODE" ? "Discount Codes" : "Abandoned Cart Offers"}
         </h2>
         {loading ? (
@@ -520,10 +606,12 @@ export default function PromotionsPage() {
                       <h3 className="text-xl font-bold">{promo.title}</h3>
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${
                         promo.promotionType === "SHOP_WIDE" ? "bg-blue-100 text-blue-700" :
+                        promo.promotionType === "LISTING" ? "bg-purple-100 text-purple-700" :
                         promo.promotionType === "CUSTOM_CODE" ? "bg-green-100 text-green-700" :
                         "bg-orange-100 text-orange-700"
                       }`}>
                         {promo.promotionType === "SHOP_WIDE" ? "Shop-Wide" :
+                         promo.promotionType === "LISTING" ? "Listing Sale" :
                          promo.promotionType === "CUSTOM_CODE" ? "Discount Code" : "Abandoned Cart"}
                       </span>
                       <button
