@@ -35,6 +35,9 @@ export default function Navbar() {
           </div>
         )}
         <Link href="/sell" className="text-pink-600 hover:text-pink-700 transition-colors">Sell</Link>
+        {user && (
+          <Link href="/referrals" className="hover:text-purple-600 transition-colors">💰 Referrals</Link>
+        )}
         {user ? (
           <Link href="/profile" className="hover:text-purple-600 transition-colors">Profile</Link>
         ) : (

@@ -48,6 +48,7 @@ export default function ProfilePage() {
   const [savingPolicies, setSavingPolicies] = useState(false);
   const [storeCredit, setStoreCredit] = useState<number>(0);
   const [loadingStoreCredit, setLoadingStoreCredit] = useState(false);
+  const [referralCount, setReferralCount] = useState<number>(0);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -61,6 +62,7 @@ export default function ProfilePage() {
       fetchAbout();
       fetchShopPolicies();
       fetchStoreCredit();
+      fetchReferralCount();
     }
   }, [user, loading, router]);
 
@@ -103,6 +105,19 @@ export default function ProfilePage() {
       console.error("Error fetching store credit:", error);
     } finally {
       setLoadingStoreCredit(false);
+    }
+  }
+
+  async function fetchReferralCount() {
+    if (!user?.id) return;
+    try {
+      const response = await fetch(`/api/referrals/code?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setReferralCount(data.stats?.referralCount || 0);
+      }
+    } catch (error) {
+      console.error("Error fetching referral count:", error);
     }
   }
 
@@ -321,11 +336,12 @@ export default function ProfilePage() {
       </section>
 
       {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3">
         <StatCard number={stats.orders} label="Orders" emoji="📦" href="/orders" />
         <StatCard number={stats.favorites} label="Favorites" emoji="❤️" href="/favorites" />
         <StatCard number={stats.listings} label="Listings" emoji="📝" href="#my-listings" />
         <StatCard number={stats.messages} label="Messages" emoji="💬" href="/messages" />
+        <StatCard number={referralCount} label="Referrals" emoji="💰" href="/referrals" />
       </div>
 
       {/* User Info Card */}
