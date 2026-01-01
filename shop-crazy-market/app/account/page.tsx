@@ -153,7 +153,15 @@ export default function AccountPage() {
 
       {/* Referral Program Section */}
       <section className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0 max-w-2xl mx-auto">
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center">Referral Program</h2>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold">Referral Program</h2>
+          <Link
+            href="/referrals"
+            className="text-sm sm:text-base text-purple-600 hover:underline font-semibold"
+          >
+            View Full Page →
+          </Link>
+        </div>
         
         <div className="space-y-4">
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border-2 border-purple-200">
@@ -202,6 +210,74 @@ export default function AccountPage() {
                     {copied ? "✓ Copied!" : "Copy Link"}
                   </button>
                 </div>
+              </div>
+
+              {/* Share Buttons */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">Share Your Link</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      const text = `Join Shop Crazy Market and get great deals! Use my referral link: ${referralLink}`;
+                      if (navigator.share) {
+                        navigator.share({
+                          title: "Join Shop Crazy Market",
+                          text: text,
+                          url: referralLink,
+                        }).catch(() => copyToClipboard(referralLink));
+                      } else {
+                        copyToClipboard(referralLink);
+                      }
+                    }}
+                    className="px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>📱</span> Share
+                  </button>
+                  <button
+                    onClick={() => {
+                      const subject = encodeURIComponent("Join Shop Crazy Market!");
+                      const body = encodeURIComponent(`Hi! I wanted to share Shop Crazy Market with you. It's a great marketplace with amazing deals!\n\nSign up using my referral link and we both benefit:\n${referralLink}\n\nWhen you sign up, I'll get $5 in store credit!`);
+                      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                    }}
+                    className="px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>📧</span> Email
+                  </button>
+                  <button
+                    onClick={() => {
+                      const text = encodeURIComponent(`Join Shop Crazy Market! Use my referral link: ${referralLink}`);
+                      window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+                    }}
+                    className="px-4 py-3 bg-sky-500 text-white rounded-lg font-semibold hover:bg-sky-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>🐦</span> Twitter
+                  </button>
+                  <button
+                    onClick={() => {
+                      const text = encodeURIComponent(`Join Shop Crazy Market! Use my referral link: ${referralLink}`);
+                      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}&quote=${text}`, '_blank');
+                    }}
+                    className="px-4 py-3 bg-blue-700 text-white rounded-lg font-semibold hover:bg-blue-800 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>📘</span> Facebook
+                  </button>
+                </div>
+              </div>
+
+              {/* Share Message Template */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">Copy & Paste Message</label>
+                <textarea
+                  readOnly
+                  value={`Hey! I wanted to share Shop Crazy Market with you. It's an amazing marketplace with great deals!\n\nSign up using my referral link and we both benefit:\n${referralLink}\n\nWhen you sign up, I'll get $5 in store credit! 🎉`}
+                  rows={5}
+                  className="w-full px-4 py-2 border-2 border-purple-300 rounded-lg text-sm bg-white resize-none"
+                  onClick={(e) => {
+                    (e.target as HTMLTextAreaElement).select();
+                    copyToClipboard((e.target as HTMLTextAreaElement).value);
+                  }}
+                />
+                <p className="text-xs text-gray-500">Click the message above to copy it</p>
               </div>
 
               {/* Referral Stats */}
