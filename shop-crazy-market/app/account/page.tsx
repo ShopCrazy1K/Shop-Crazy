@@ -173,7 +173,7 @@ export default function AccountPage() {
 
           {loadingReferral ? (
             <div className="text-center py-4 text-gray-500">Loading referral info...</div>
-          ) : (
+          ) : referralCode ? (
             <>
               {/* Referral Code */}
               <div className="space-y-2">
@@ -266,20 +266,22 @@ export default function AccountPage() {
               </div>
 
               {/* Share Message Template */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Copy & Paste Message</label>
-                <textarea
-                  readOnly
-                  value={`Hey! I wanted to share Shop Crazy Market with you. It's an amazing marketplace with great deals!\n\nSign up using my referral link and we both benefit:\n${referralLink}\n\nWhen you sign up, I'll get $5 in store credit! 🎉`}
-                  rows={5}
-                  className="w-full px-4 py-2 border-2 border-purple-300 rounded-lg text-sm bg-white resize-none"
-                  onClick={(e) => {
-                    (e.target as HTMLTextAreaElement).select();
-                    copyToClipboard((e.target as HTMLTextAreaElement).value);
-                  }}
-                />
-                <p className="text-xs text-gray-500">Click the message above to copy it</p>
-              </div>
+              {referralLink && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">Copy & Paste Message</label>
+                  <textarea
+                    readOnly
+                    value={`Hey! I wanted to share Shop Crazy Market with you. It's an amazing marketplace with great deals!\n\nSign up using my referral link and we both benefit:\n${referralLink}\n\nWhen you sign up, I'll get $5 in store credit! 🎉`}
+                    rows={5}
+                    className="w-full px-4 py-2 border-2 border-purple-300 rounded-lg text-sm bg-white resize-none"
+                    onClick={(e) => {
+                      (e.target as HTMLTextAreaElement).select();
+                      copyToClipboard((e.target as HTMLTextAreaElement).value);
+                    }}
+                  />
+                  <p className="text-xs text-gray-500">Click the message above to copy it</p>
+                </div>
+              )}
 
               {/* Referral Stats */}
               <div className="grid grid-cols-2 gap-4 mt-4">
@@ -295,6 +297,16 @@ export default function AccountPage() {
                 </div>
               </div>
             </>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-gray-500 mb-3">Unable to load referral code. Please try refreshing the page.</p>
+              <button
+                onClick={fetchReferralInfo}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
           )}
         </div>
       </section>
