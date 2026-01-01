@@ -771,10 +771,29 @@ export default function ListingPage() {
                 )}
               </div>
               
-              {/* Active Deal Badge */}
-              {activeDeal && listing.isActive && (
+              {/* Active Deal Badge - Always show if deal exists, even if listing is inactive for debugging */}
+              {activeDeal && (
                 <div className="mb-6">
                   <DealBadge deal={activeDeal} priceCents={listing.priceCents} />
+                  {!listing.isActive && (
+                    <p className="text-xs text-yellow-600 mt-2">
+                      ⚠️ Deal is active but listing is inactive
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {/* Debug: Show if deals exist but not displayed */}
+              {deals.length > 0 && !activeDeal && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                  <p className="font-semibold text-yellow-800">Debug Info:</p>
+                  <p className="text-yellow-700">Found {deals.length} deal(s) but none are active/valid</p>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-yellow-600">View deal details</summary>
+                    <pre className="mt-2 text-xs overflow-auto bg-white p-2 rounded">
+                      {JSON.stringify(deals, null, 2)}
+                    </pre>
+                  </details>
                 </div>
               )}
 

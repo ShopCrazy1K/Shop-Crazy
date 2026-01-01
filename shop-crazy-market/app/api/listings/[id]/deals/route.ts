@@ -61,6 +61,39 @@ export async function GET(req: NextRequest, context: Ctx) {
 
     const shopId = listing.seller?.shop?.id;
 
+    console.log("[API LISTINGS DEALS] Listing info:", {
+      listingId,
+      sellerId: listing.sellerId,
+      shopId: shopId || "No shop found",
+    });
+
+    // First, let's check ALL deals for this listing (for debugging)
+    const allDealsForListing = await prisma.deal.findMany({
+      where: {
+        OR: [
+          { listingId: listingId },
+          { shopId: shopId || undefined },
+        ],
+      },
+    });
+
+    console.log("[API LISTINGS DEALS] All deals (no filters):", allDealsForListing.length);
+    allDealsForListing.forEach((deal, index) => {
+      console.log(`[API LISTINGS DEALS] Deal ${index + 1} (unfiltered):`, {
+        id: deal.id,
+        title: deal.title,
+        listingId: deal.listingId,
+        shopId: deal.shopId,
+        promotionType: deal.promotionType,
+        isActive: deal.isActive,
+        startsAt: deal.startsAt.toISOString(),
+        endsAt: deal.endsAt.toISOString(),
+        now: now.toISOString(),
+        startsAtValid: deal.startsAt <= now,
+        endsAtValid: deal.endsAt >= now,
+      });
+    });
+
     // Build where clause to find applicable deals
     const whereClause: any = {
       isActive: true,
