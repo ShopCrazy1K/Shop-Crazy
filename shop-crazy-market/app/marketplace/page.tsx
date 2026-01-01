@@ -71,6 +71,18 @@ function MarketplaceContent() {
     fetchListings();
   }, [selectedCategory, selectedType, searchQuery, user, sortBy, priceMin, priceMax]);
 
+  // Add timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn("[MARKETPLACE] Loading timeout - forcing loading to false");
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
+
   async function fetchListings() {
     try {
       setLoading(true);
