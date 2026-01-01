@@ -96,16 +96,13 @@ export async function GET(request: Request) {
     
     const where: any = {};
     
-    // For guest users (no userId), default to only active listings
-    // For authenticated users, respect the isActive parameter or show all
-    if (!userId) {
-      // Guest users can only see active listings
-      where.isActive = true;
-    } else if (isActive !== null) {
-      // Authenticated users can filter by isActive if specified
+    // Always filter by isActive if specified, otherwise default to active for marketplace
+    if (isActive !== null && isActive !== undefined) {
       where.isActive = isActive === "true";
+    } else {
+      // Default to active listings for marketplace view
+      where.isActive = true;
     }
-    // If userId exists and isActive is not specified, show all listings (user can see their own inactive ones)
     
     // Exclude user's own listings if excludeUserId is provided (for marketplace view)
     // This will be filtered in memory after fetching to avoid Prisma type issues

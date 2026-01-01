@@ -81,6 +81,8 @@ function MarketplaceContent() {
       if (searchQuery) {
         url += `search=${encodeURIComponent(searchQuery)}&`;
       }
+      // Only filter by isActive if we want to show only active listings
+      // For marketplace, we want to show all active listings
       url += `isActive=true&`;
       if (user?.id) {
         url += `excludeUserId=${encodeURIComponent(user.id)}&`;
@@ -90,14 +92,22 @@ function MarketplaceContent() {
       if (response.ok) {
         const listings: Listing[] = await response.json();
         
+        console.log("[MARKETPLACE] Fetched listings:", listings.length);
+        
         // Filter by type
         let filtered = listings.filter(listing => {
+          // Ensure listing is active
+          if (!listing.isActive) return false;
+          
+          // Exclude user's own listings
           if (user?.id) {
             const listingSellerId = listing.sellerId || listing.seller?.id;
             if (listingSellerId === user.id) return false;
           }
           return true;
         });
+        
+        console.log("[MARKETPLACE] After filtering:", filtered.length);
 
         if (selectedType !== "all") {
           filtered = filtered.filter(listing => {
