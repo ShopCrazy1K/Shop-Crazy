@@ -440,3 +440,94 @@ export async function sendOrderConfirmationEmail(order: {
   });
 }
 
+export async function sendRefundStatusEmail(params: {
+  to: string;
+  orderId: string;
+  refundType: "CREDIT" | "CASH";
+  refundStatus: string;
+  refundAmount: number;
+  reason?: string | null;
+  sellerNote?: string | null;
+}) {
+  const { to, orderId, refundType, refundStatus, refundAmount, reason, sellerNote } = params;
+
+  let subject = "";
+  let statusMessage = "";
+  let actionMessage = "";
+
+  switch (refundStatus) {
+    case "REQUESTED":
+      subject = `Refund Request Received - Order #${orderId.slice(0, 8)}`;
+      statusMessage = "Your refund request has been received and is being reviewed.";
+      actionMessage = "We'll notify you once your refund is processed.";
+      break;
+    case "APPROVED":
+      subject = `Refund Approved - Order #${orderId.slice(0, 8)}`;
+      statusMessage = "Your refund request has been approved!";
+      actionMessage = refundType === "CREDIT"
+        ? "Your store credit has been added to your account and is ready to use."
+        : "Your cash refund is being processed and will appear in your account within 3-5 business days.";
+      break;
+    case "COMPLETED":
+      subject = `Refund Completed - Order #${orderId.slice(0, 8)}`;
+      statusMessage = "Your refund has been completed!";
+      actionMessage = refundType === "CREDIT"
+        ? "Your store credit is now available in your account."
+        : "Your cash refund has been processed and should appear in your account soon.";
+      break;
+    case "REJECTED":
+      subject = `Refund Request Update - Order #${orderId.slice(0, 8)}`;
+      statusMessage = "Your refund request has been reviewed.";
+      actionMessage = sellerNote
+        ? `Reason: ${sellerNote}`
+        : "Please contact support if you have questions.";
+      break;
+    default:
+      subject = `Refund Status Update - Order #${orderId.slice(0, 8)}`;
+      statusMessage = `Your refund status is now: ${refundStatus}`;
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0;">Shop Crazy Market</h1>
+        </div>
+        <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #667eea; margin-top: 0;">${subject}</h2>
+          <p>${statusMessage}</p>
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Order ID:</strong> ${orderId.slice(0, 8)}</p>
+            <p><strong>Refund Type:</strong> ${refundType === "CREDIT" ? "Store Credit" : "Cash Refund"}</p>
+            <p><strong>Refund Amount:</strong> $${(refundAmount / 100).toFixed(2)}</p>
+            ${reason ? `<p><strong>Your Reason:</strong> ${reason}</p>` : ""}
+            ${sellerNote ? `<p><strong>Seller Note:</strong> ${sellerNote}</p>` : ""}
+          </div>
+          <p>${actionMessage}</p>
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://shopcrazymarket.com"}/orders/${orderId}" 
+               style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              View Order Details
+            </a>
+          </div>
+        </div>
+        <div style="text-align: center; margin-top: 20px; color: #666; font-size: 12px;">
+          <p>This is an automated email from Shop Crazy Market.</p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return await sendEmail({
+    to,
+    subject,
+    html,
+  });
+}
+

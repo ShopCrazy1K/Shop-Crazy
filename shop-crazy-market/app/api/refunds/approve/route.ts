@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
+import { sendRefundStatusEmail } from "@/lib/email";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
@@ -116,6 +117,28 @@ export async function POST(req: Request) {
           refundedAt: new Date(),
         },
       });
+
+      // Send email notification
+      if (order.userId) {
+        const buyer = await prisma.user.findUnique({
+          where: { id: order.userId },
+          select: { email: true },
+        });
+        if (buyer?.email) {
+          try {
+            await sendRefundStatusEmail({
+              to: buyer.email,
+              orderId: order.id,
+              refundType: "CASH",
+              refundStatus: "COMPLETED",
+              refundAmount: order.refundAmount,
+              reason: null,
+            });
+          } catch (emailError) {
+            console.error("Error sending refund email:", emailError);
+          }
+        }
+      }
 
       console.log(`[REFUND] Cash refund processed for order ${orderId}. Stripe refund ID: ${refund.id}. Amount: ${order.refundAmount} cents.`);
 

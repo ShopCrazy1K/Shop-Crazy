@@ -37,6 +37,7 @@ function SellerDashboard() {
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
   const [stripeConnectStatus, setStripeConnectStatus] = useState<any>(null);
   const [checkingConnect, setCheckingConnect] = useState(false);
+  const [refundCount, setRefundCount] = useState(0);
 
   useEffect(() => {
     if (!user) {
@@ -54,6 +55,7 @@ function SellerDashboard() {
     if (user?.id) {
       fetchPaymentMethods();
       checkStripeConnectStatus();
+      fetchRefundCount();
     }
   }, [shopId, user?.id]);
 
@@ -240,6 +242,19 @@ function SellerDashboard() {
     }
   }
 
+  async function fetchRefundCount() {
+    if (!user?.id) return;
+    try {
+      const response = await fetch(`/api/seller/refunds?sellerId=${user.id}&status=REQUESTED`);
+      if (response.ok) {
+        const data = await response.json();
+        setRefundCount(data.counts?.requested || 0);
+      }
+    } catch (error) {
+      console.error("Error fetching refund count:", error);
+    }
+  }
+
   async function toggleAdvertising(enabled: boolean) {
     setUpdatingAdvertising(true);
     try {
@@ -384,6 +399,18 @@ function SellerDashboard() {
               {formatCurrency(feeSummary.totalFees)}
             </p>
           </div>
+          <Link
+            href="/seller/refunds"
+            className="bg-white rounded-xl shadow p-4 hover:shadow-lg transition-shadow border-2 border-yellow-300"
+          >
+            <p className="text-gray-500 text-sm">Pending Refunds</p>
+            <p className="text-2xl font-bold text-yellow-600">
+              {refundCount}
+            </p>
+            {refundCount > 0 && (
+              <p className="text-xs text-red-600 mt-1 font-semibold">Action Required</p>
+            )}
+          </Link>
         </div>
       )}
 

@@ -43,6 +43,64 @@ export async function GET(req: NextRequest, context: Ctx) {
           },
         },
       },
+      select: {
+        id: true,
+        userId: true,
+        sellerId: true,
+        buyerEmail: true,
+        listingId: true,
+        currency: true,
+        itemsSubtotalCents: true,
+        shippingCents: true,
+        giftWrapCents: true,
+        taxCents: true,
+        discountCents: true,
+        promoCode: true,
+        orderSubtotalCents: true,
+        orderTotalCents: true,
+        storeCreditUsedCents: true,
+        platformFeeCents: true,
+        adFeeCents: true,
+        processingFeeCents: true,
+        feesTotalCents: true,
+        sellerPayoutCents: true,
+        stripeSessionId: true,
+        stripePaymentIntent: true,
+        paymentStatus: true,
+        refundType: true,
+        refundStatus: true,
+        refundAmount: true,
+        refundReason: true,
+        refundedAt: true,
+        shippingStatus: true,
+        trackingCarrier: true,
+        trackingNumber: true,
+        shippedAt: true,
+        processingRule: true,
+        adsEnabledAtSale: true,
+        createdAt: true,
+        updatedAt: true,
+        listing: {
+          include: {
+            seller: {
+              select: {
+                id: true,
+                email: true,
+                username: true,
+              },
+            },
+          },
+        },
+        items: {
+          include: {
+            product: {
+              include: {
+                shop: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!order) {

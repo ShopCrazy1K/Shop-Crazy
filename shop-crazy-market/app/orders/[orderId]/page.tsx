@@ -29,6 +29,12 @@ function OrderContent() {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [shippingStatus, setShippingStatus] = useState("");
   const [savingTracking, setSavingTracking] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundType, setRefundType] = useState<"CREDIT" | "CASH">("CREDIT");
+  const [refundReason, setRefundReason] = useState("");
+  const [refundAmount, setRefundAmount] = useState(0);
+  const [requestingRefund, setRequestingRefund] = useState(false);
+  const [partialRefundAmount, setPartialRefundAmount] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -53,10 +59,68 @@ function OrderContent() {
       if (data.trackingCarrier) setTrackingCarrier(data.trackingCarrier as Carrier);
       if (data.trackingNumber) setTrackingNumber(data.trackingNumber);
       if (data.shippingStatus) setShippingStatus(data.shippingStatus);
+      // Calculate refundable amount
+      if (data.orderTotalCents && data.storeCreditUsedCents !== undefined) {
+        const refundable = data.orderTotalCents - (data.storeCreditUsedCents || 0);
+        setRefundAmount(refundable);
+        setPartialRefundAmount((refundable / 100).toFixed(2));
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load order");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function requestRefund() {
+    if (!user || !order) return;
+
+    // Check refund eligibility (30 day window)
+    const orderDate = new Date(order.createdAt);
+    const daysSinceOrder = (Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSinceOrder > 30) {
+      alert("Refund requests must be made within 30 days of purchase.");
+      return;
+    }
+
+    // Calculate refund amount (allow partial)
+    const requestedAmount = partialRefundAmount 
+      ? Math.round(parseFloat(partialRefundAmount) * 100)
+      : refundAmount;
+
+    if (requestedAmount <= 0 || requestedAmount > refundAmount) {
+      alert("Invalid refund amount. Please enter a valid amount.");
+      return;
+    }
+
+    setRequestingRefund(true);
+    try {
+      const response = await fetch("/api/refunds/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: order.id,
+          userId: user.id,
+          type: refundType,
+          reason: refundReason,
+          amount: requestedAmount, // For partial refunds
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to request refund");
+      }
+
+      alert(data.message || "Refund requested successfully!");
+      setShowRefundModal(false);
+      setRefundReason("");
+      fetchOrder(); // Refresh order to show updated status
+    } catch (err: any) {
+      alert(`Error: ${err.message || "Failed to request refund"}`);
+    } finally {
+      setRequestingRefund(false);
     }
   }
 
@@ -305,6 +369,52 @@ function OrderContent() {
                     </span>
             </div>
           </div>
+
+          {/* Refund Status Display */}
+          {order.refundStatus && order.refundStatus !== "NONE" && (
+            <div className={`mt-4 p-4 rounded-lg border-2 ${
+              order.refundStatus === "COMPLETED" 
+                ? "bg-green-50 border-green-300"
+                : order.refundStatus === "REJECTED"
+                ? "bg-red-50 border-red-300"
+                : order.refundStatus === "REQUESTED"
+                ? "bg-yellow-50 border-yellow-300"
+                : "bg-blue-50 border-blue-300"
+            }`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-gray-900">
+                    Refund Status: {order.refundStatus}
+                  </p>
+                  {order.refundType && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      Type: {order.refundType === "CREDIT" ? "Store Credit" : "Cash Refund"}
+                    </p>
+                  )}
+                  {order.refundAmount > 0 && (
+                    <p className="text-sm text-gray-600">
+                      Amount: ${(order.refundAmount / 100).toFixed(2)}
+                    </p>
+                  )}
+                  {order.refundReason && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      Reason: {order.refundReason}
+                    </p>
+                  )}
+                  {order.refundedAt && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Processed: {new Date(order.refundedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                <span className="text-2xl">
+                  {order.refundStatus === "COMPLETED" ? "✅" : 
+                   order.refundStatus === "REJECTED" ? "❌" : 
+                   order.refundStatus === "REQUESTED" ? "⏳" : "🔄"}
+                </span>
+              </div>
+            </div>
+          )}
 
           {order.listing && (
             <div className="border-t pt-4">
@@ -560,6 +670,25 @@ function OrderContent() {
             </div>
           </div>
 
+          {/* Refund Request Button (for buyers only, paid orders, within 30 days, no existing refund) */}
+          {user?.id === order.userId && 
+           order.paymentStatus === "paid" && 
+           order.refundStatus === "NONE" &&
+           (() => {
+             const orderDate = new Date(order.createdAt);
+             const daysSinceOrder = (Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
+             return daysSinceOrder <= 30;
+           })() && (
+            <div className="mt-6 border-t pt-4">
+              <button
+                onClick={() => setShowRefundModal(true)}
+                className="w-full bg-red-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+              >
+                💰 Request Refund
+              </button>
+            </div>
+          )}
+
           <div className="mt-6 flex gap-4">
             <Link
               href="/orders"
@@ -576,6 +705,105 @@ function OrderContent() {
           </div>
         </div>
       </div>
+
+      {/* Refund Request Modal */}
+      {showRefundModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">Request Refund</h2>
+            
+            <div className="space-y-4">
+              {/* Refund Type Selection */}
+              <div>
+                <label className="block text-sm font-semibold mb-2">Refund Type</label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="refundType"
+                      value="CREDIT"
+                      checked={refundType === "CREDIT"}
+                      onChange={(e) => setRefundType(e.target.value as "CREDIT" | "CASH")}
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold">💳 Store Credit (Instant)</div>
+                      <div className="text-xs text-gray-600">Get refunded immediately as store credit</div>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="refundType"
+                      value="CASH"
+                      checked={refundType === "CASH"}
+                      onChange={(e) => setRefundType(e.target.value as "CREDIT" | "CASH")}
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold">💵 Cash Refund</div>
+                      <div className="text-xs text-gray-600">Refund to original payment method (3-5 business days)</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Partial Refund Amount */}
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Refund Amount (Max: ${(refundAmount / 100).toFixed(2)})
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max={refundAmount / 100}
+                  step="0.01"
+                  value={partialRefundAmount}
+                  onChange={(e) => setPartialRefundAmount(e.target.value)}
+                  placeholder={`${(refundAmount / 100).toFixed(2)}`}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Leave empty for full refund, or enter a partial amount
+                </p>
+              </div>
+
+              {/* Refund Reason */}
+              <div>
+                <label className="block text-sm font-semibold mb-2">Reason for Refund</label>
+                <textarea
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  placeholder="Please explain why you're requesting a refund..."
+                  rows={4}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowRefundModal(false);
+                    setRefundReason("");
+                    setPartialRefundAmount((refundAmount / 100).toFixed(2));
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={requestRefund}
+                  disabled={requestingRefund || !refundReason.trim()}
+                  className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {requestingRefund ? "Requesting..." : "Request Refund"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

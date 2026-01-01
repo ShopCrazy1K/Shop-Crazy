@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { issueStoreCredit } from "@/lib/refunds";
+import { sendRefundStatusEmail, sendEmail } from "@/lib/email";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -12,11 +13,12 @@ export const runtime = 'nodejs';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { orderId, userId, type, reason } = body as {
+    const { orderId, userId, type, reason, amount } = body as {
       orderId: string;
       userId: string;
       type: "CREDIT" | "CASH";
       reason?: string;
+      amount?: number; // Optional partial refund amount in cents
     };
 
     if (!orderId || !userId || !type) {
@@ -70,13 +72,35 @@ export async function POST(req: Request) {
       );
     }
 
+    // Check refund eligibility (30 day window)
+    const orderDate = new Date(order.createdAt);
+    const daysSinceOrder = (Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSinceOrder > 30) {
+      return NextResponse.json(
+        { error: "Refund requests must be made within 30 days of purchase" },
+        { status: 400 }
+      );
+    }
+
     // Decide refund amount policy (refund what they paid, minus store credit used)
     // If store credit was used, we should only refund the cash portion
-    const refundAmount = order.orderTotalCents - (order.storeCreditUsedCents || 0);
+    const maxRefundAmount = order.orderTotalCents - (order.storeCreditUsedCents || 0);
 
-    if (refundAmount <= 0) {
+    if (maxRefundAmount <= 0) {
       return NextResponse.json(
         { error: "No refundable amount (order was paid entirely with store credit)" },
+        { status: 400 }
+      );
+    }
+
+    // Use provided amount for partial refund, or default to full refund
+    const refundAmount = amount && amount > 0 && amount <= maxRefundAmount 
+      ? amount 
+      : maxRefundAmount;
+
+    if (refundAmount <= 0 || refundAmount > maxRefundAmount) {
+      return NextResponse.json(
+        { error: `Invalid refund amount. Maximum refundable: $${(maxRefundAmount / 100).toFixed(2)}` },
         { status: 400 }
       );
     }
@@ -110,6 +134,23 @@ export async function POST(req: Request) {
           },
         });
 
+        // Send email notification
+        if (order.buyerEmail) {
+          try {
+            await sendRefundStatusEmail({
+              to: order.buyerEmail,
+              orderId: order.id,
+              refundType: "CREDIT",
+              refundStatus: "COMPLETED",
+              refundAmount,
+              reason: reason || null,
+            });
+          } catch (emailError) {
+            console.error("Error sending refund email:", emailError);
+            // Don't fail the refund if email fails
+          }
+        }
+
         return NextResponse.json({
           ok: true,
           message: "Refund issued as instant store credit. No cash refund required.",
@@ -135,6 +176,46 @@ export async function POST(req: Request) {
         refundReason: reason ?? null,
       },
     });
+
+    // Send email notification to customer
+    if (order.buyerEmail) {
+      try {
+        await sendRefundStatusEmail({
+          to: order.buyerEmail,
+          orderId: order.id,
+          refundType: "CASH",
+          refundStatus: "REQUESTED",
+          refundAmount,
+          reason: reason || null,
+        });
+      } catch (emailError) {
+        console.error("Error sending refund email:", emailError);
+      }
+    }
+
+    // Send email notification to seller
+    try {
+      const seller = await prisma.user.findUnique({
+        where: { id: order.sellerId },
+        select: { email: true },
+      });
+      if (seller?.email) {
+        await sendEmail({
+          to: seller.email,
+          subject: `New Refund Request - Order #${orderId.slice(0, 8)}`,
+          html: `
+            <h2>New Refund Request</h2>
+            <p>A customer has requested a refund for order #${orderId.slice(0, 8)}.</p>
+            <p><strong>Amount:</strong> $${(refundAmount / 100).toFixed(2)}</p>
+            <p><strong>Type:</strong> ${type === "CREDIT" ? "Store Credit" : "Cash Refund"}</p>
+            ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
+            <p><a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://shopcrazymarket.com"}/seller/refunds">Review Refund Request</a></p>
+          `,
+        });
+      }
+    } catch (emailError) {
+      console.error("Error sending seller notification:", emailError);
+    }
 
     return NextResponse.json({
       ok: true,
