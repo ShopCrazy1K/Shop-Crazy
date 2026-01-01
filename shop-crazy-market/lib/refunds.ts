@@ -1,7 +1,14 @@
 import { prisma } from "@/lib/prisma";
 
 /**
- * Adds store credit to buyer. You can decide if this is platform-funded or seller-funded.
+ * Adds store credit to buyer. 
+ * 
+ * IMPORTANT: This does NOT require money in your Stripe balance.
+ * Store credit is issued instantly without any cash refund.
+ * The cost comes later when the customer uses it on a future order,
+ * reducing what you collect on that next purchase.
+ * 
+ * You can decide if this is platform-funded or seller-funded.
  * If you want $0 cost to you, make it SELLER-funded + sellerId required.
  */
 export async function issueStoreCredit(params: {
@@ -18,26 +25,27 @@ export async function issueStoreCredit(params: {
       ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
       : null;
 
-  // SIMPLE PLATFORM CREDIT (costs you when used):
-  // await prisma.user.update({ where: { id: userId }, data: { storeCredit: { increment: amount } } });
-
-  // ✅ LEDGER-BASED credit (recommended). If you already use a ledger, use this:
+  // ✅ LEDGER-BASED credit (recommended)
+  // This creates an audit trail of all credit transactions
   await prisma.creditLedger.create({
     data: {
       userId,
       sellerId: sellerId ?? null,
       funder: sellerId ? "SELLER" : "PLATFORM",
-      reason: "REFUND",
+      reason: reason || "REFUND",
       amount,
       expiresAt,
     },
   });
 
-  // Also update the user's storeCredit balance for immediate use
+  // Update the user's storeCredit balance for immediate use
+  // This is the actual balance they can spend
   await prisma.user.update({
     where: { id: userId },
     data: { storeCredit: { increment: amount } },
   });
+
+  console.log(`[STORE CREDIT] Issued ${amount} cents to user ${userId}. Reason: ${reason}. No Stripe balance required.`);
 
   return { ok: true, expiresAt, note: reason };
 }
