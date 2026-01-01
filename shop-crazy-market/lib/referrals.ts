@@ -18,7 +18,7 @@ export async function generateReferralCode(userId: string): Promise<string> {
   }
 
   // Generate a unique code (8 characters, alphanumeric)
-  let code: string;
+  let code: string = userId.substring(0, 8).toUpperCase(); // Initialize with fallback
   let isUnique = false;
   let attempts = 0;
 
@@ -26,23 +26,19 @@ export async function generateReferralCode(userId: string): Promise<string> {
     // Generate code from user ID + random chars
     const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
     const userIdPart = userId.substring(0, 4).toUpperCase();
-    code = `${userIdPart}${randomPart}`;
+    const candidateCode = `${userIdPart}${randomPart}`;
 
     // Check if code already exists
     const existing = await prisma.user.findUnique({
-      where: { referralCode: code },
+      where: { referralCode: candidateCode },
       select: { id: true },
     });
 
     if (!existing) {
+      code = candidateCode;
       isUnique = true;
     }
     attempts++;
-  }
-
-  if (!isUnique) {
-    // Fallback: use userId-based code
-    code = userId.substring(0, 8).toUpperCase();
   }
 
   // Save referral code to user
