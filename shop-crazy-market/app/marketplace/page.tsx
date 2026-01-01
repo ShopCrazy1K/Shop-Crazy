@@ -419,13 +419,36 @@ function MarketplaceContent() {
             ) : products.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-lg border border-gray-200">
                 <p className="text-xl font-semibold text-gray-700 mb-2">No products found</p>
-                <p className="text-gray-500 mb-6">Try adjusting your filters or search terms</p>
-                <Link
-                  href="/sell"
-                  className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-                >
-                  Be the first to list something!
-                </Link>
+                <p className="text-gray-500 mb-4">
+                  {searchQuery 
+                    ? `No products match "${searchQuery}"`
+                    : selectedCategory !== "all"
+                    ? `No products in this category`
+                    : "No active products available at the moment"}
+                </p>
+                <p className="text-sm text-gray-400 mb-6">
+                  Note: Products only appear after sellers complete payment and activation
+                </p>
+                <div className="flex gap-4 justify-center">
+                  <Link
+                    href="/sell"
+                    className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                  >
+                    List Your Product
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedCategory("all");
+                      setSelectedType("all");
+                      setPriceMin("");
+                      setPriceMax("");
+                    }}
+                    className="inline-block px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
