@@ -43,6 +43,15 @@ interface Product {
     averageRating: number;
     reviewsCount: number;
   };
+  activeDeal?: {
+    id: string;
+    title: string;
+    discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+    discountValue: number;
+    badgeText?: string | null;
+    badgeColor?: string | null;
+    endsAt: string;
+  } | null;
 }
 
 function MarketplaceContent() {
