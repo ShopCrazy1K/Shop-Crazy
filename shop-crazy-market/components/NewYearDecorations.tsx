@@ -67,7 +67,7 @@ export default function NewYearDecorations() {
           animationDuration: `${3 + Math.random() * 4}s`,
           fontSize: `${15 + Math.random() * 15}px`,
           pointerEvents: 'none',
-          zIndex: isNewYearsDay ? 99997 : 1,
+          zIndex: 1,
         }}
       >
         {emojis[Math.floor(Math.random() * emojis.length)]}
@@ -88,7 +88,7 @@ export default function NewYearDecorations() {
           animationDelay: `${Math.random() * 2}s`,
           animationDuration: `${1.5 + Math.random() * 1.5}s`,
           pointerEvents: 'none',
-          zIndex: isNewYearsDay ? 99996 : 1,
+          zIndex: 1,
         }}
       >
         ✨
@@ -96,8 +96,21 @@ export default function NewYearDecorations() {
     );
   });
 
+  // Use a much lower z-index to prevent interference with app functionality
+  // z-index of 1 ensures decorations stay in background and don't block interactions
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 999999 }}>
+    <div 
+      style={{ 
+        position: 'fixed', 
+        top: 0, 
+        left: 0, 
+        width: '100%', 
+        height: '100%', 
+        pointerEvents: 'none', 
+        zIndex: 1,
+        isolation: 'isolate' // Create new stacking context
+      }}
+    >
       {confetti}
       {sparkles}
       {/* Party poppers */}
@@ -105,7 +118,7 @@ export default function NewYearDecorations() {
         className="fixed top-20 left-10 text-5xl opacity-70 pointer-events-none"
         style={{
           animation: "party-pop 2s ease-in-out infinite",
-          zIndex: isNewYearsDay ? 99995 : 1,
+          zIndex: 1,
         }}
       >
         🎊
@@ -114,7 +127,7 @@ export default function NewYearDecorations() {
         className="fixed top-32 right-16 text-4xl opacity-60 pointer-events-none"
         style={{
           animation: "party-pop 2.5s ease-in-out infinite",
-          zIndex: isNewYearsDay ? 99995 : 1,
+          zIndex: 1,
         }}
       >
         🎉
@@ -122,33 +135,27 @@ export default function NewYearDecorations() {
       {/* Fireworks - Enhanced for New Year's Day */}
       {isNewYearsDay && (
         <>
-          {/* Multiple firework bursts across the screen */}
-          {Array.from({ length: 12 }, (_, i) => {
+          {/* Reduced number of fireworks to prevent performance issues */}
+          {Array.from({ length: 6 }, (_, i) => {
             const positions = [
               { top: '10%', left: '15%' },
               { top: '20%', right: '20%' },
-              { top: '30%', left: '50%' },
               { bottom: '25%', left: '10%' },
               { bottom: '35%', right: '15%' },
-              { bottom: '45%', left: '30%' },
-              { top: '15%', right: '40%' },
-              { bottom: '20%', right: '50%' },
               { top: '5%', left: '70%' },
               { bottom: '10%', left: '80%' },
-              { top: '40%', left: '5%' },
-              { bottom: '50%', right: '5%' },
             ];
             const pos = positions[i % positions.length];
             return (
               <div
                 key={`firework-${i}`}
-                className="fixed text-4xl opacity-90 pointer-events-none"
+                className="fixed text-4xl opacity-70 pointer-events-none"
                 style={{
                   ...pos,
                   animation: `new-year-firework ${2 + Math.random() * 2}s ease-in-out infinite`,
                   animationDelay: `${i * 0.4}s`,
-                  zIndex: 99999,
-                  fontSize: `${35 + Math.random() * 25}px`,
+                  zIndex: 1,
+                  fontSize: `${30 + Math.random() * 20}px`,
                 }}
               >
                 {i % 2 === 0 ? '🎆' : '🎇'}
@@ -156,17 +163,17 @@ export default function NewYearDecorations() {
             );
           })}
           
-          {/* Additional sparkle effects */}
-          {Array.from({ length: 20 }, (_, i) => (
+          {/* Reduced sparkle effects */}
+          {Array.from({ length: 10 }, (_, i) => (
             <div
               key={`sparkle-firework-${i}`}
-              className="fixed text-2xl opacity-80 pointer-events-none"
+              className="fixed text-2xl opacity-60 pointer-events-none"
               style={{
                 top: `${Math.random() * 100}%`,
                 left: `${Math.random() * 100}%`,
                 animation: `new-year-sparkle ${1.5 + Math.random() * 1.5}s ease-in-out infinite`,
                 animationDelay: `${Math.random() * 3}s`,
-                zIndex: 99998,
+                zIndex: 1,
               }}
             >
               ✨
@@ -179,7 +186,7 @@ export default function NewYearDecorations() {
       {!isNewYearsDay && (
         <>
           <div
-            className="fixed bottom-32 left-20 text-4xl opacity-80 pointer-events-none"
+            className="fixed bottom-32 left-20 text-4xl opacity-60 pointer-events-none"
             style={{
               animation: "firework-burst 3s ease-in-out infinite",
               zIndex: 1,
@@ -188,7 +195,7 @@ export default function NewYearDecorations() {
             🎆
           </div>
           <div
-            className="fixed bottom-40 right-20 text-3xl opacity-70 pointer-events-none"
+            className="fixed bottom-40 right-20 text-3xl opacity-50 pointer-events-none"
             style={{
               animation: "firework-burst 3.5s ease-in-out infinite",
               zIndex: 1,
@@ -200,10 +207,10 @@ export default function NewYearDecorations() {
       )}
       {/* Clock/Countdown */}
       <div
-        className="fixed top-60 left-1/2 transform -translate-x-1/2 text-3xl opacity-60 pointer-events-none"
+        className="fixed top-60 left-1/2 transform -translate-x-1/2 text-3xl opacity-50 pointer-events-none"
         style={{
           animation: "pulse-glow 2s ease-in-out infinite",
-          zIndex: isNewYearsDay ? 99994 : 1,
+          zIndex: 1,
         }}
       >
         🕐
