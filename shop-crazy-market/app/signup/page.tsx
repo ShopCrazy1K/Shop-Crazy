@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 
-export default function SignupPage() {
+function SignupContent() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -143,6 +143,20 @@ export default function SignupPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <main className="p-6 max-w-md mx-auto">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="text-center text-gray-500">Loading...</div>
+        </div>
+      </main>
+    }>
+      <SignupContent />
+    </Suspense>
   );
 }
 
