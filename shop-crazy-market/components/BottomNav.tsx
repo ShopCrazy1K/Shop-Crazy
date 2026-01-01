@@ -29,6 +29,11 @@ export default function BottomNav() {
       <Link href="/sell" className="text-2xl hover:scale-110 transition-transform">
         ➕
       </Link>
+      {user && (
+        <Link href="/referrals" className="text-2xl hover:scale-110 transition-transform relative" title="Referrals">
+          💰
+        </Link>
+      )}
       {user ? (
         <Link href="/profile" className="text-2xl hover:scale-110 transition-transform">
           👤

@@ -183,17 +183,17 @@ export default function AccountPage() {
             <>
               {/* Referral Code */}
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Your Referral Code</label>
-                <div className="flex gap-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700">Your Referral Code</label>
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     value={referralCode}
                     readOnly
-                    className="flex-1 px-4 py-2 border-2 border-purple-300 rounded-lg font-mono font-bold text-lg bg-white"
+                    className="flex-1 px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg font-mono font-bold text-base sm:text-lg bg-white text-center sm:text-left"
                   />
                   <button
                     onClick={() => copyToClipboard(referralCode)}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                    className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors text-sm sm:text-base"
                   >
                     {copied ? "✓ Copied!" : "Copy"}
                   </button>
@@ -202,17 +202,17 @@ export default function AccountPage() {
 
               {/* Referral Link */}
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Your Referral Link</label>
-                <div className="flex gap-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700">Your Referral Link</label>
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     value={referralLink}
                     readOnly
-                    className="flex-1 px-4 py-2 border-2 border-purple-300 rounded-lg text-sm bg-white truncate"
+                    className="flex-1 px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-xs sm:text-sm bg-white break-all"
                   />
                   <button
                     onClick={() => copyToClipboard(referralLink)}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors whitespace-nowrap"
+                    className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors whitespace-nowrap text-sm sm:text-base"
                   >
                     {copied ? "✓ Copied!" : "Copy Link"}
                   </button>
@@ -221,7 +221,7 @@ export default function AccountPage() {
 
               {/* Share Buttons */}
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Share Your Link</label>
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700">Share Your Link</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => {
@@ -236,9 +236,9 @@ export default function AccountPage() {
                         copyToClipboard(referralLink);
                       }
                     }}
-                    className="px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                    className="px-3 sm:px-4 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
                   >
-                    <span>📱</span> Share
+                    <span className="text-sm sm:text-base">📱</span> <span>Share</span>
                   </button>
                   <button
                     onClick={() => {
@@ -246,27 +246,27 @@ export default function AccountPage() {
                       const body = encodeURIComponent(`Hi! I wanted to share Shop Crazy Market with you. It's a great marketplace with amazing deals!\n\nSign up using my referral link and we both benefit:\n${referralLink}\n\nWhen you sign up, I'll get $5 in store credit!`);
                       window.location.href = `mailto:?subject=${subject}&body=${body}`;
                     }}
-                    className="px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                    className="px-3 sm:px-4 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
                   >
-                    <span>📧</span> Email
+                    <span className="text-sm sm:text-base">📧</span> <span>Email</span>
                   </button>
                   <button
                     onClick={() => {
                       const text = encodeURIComponent(`Join Shop Crazy Market! Use my referral link: ${referralLink}`);
                       window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
                     }}
-                    className="px-4 py-3 bg-sky-500 text-white rounded-lg font-semibold hover:bg-sky-600 transition-colors flex items-center justify-center gap-2"
+                    className="px-3 sm:px-4 py-2.5 sm:py-3 bg-sky-500 text-white rounded-lg font-semibold hover:bg-sky-600 transition-colors flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
                   >
-                    <span>🐦</span> Twitter
+                    <span className="text-sm sm:text-base">🐦</span> <span>Twitter</span>
                   </button>
                   <button
                     onClick={() => {
                       const text = encodeURIComponent(`Join Shop Crazy Market! Use my referral link: ${referralLink}`);
                       window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}&quote=${text}`, '_blank');
                     }}
-                    className="px-4 py-3 bg-blue-700 text-white rounded-lg font-semibold hover:bg-blue-800 transition-colors flex items-center justify-center gap-2"
+                    className="px-3 sm:px-4 py-2.5 sm:py-3 bg-blue-700 text-white rounded-lg font-semibold hover:bg-blue-800 transition-colors flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
                   >
-                    <span>📘</span> Facebook
+                    <span className="text-sm sm:text-base">📘</span> <span>Facebook</span>
                   </button>
                 </div>
               </div>
@@ -274,18 +274,18 @@ export default function AccountPage() {
               {/* Share Message Template */}
               {referralLink && (
                 <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">Copy & Paste Message</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700">Copy & Paste Message</label>
                   <textarea
                     readOnly
                     value={`Hey! I wanted to share Shop Crazy Market with you. It's an amazing marketplace with great deals!\n\nSign up using my referral link and we both benefit:\n${referralLink}\n\nWhen you sign up, I'll get $5 in store credit! 🎉`}
-                    rows={5}
-                    className="w-full px-4 py-2 border-2 border-purple-300 rounded-lg text-sm bg-white resize-none"
+                    rows={4}
+                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-xs sm:text-sm bg-white resize-none"
                     onClick={(e) => {
                       (e.target as HTMLTextAreaElement).select();
                       copyToClipboard((e.target as HTMLTextAreaElement).value);
                     }}
                   />
-                  <p className="text-xs text-gray-500">Click the message above to copy it</p>
+                  <p className="text-xs text-gray-500">Tap the message above to copy it</p>
                 </div>
               )}
 

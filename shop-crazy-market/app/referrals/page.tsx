@@ -64,45 +64,45 @@ export default function ReferralsPage() {
   const shareMessage = `Hey! I wanted to share Shop Crazy Market with you. It's an amazing marketplace with great deals!\n\nSign up using my referral link and we both benefit:\n${referralLink}\n\nWhen you sign up, I'll get $5 in store credit! 🎉`;
 
   return (
-    <main className="p-4 sm:p-6 max-w-4xl mx-auto pb-24">
-      <div className="mb-6">
-        <Link href="/account" className="text-purple-600 hover:underline font-semibold">
-          ← Back to Account
+    <main className="p-3 sm:p-4 md:p-6 max-w-4xl mx-auto pb-20 sm:pb-24">
+      <div className="mb-4 sm:mb-6">
+        <Link href="/account" className="text-sm sm:text-base text-purple-600 hover:underline font-semibold flex items-center gap-1">
+          <span>←</span> <span>Back to Account</span>
         </Link>
       </div>
 
-      <h1 className="text-3xl font-bold mb-2">Referral Program</h1>
-      <p className="text-gray-600 mb-6">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-2">Referral Program</h1>
+      <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
         Earn $5 in store credit for every friend you refer! Share your unique link and start earning.
       </p>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-200">
-          <p className="text-sm text-gray-600 mb-2">Total Referrals</p>
-          <p className="text-4xl font-bold text-green-600">{referralStats.referralCount}</p>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border-2 border-green-200">
+          <p className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">Total Referrals</p>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-green-600">{referralStats.referralCount}</p>
         </div>
-        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 border-2 border-yellow-200">
-          <p className="text-sm text-gray-600 mb-2">Total Earned</p>
-          <p className="text-4xl font-bold text-yellow-600">
+        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border-2 border-yellow-200">
+          <p className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">Total Earned</p>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-yellow-600">
             ${(referralStats.totalEarned / 100).toFixed(2)}
           </p>
         </div>
       </div>
 
       {/* Referral Code */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <h2 className="text-xl font-bold mb-4">Your Referral Code</h2>
-        <div className="flex gap-3">
+      <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Your Referral Code</h2>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <input
             type="text"
             value={referralCode}
             readOnly
-            className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg font-mono font-bold text-2xl bg-gray-50 text-center"
+            className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 border-purple-300 rounded-lg font-mono font-bold text-lg sm:text-xl md:text-2xl bg-gray-50 text-center"
           />
           <button
             onClick={() => copyToClipboard(referralCode)}
-            className="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+            className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors text-sm sm:text-base"
           >
             {copied ? "✓ Copied!" : "Copy Code"}
           </button>
@@ -110,18 +110,18 @@ export default function ReferralsPage() {
       </div>
 
       {/* Referral Link */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <h2 className="text-xl font-bold mb-4">Your Referral Link</h2>
-        <div className="flex gap-3">
+      <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Your Referral Link</h2>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <input
             type="text"
             value={referralLink}
             readOnly
-            className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg text-sm bg-gray-50"
+            className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 border-purple-300 rounded-lg text-xs sm:text-sm bg-gray-50 break-all"
           />
           <button
             onClick={() => copyToClipboard(referralLink)}
-            className="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors whitespace-nowrap"
+            className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors text-sm sm:text-base whitespace-nowrap"
           >
             {copied ? "✓ Copied!" : "Copy Link"}
           </button>
@@ -129,9 +129,9 @@ export default function ReferralsPage() {
       </div>
 
       {/* Share Options */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <h2 className="text-xl font-bold mb-4">Share Your Link</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Share Your Link</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
           <button
             onClick={() => {
               if (navigator.share) {
@@ -144,9 +144,9 @@ export default function ReferralsPage() {
                 copyToClipboard(referralLink);
               }
             }}
-            className="px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+            className="px-3 sm:px-4 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base"
           >
-            <span>📱</span> Share
+            <span className="text-base sm:text-lg">📱</span> <span>Share</span>
           </button>
           <button
             onClick={() => {
@@ -154,51 +154,51 @@ export default function ReferralsPage() {
               const body = encodeURIComponent(shareMessage);
               window.location.href = `mailto:?subject=${subject}&body=${body}`;
             }}
-            className="px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+            className="px-3 sm:px-4 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base"
           >
-            <span>📧</span> Email
+            <span className="text-base sm:text-lg">📧</span> <span>Email</span>
           </button>
           <button
             onClick={() => {
               const text = encodeURIComponent(`Join Shop Crazy Market! Use my referral link: ${referralLink}`);
               window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
             }}
-            className="px-4 py-3 bg-sky-500 text-white rounded-lg font-semibold hover:bg-sky-600 transition-colors flex items-center justify-center gap-2"
+            className="px-3 sm:px-4 py-2.5 sm:py-3 bg-sky-500 text-white rounded-lg font-semibold hover:bg-sky-600 transition-colors flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base"
           >
-            <span>🐦</span> Twitter
+            <span className="text-base sm:text-lg">🐦</span> <span>Twitter</span>
           </button>
           <button
             onClick={() => {
               const text = encodeURIComponent(`Join Shop Crazy Market! Use my referral link: ${referralLink}`);
               window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}&quote=${text}`, '_blank');
             }}
-            className="px-4 py-3 bg-blue-700 text-white rounded-lg font-semibold hover:bg-blue-800 transition-colors flex items-center justify-center gap-2"
+            className="px-3 sm:px-4 py-2.5 sm:py-3 bg-blue-700 text-white rounded-lg font-semibold hover:bg-blue-800 transition-colors flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base"
           >
-            <span>📘</span> Facebook
+            <span className="text-base sm:text-lg">📘</span> <span>Facebook</span>
           </button>
         </div>
 
         {/* Copy & Paste Message */}
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">Copy & Paste Message</label>
+          <label className="block text-xs sm:text-sm font-semibold text-gray-700">Copy & Paste Message</label>
           <textarea
             readOnly
             value={shareMessage}
-            rows={6}
-            className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg text-sm bg-gray-50 resize-none"
+            rows={5}
+            className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-purple-300 rounded-lg text-xs sm:text-sm bg-gray-50 resize-none"
             onClick={(e) => {
               (e.target as HTMLTextAreaElement).select();
               copyToClipboard((e.target as HTMLTextAreaElement).value);
             }}
           />
-          <p className="text-xs text-gray-500">Click the message above to copy it, then paste it anywhere!</p>
+          <p className="text-xs text-gray-500">Tap the message above to copy it, then paste it anywhere!</p>
         </div>
       </div>
 
       {/* How It Works */}
-      <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border-2 border-purple-200">
-        <h2 className="text-xl font-bold mb-4">How It Works</h2>
-        <ol className="space-y-3 list-decimal list-inside">
+      <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border-2 border-purple-200">
+        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">How It Works</h2>
+        <ol className="space-y-2 sm:space-y-3 list-decimal list-inside text-sm sm:text-base">
           <li className="text-gray-700">Share your unique referral link with friends, family, or on social media</li>
           <li className="text-gray-700">When someone signs up using your link, they get access to Shop Crazy Market</li>
           <li className="text-gray-700">You automatically receive $5 in store credit for each successful referral</li>
