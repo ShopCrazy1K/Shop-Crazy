@@ -301,29 +301,27 @@ function CheckoutContent() {
                 </span>
               </div>
               {discountCents > 0 && (
-                <>
-                  <div className="flex justify-between items-center text-red-600">
-                    <span>Discount:</span>
-                    <span className="font-semibold">
-                      -${(discountCents / 100).toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t">
-                    <span className="text-gray-900 font-semibold">Total:</span>
-                    <span className="text-2xl font-bold text-purple-600">
-                      ${((listing.priceCents - discountCents) / 100).toFixed(2)}
-                    </span>
-                  </div>
-                </>
-              )}
-              {discountCents === 0 && (
-                <div className="flex justify-between items-center pt-2 border-t">
-                  <span className="text-gray-900 font-semibold">Total:</span>
-                  <span className="text-2xl font-bold text-purple-600">
-                    ${(listing.priceCents / 100).toFixed(2)}
+                <div className="flex justify-between items-center text-red-600">
+                  <span>Discount:</span>
+                  <span className="font-semibold">
+                    -${(discountCents / 100).toFixed(2)}
                   </span>
                 </div>
               )}
+              {useStoreCredit && storeCreditToUse > 0 && (
+                <div className="flex justify-between items-center text-green-600">
+                  <span>Store Credit:</span>
+                  <span className="font-semibold">
+                    -${(storeCreditToUse / 100).toFixed(2)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2 border-t">
+                <span className="text-gray-900 font-semibold">Total:</span>
+                <span className="text-2xl font-bold text-purple-600">
+                  ${((listing.priceCents - discountCents - (useStoreCredit ? storeCreditToUse : 0)) / 100).toFixed(2)}
+                </span>
+              </div>
             </div>
 
             <button
