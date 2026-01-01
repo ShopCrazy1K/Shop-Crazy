@@ -315,21 +315,31 @@ export default function ListingPage() {
   async function fetchDeals() {
     try {
       console.log("[LISTING PAGE] Fetching deals for listing:", listingId);
-      const response = await fetch(`/api/listings/${listingId}/deals`);
+      const response = await fetch(`/api/listings/${listingId}/deals`, {
+        cache: 'no-store', // Always fetch fresh data
+      });
       if (response.ok) {
         const dealsData = await response.json();
-        console.log("[LISTING PAGE] Fetched deals:", dealsData.length);
+        console.log("[LISTING PAGE] Fetched deals:", dealsData.length, dealsData);
         setDeals(dealsData);
         // Set the best deal as active (first one, already sorted by discount value)
-        if (dealsData.length > 0) {
-          console.log("[LISTING PAGE] Setting active deal:", dealsData[0].title);
-          setActiveDeal(dealsData[0]);
+        if (dealsData && dealsData.length > 0) {
+          const bestDeal = dealsData[0];
+          console.log("[LISTING PAGE] Setting active deal:", bestDeal.title, {
+            discountType: bestDeal.discountType,
+            discountValue: bestDeal.discountValue,
+            isActive: bestDeal.isActive,
+            startsAt: bestDeal.startsAt,
+            endsAt: bestDeal.endsAt,
+          });
+          setActiveDeal(bestDeal);
         } else {
           console.log("[LISTING PAGE] No active deals found");
           setActiveDeal(null);
         }
       } else {
-        console.error("[LISTING PAGE] Failed to fetch deals:", response.status);
+        const errorText = await response.text();
+        console.error("[LISTING PAGE] Failed to fetch deals:", response.status, errorText);
       }
     } catch (error) {
       console.error("[LISTING PAGE] Error fetching deals:", error);

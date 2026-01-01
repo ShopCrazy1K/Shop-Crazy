@@ -67,7 +67,7 @@ export async function GET(req: NextRequest, context: Ctx) {
       startsAt: { lte: now },
       endsAt: { gte: now },
       OR: [
-        // Direct listing deals
+        // Direct listing deals (including LISTING promotion type)
         { listingId: listingId },
       ],
     };
@@ -80,6 +80,13 @@ export async function GET(req: NextRequest, context: Ctx) {
         promotionType: "SHOP_WIDE",
       });
     }
+
+    // Also include LISTING type promotions that have this listingId
+    // (in case they were created with both shopId and listingId)
+    whereClause.OR.push({
+      listingId: listingId,
+      promotionType: "LISTING",
+    });
 
     console.log("[API LISTINGS DEALS] Where clause:", JSON.stringify(whereClause, null, 2));
 
