@@ -65,6 +65,8 @@ model User {
   notifications   Notification[] // Notifications received by this user
   followers       Follow[]       @relation("Followers") // Users who follow this user
   following       Follow[]       @relation("Following") // Users this user follows
+  creditLedger    CreditLedger[] // Store credit ledger entries
+  sellerCredits   CreditLedger[] @relation("SellerCredits") // Credits funded by this seller
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
