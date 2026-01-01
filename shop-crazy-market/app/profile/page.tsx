@@ -46,6 +46,8 @@ export default function ProfilePage() {
   const [shopPolicies, setShopPolicies] = useState<any>(null);
   const [editingPolicies, setEditingPolicies] = useState(false);
   const [savingPolicies, setSavingPolicies] = useState(false);
+  const [storeCredit, setStoreCredit] = useState<number>(0);
+  const [loadingStoreCredit, setLoadingStoreCredit] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -58,6 +60,7 @@ export default function ProfilePage() {
       fetchMyListings();
       fetchAbout();
       fetchShopPolicies();
+      fetchStoreCredit();
     }
   }, [user, loading, router]);
 
@@ -339,6 +342,21 @@ export default function ProfilePage() {
             <span className="text-xl sm:text-2xl flex-shrink-0">
               {user.role === "ADMIN" ? "👑" : "⭐"}
             </span>
+          </div>
+
+          {/* Store Credit */}
+          <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg sm:rounded-xl border-2 border-yellow-200">
+            <div className="flex-1 min-w-0 pr-2">
+              <p className="text-gray-500 text-xs sm:text-sm">Store Credit</p>
+              {loadingStoreCredit ? (
+                <p className="font-semibold text-sm sm:text-lg">Loading...</p>
+              ) : (
+                <p className="font-semibold text-sm sm:text-lg text-green-600">
+                  ${((storeCredit || 0) / 100).toFixed(2)}
+                </p>
+              )}
+            </div>
+            <span className="text-xl sm:text-2xl flex-shrink-0">💳</span>
           </div>
         </div>
       </section>

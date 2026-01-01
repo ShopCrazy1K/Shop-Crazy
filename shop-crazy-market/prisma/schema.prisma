@@ -36,6 +36,9 @@ model User {
   digitalDownloadsPolicy String? // Digital downloads policy
   paymentMethods         String? // Payment methods accepted
 
+  // Store Credit
+  storeCredit            Int      @default(0) // Stored in cents (500 = $5.00)
+
   // Etsy-style relationships
   shop            Shop?
   buyerOrders     Order[]        @relation("BuyerOrders") // Orders as a buyer
@@ -239,6 +242,9 @@ model Order {
   // Computed
   orderSubtotalCents Int // items + shipping + gift wrap
   orderTotalCents    Int // orderSubtotal + tax
+  
+  // Store Credit
+  storeCreditUsedCents Int @default(0) // Amount of store credit used for this order
 
   // Fees (computed server-side)
   platformFeeCents   Int @default(0) // 5% of orderSubtotal

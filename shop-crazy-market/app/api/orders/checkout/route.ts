@@ -17,6 +17,7 @@ const schema = z.object({
   country: z.string().default("DEFAULT"),
   promoCode: z.string().optional(), // Discount code
   discountCents: z.coerce.number().int().nonnegative().default(0), // Applied discount
+  storeCreditUsedCents: z.coerce.number().int().nonnegative().default(0), // Store credit used
 });
 
 export async function POST(req: Request) {
@@ -30,11 +31,47 @@ export async function POST(req: Request) {
       );
     }
 
-    const { listingId, buyerEmail, itemsSubtotalCents, shippingCents, giftWrapCents, taxCents, promoCode, discountCents } = parsed.data;
+    const { listingId, buyerEmail, itemsSubtotalCents, shippingCents, giftWrapCents, taxCents, promoCode, discountCents, storeCreditUsedCents } = parsed.data;
     const country = (parsed.data.country.toUpperCase() as CountryCode) || "DEFAULT";
     
     // Apply discount if provided
     const finalItemsSubtotalCents = Math.max(0, itemsSubtotalCents - discountCents);
+    
+    // Get buyer ID from request (if authenticated)
+    const buyerId = req.headers.get("x-user-id") || null;
+    
+    // Validate and deduct store credit if used
+    if (storeCreditUsedCents > 0 && buyerId) {
+      const user = await prisma.user.findUnique({
+        where: { id: buyerId },
+        select: { id: true, storeCredit: true },
+      });
+      
+      if (!user) {
+        return NextResponse.json(
+          { ok: false, message: "User not found" },
+          { status: 404 }
+        );
+      }
+      
+      const availableCredit = user.storeCredit || 0;
+      if (storeCreditUsedCents > availableCredit) {
+        return NextResponse.json(
+          { ok: false, message: `Insufficient store credit. Available: $${(availableCredit / 100).toFixed(2)}` },
+          { status: 400 }
+        );
+      }
+      
+      // Deduct store credit from user's account
+      await prisma.user.update({
+        where: { id: buyerId },
+        data: {
+          storeCredit: { decrement: storeCreditUsedCents },
+        },
+      });
+      
+      console.log(`[CHECKOUT] Deducted ${storeCreditUsedCents} cents store credit from user ${buyerId}`);
+    }
 
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
@@ -84,9 +121,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // Get buyer ID from request (if authenticated)
-    const buyerId = req.headers.get("x-user-id") || null;
-
     // Create order record first (pending)
     const order = await prisma.order.create({
       data: {
@@ -102,9 +136,11 @@ export async function POST(req: Request) {
         taxCents,
         discountCents: discountCents || 0,
         promoCode: promoCode || null,
+        storeCreditUsedCents: storeCreditUsedCents || 0,
 
         orderSubtotalCents: breakdown.orderSubtotalCents,
-        orderTotalCents: breakdown.orderTotalCents,
+        // Subtract store credit from order total
+        orderTotalCents: Math.max(0, breakdown.orderTotalCents - (storeCreditUsedCents || 0)),
 
         platformFeeCents: breakdown.platformFeeCents,
         adFeeCents: breakdown.adFeeCents,
@@ -120,7 +156,27 @@ export async function POST(req: Request) {
       },
     });
 
-    // Charge buyer the full orderTotalCents (your fees come out of seller payout in accounting)
+    // Calculate final amount to charge (after store credit)
+    const finalChargeAmount = Math.max(0, breakdown.orderTotalCents - (storeCreditUsedCents || 0));
+    
+    // If store credit covers the entire order, mark as paid immediately
+    if (finalChargeAmount === 0 && storeCreditUsedCents > 0) {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: {
+          paymentStatus: "paid",
+        },
+      });
+      
+      return NextResponse.json({
+        ok: true,
+        checkoutUrl: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "https://shopcrazymarket.com"}/orders/${order.id}?paid=1`,
+        orderId: order.id,
+        paidWithStoreCredit: true,
+      });
+    }
+    
+    // Charge buyer the remaining amount after store credit
     // Enable Apple Pay and Google Pay in addition to card payments
     // Note: Apple Pay and Google Pay are automatically enabled by Stripe when:
     // - payment_method_types includes "card"
@@ -138,7 +194,7 @@ export async function POST(req: Request) {
               name: listing.title,
               description: listing.description?.substring(0, 500) || undefined,
             },
-            unit_amount: breakdown.orderTotalCents, // total charge
+            unit_amount: finalChargeAmount, // Charge remaining amount after store credit
           },
           quantity: 1,
         },

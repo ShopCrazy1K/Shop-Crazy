@@ -20,6 +20,9 @@ function CheckoutContent() {
   const [activeDeal, setActiveDeal] = useState<any | null>(null);
   const [discountCents, setDiscountCents] = useState(0);
   const [promoCode, setPromoCode] = useState("");
+  const [storeCredit, setStoreCredit] = useState(0);
+  const [useStoreCredit, setUseStoreCredit] = useState(false);
+  const [storeCreditToUse, setStoreCreditToUse] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -123,6 +126,7 @@ function CheckoutContent() {
           country: "DEFAULT",
           promoCode: activeDeal?.promoCode || promoCode || null,
           discountCents,
+          storeCreditUsedCents: useStoreCredit ? storeCreditToUse : 0,
         }),
       });
 
@@ -228,6 +232,63 @@ function CheckoutContent() {
                   Save ${(discountCents / 100).toFixed(2)}
                 </span>
               </div>
+            </div>
+          )}
+
+          {/* Store Credit Option */}
+          {storeCredit > 0 && (
+            <div className="mb-4 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useStoreCredit}
+                      onChange={(e) => {
+                        setUseStoreCredit(e.target.checked);
+                        if (e.target.checked) {
+                          // Auto-set to use all available store credit (up to order total)
+                          const orderTotal = listing.priceCents - discountCents;
+                          setStoreCreditToUse(Math.min(storeCredit, orderTotal));
+                        } else {
+                          setStoreCreditToUse(0);
+                        }
+                      }}
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                    />
+                    <span className="font-semibold text-gray-900">
+                      Use Store Credit
+                    </span>
+                  </label>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Available: ${(storeCredit / 100).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              
+              {useStoreCredit && (
+                <div className="mt-3">
+                  <label className="block text-xs font-semibold mb-2">
+                    Amount to use (max ${(storeCredit / 100).toFixed(2)}):
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max={Math.min(storeCredit, listing.priceCents - discountCents)}
+                    step="0.01"
+                    value={(storeCreditToUse / 100).toFixed(2)}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      const maxCents = Math.min(storeCredit, listing.priceCents - discountCents);
+                      setStoreCreditToUse(Math.min(Math.max(0, Math.round(value * 100)), maxCents));
+                    }}
+                    className="w-full px-3 py-2 text-sm border rounded-lg"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Maximum: ${(Math.min(storeCredit, listing.priceCents - discountCents) / 100).toFixed(2)}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
