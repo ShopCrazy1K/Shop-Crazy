@@ -53,6 +53,8 @@ export default function ListingPage() {
   const [editingThumbnails, setEditingThumbnails] = useState(false);
   const [savingThumbnails, setSavingThumbnails] = useState(false);
   const [selectedThumbnailIndices, setSelectedThumbnailIndices] = useState<number[]>([]);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const feeStatus = searchParams.get("fee");
 
   // Handle "new" route - redirect to create page
@@ -258,6 +260,47 @@ export default function ListingPage() {
       }
     };
   }, [listingId, feeStatus]);
+
+  // Keyboard navigation for image modal
+  useEffect(() => {
+    if (selectedImageIndex === null || !listing) return;
+    
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Normalize images for modal
+      let normalizedImages: string[] = [];
+      if (listing.images) {
+        if (Array.isArray(listing.images)) {
+          normalizedImages = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
+        } else {
+          const imagesValue = listing.images as any;
+          if (typeof imagesValue === 'string' && imagesValue.trim()) {
+            normalizedImages = [imagesValue];
+          }
+        }
+      }
+      const imageDigitalFiles = listing.digitalFiles?.filter((url: string) => {
+        const ext = url.split('.').pop()?.toLowerCase();
+        return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
+      }) || [];
+      const uniqueNormalizedImages = Array.from(new Set(normalizedImages));
+      const allImagesSet = new Set([...uniqueNormalizedImages, ...imageDigitalFiles]);
+      const allImages = Array.from(allImagesSet);
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setSelectedImageIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : allImages.length - 1));
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setSelectedImageIndex((prev) => (prev !== null && prev < allImages.length - 1 ? prev + 1 : 0));
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedImageIndex(null);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [selectedImageIndex, listing]);
 
   // Auto-activate on payment success (only after listing is loaded and not already active)
   useEffect(() => {
@@ -889,14 +932,59 @@ export default function ListingPage() {
                   const goToNext = () => {
                     setMainImageIndex((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
                   };
+
+                  // Swipe gesture handlers
+                  const minSwipeDistance = 50;
+                  
+                  const onTouchStart = (e: React.TouchEvent) => {
+                    setTouchEnd(null);
+                    setTouchStart(e.targetTouches[0].clientX);
+                  };
+                  
+                  const onTouchMove = (e: React.TouchEvent) => {
+                    setTouchEnd(e.targetTouches[0].clientX);
+                  };
+                  
+                  const onTouchEnd = () => {
+                    if (!touchStart || !touchEnd) return;
+                    const distance = touchStart - touchEnd;
+                    const isLeftSwipe = distance > minSwipeDistance;
+                    const isRightSwipe = distance < -minSwipeDistance;
+                    
+                    if (isLeftSwipe) {
+                      goToNext();
+                    } else if (isRightSwipe) {
+                      goToPrevious();
+                    }
+                  };
+
+                  // Keyboard navigation
+                  useEffect(() => {
+                    const handleKeyPress = (e: KeyboardEvent) => {
+                      if (selectedImageIndex !== null) return; // Don't navigate if modal is open
+                      if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        goToPrevious();
+                      } else if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        goToNext();
+                      }
+                    };
+                    
+                    window.addEventListener('keydown', handleKeyPress);
+                    return () => window.removeEventListener('keydown', handleKeyPress);
+                  }, [allImages.length, selectedImageIndex]);
                   
                   return (
                     <div className="space-y-4">
                       {/* Main Image with Navigation */}
                       <div className="relative">
                         <div 
-                          className="aspect-square bg-gray-100 cursor-pointer rounded-lg overflow-hidden relative"
+                          className="aspect-square bg-gray-100 cursor-pointer rounded-lg overflow-hidden relative select-none"
                           onClick={() => setSelectedImageIndex(safeMainIndex)}
+                          onTouchStart={onTouchStart}
+                          onTouchMove={onTouchMove}
+                          onTouchEnd={onTouchEnd}
                         >
                           {isSeller || hasPaidOrder ? (
                             <img
@@ -1547,6 +1635,7 @@ export default function ListingPage() {
       </div>
 
       {/* Image Modal */}
+      {/* Image Modal */}
       {selectedImageIndex !== null && listing && (() => {
         // Normalize images for modal
         let normalizedImages: string[] = [];
@@ -1572,6 +1661,40 @@ export default function ListingPage() {
         const allImages = Array.from(allImagesSet);
         
         if (allImages.length > 0 && selectedImageIndex >= 0 && selectedImageIndex < allImages.length) {
+          const goToPreviousModal = () => {
+            setSelectedImageIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : allImages.length - 1));
+          };
+          
+          const goToNextModal = () => {
+            setSelectedImageIndex((prev) => (prev !== null && prev < allImages.length - 1 ? prev + 1 : 0));
+          };
+
+          // Swipe gesture handlers for modal
+          const minSwipeDistanceModal = 50;
+          const onTouchStartModal = (e: React.TouchEvent) => {
+            setTouchEnd(null);
+            setTouchStart(e.targetTouches[0].clientX);
+          };
+          
+          const onTouchMoveModal = (e: React.TouchEvent) => {
+            setTouchEnd(e.targetTouches[0].clientX);
+          };
+          
+          const onTouchEndModal = () => {
+            if (!touchStart || !touchEnd) return;
+            const distance = touchStart - touchEnd;
+            const isLeftSwipe = distance > minSwipeDistanceModal;
+            const isRightSwipe = distance < -minSwipeDistanceModal;
+            
+            if (isLeftSwipe) {
+              goToNextModal();
+            } else if (isRightSwipe) {
+              goToPreviousModal();
+            }
+          };
+
+          // Keyboard navigation for modal - handled inline in the component
+
           return (
             <div
               className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
@@ -1581,6 +1704,9 @@ export default function ListingPage() {
                   setSelectedImageIndex(null);
                 }
               }}
+              onTouchStart={onTouchStartModal}
+              onTouchMove={onTouchMoveModal}
+              onTouchEnd={onTouchEndModal}
             >
               <div className="relative max-w-7xl max-h-full">
                 <button
