@@ -8,6 +8,7 @@ import { useCart } from "@/contexts/CartContext";
 import DealBadge from "@/components/DealBadge";
 import ReportButton from "@/components/ReportButton";
 import ProtectedImage from "@/components/ProtectedImage";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface Listing {
   id: string;
