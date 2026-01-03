@@ -64,7 +64,7 @@ export async function POST(req: NextRequest, context: Ctx) {
       const selectedImage = currentImages[setPrimaryIndex];
       updatedImages = [
         selectedImage,
-        ...currentImages.filter((_, idx) => idx !== setPrimaryIndex)
+        ...currentImages.filter((_: string, idx: number) => idx !== setPrimaryIndex)
       ];
     } else if (Array.isArray(images)) {
       // Full images array update
