@@ -49,13 +49,6 @@ export default function ListingPage() {
   const [averageRating, setAverageRating] = useState(0);
   const feeStatus = searchParams.get("fee");
 
-  // Reset main image index when listing changes
-  useEffect(() => {
-    if (listing) {
-      setMainImageIndex(0);
-    }
-  }, [listing?.id]);
-
   // Handle "new" route - redirect to create page
   useEffect(() => {
     if (listingId === "new") {
@@ -78,6 +71,13 @@ export default function ListingPage() {
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Reset main image index when listing changes
+  useEffect(() => {
+    if (listing) {
+      setMainImageIndex(0);
+    }
+  }, [listing?.id]);
 
   useEffect(() => {
     let isMounted = true;
