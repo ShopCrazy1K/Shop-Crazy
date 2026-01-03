@@ -75,6 +75,11 @@ export default function NotificationBell() {
           )
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
+        // Refresh notifications to ensure sync
+        await fetchNotifications();
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to mark notification as read:", errorData);
       }
     } catch (error) {
       console.error("Error marking notification as read:", error);
@@ -99,6 +104,11 @@ export default function NotificationBell() {
           prev.map((n) => ({ ...n, read: true }))
         );
         setUnreadCount(0);
+        // Refresh notifications to ensure sync
+        await fetchNotifications();
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to mark all notifications as read:", errorData);
       }
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
@@ -165,13 +175,20 @@ export default function NotificationBell() {
           />
           
           {/* Dropdown - Positioned differently for mobile vs desktop */}
-          <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-hidden flex flex-col">
+          <div 
+            className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
               {unreadCount > 0 && (
                 <button
-                  onClick={markAllAsRead}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAllAsRead();
+                  }}
                   className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
+                  type="button"
                 >
                   Mark all read
                 </button>
@@ -194,8 +211,11 @@ export default function NotificationBell() {
                     >
                       {notification.link ? (
                         <div
-                          onClick={() => {
-                            markAsRead(notification.id);
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            // Mark as read first
+                            await markAsRead(notification.id);
                             setIsOpen(false);
                             // Navigate to the link using router
                             if (notification.link) {
@@ -265,8 +285,12 @@ export default function NotificationBell() {
                           </div>
                           {!notification.read && (
                             <button
-                              onClick={() => markAsRead(notification.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markAsRead(notification.id);
+                              }}
                               className="flex-shrink-0 text-xs text-blue-600 hover:text-blue-700"
+                              type="button"
                             >
                               Mark read
                             </button>
