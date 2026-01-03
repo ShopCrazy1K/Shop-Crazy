@@ -84,11 +84,12 @@ export default function ListingPage() {
       setMainImageIndex(0);
       // Initialize thumbnail indices from listing or default to first 4
       let normalizedImages: string[] = [];
-      if (listing.images) {
-        if (Array.isArray(listing.images)) {
-          normalizedImages = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
-        } else if (typeof listing.images === 'string' && listing.images.trim()) {
-          normalizedImages = [listing.images];
+      const imagesValue = listing.images as any;
+      if (imagesValue) {
+        if (Array.isArray(imagesValue)) {
+          normalizedImages = imagesValue.filter((img: any) => img && typeof img === 'string' && img.trim());
+        } else if (typeof imagesValue === 'string' && imagesValue.trim()) {
+          normalizedImages = [imagesValue];
         }
       }
       
