@@ -34,6 +34,11 @@ export default function BottomNav() {
           💰
         </Link>
       )}
+      {user && user.role === "ADMIN" && (
+        <Link href="/admin" className="text-2xl hover:scale-110 transition-transform relative" title="Admin Panel">
+          ⚙️
+        </Link>
+      )}
       {user ? (
         <Link href="/profile" className="text-2xl hover:scale-110 transition-transform">
           👤

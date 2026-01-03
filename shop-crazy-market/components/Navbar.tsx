@@ -38,6 +38,11 @@ export default function Navbar() {
         {user && (
           <Link href="/referrals" className="hover:text-purple-600 transition-colors">💰 Referrals</Link>
         )}
+        {user && user.role === "ADMIN" && (
+          <Link href="/admin" className="bg-purple-600 text-white px-3 py-1 rounded-lg hover:bg-purple-700 transition-colors font-semibold">
+            ⚙️ Admin
+          </Link>
+        )}
         {user ? (
           <Link href="/profile" className="hover:text-purple-600 transition-colors">Profile</Link>
         ) : (
