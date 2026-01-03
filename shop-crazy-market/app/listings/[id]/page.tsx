@@ -752,34 +752,39 @@ export default function ListingPage() {
                   return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
                 }) || [];
                 
-                // Combine regular images with image-type digital files
+                // Remove duplicates from normalizedImages first
+                const uniqueNormalizedImages = Array.from(new Set(normalizedImages));
+                
+                // Combine regular images with image-type digital files, removing duplicates
                 // Note: Only normalizedImages (not digital files) can be set as primary
-                const allImages = [...normalizedImages, ...imageDigitalFiles];
+                const allImagesSet = new Set([...uniqueNormalizedImages, ...imageDigitalFiles]);
+                const allImages = Array.from(allImagesSet);
                 const primaryImageIndex = 0; // First image in normalizedImages is primary
                 
                 // Get thumbnail indices (use selectedThumbnailIndices state if editing, otherwise from listing)
+                // Use uniqueNormalizedImages for thumbnail indices to avoid index mismatches
                 let thumbnailIndices: number[] = [];
                 if (editingThumbnails) {
-                  thumbnailIndices = selectedThumbnailIndices.filter((idx: number) => idx >= 0 && idx < normalizedImages.length).slice(0, 4);
+                  thumbnailIndices = selectedThumbnailIndices.filter((idx: number) => idx >= 0 && idx < uniqueNormalizedImages.length).slice(0, 4);
                 } else if (listing.thumbnailIndices && Array.isArray(listing.thumbnailIndices) && listing.thumbnailIndices.length > 0) {
                   // Use saved thumbnail indices, filter to valid indices
-                  thumbnailIndices = listing.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < normalizedImages.length);
+                  thumbnailIndices = listing.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < uniqueNormalizedImages.length);
                   // If filtered list is empty, fall back to first 4
-                  if (thumbnailIndices.length === 0 && normalizedImages.length > 0) {
-                    thumbnailIndices = Array.from({ length: Math.min(4, normalizedImages.length) }, (_, i) => i);
+                  if (thumbnailIndices.length === 0 && uniqueNormalizedImages.length > 0) {
+                    thumbnailIndices = Array.from({ length: Math.min(4, uniqueNormalizedImages.length) }, (_, i) => i);
                   }
                 } else if (selectedThumbnailIndices.length > 0) {
                   // Use state if available
-                  thumbnailIndices = selectedThumbnailIndices.filter((idx: number) => idx >= 0 && idx < normalizedImages.length).slice(0, 4);
+                  thumbnailIndices = selectedThumbnailIndices.filter((idx: number) => idx >= 0 && idx < uniqueNormalizedImages.length).slice(0, 4);
                 } else {
                   // Default to first 4 images
-                  if (normalizedImages.length > 0) {
-                    thumbnailIndices = Array.from({ length: Math.min(4, normalizedImages.length) }, (_, i) => i);
+                  if (uniqueNormalizedImages.length > 0) {
+                    thumbnailIndices = Array.from({ length: Math.min(4, uniqueNormalizedImages.length) }, (_, i) => i);
                   }
                 }
                 
                 // Ensure we always have at least one thumbnail if images exist
-                if (thumbnailIndices.length === 0 && normalizedImages.length > 0) {
+                if (thumbnailIndices.length === 0 && uniqueNormalizedImages.length > 0) {
                   thumbnailIndices = [0];
                 }
                 
@@ -838,8 +843,8 @@ export default function ListingPage() {
                   async function setPrimaryImage(imageIndex: number) {
                     if (!user || !isSeller || settingPrimary) return;
                     
-                    // Only allow setting primary for images in normalizedImages (not digital files)
-                    if (imageIndex >= normalizedImages.length) {
+                    // Only allow setting primary for images in uniqueNormalizedImages (not digital files)
+                    if (imageIndex >= uniqueNormalizedImages.length) {
                       alert("Only uploaded images can be set as the primary image");
                       return;
                     }
@@ -929,7 +934,7 @@ export default function ListingPage() {
                             />
                           )}
                           {/* Primary Image Badge */}
-                          {safeMainIndex === primaryImageIndex && normalizedImages.length > 0 && (
+                          {safeMainIndex === primaryImageIndex && uniqueNormalizedImages.length > 0 && (
                             <div className="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
                               <span>✓</span> Primary
                             </div>
@@ -989,7 +994,7 @@ export default function ListingPage() {
                                 </button>
                               </div>
                               <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                                {normalizedImages.map((image: string, index: number) => {
+                                {uniqueNormalizedImages.map((image: string, index: number) => {
                                   const isSelected = thumbnailIndices.includes(index);
                                   return (
                                     <div
@@ -1165,7 +1170,7 @@ export default function ListingPage() {
                           )}
                           
                           {/* Instructions for sellers */}
-                          {isSeller && normalizedImages.length > 1 && (
+                          {isSeller && uniqueNormalizedImages.length > 1 && (
                             <p className="text-xs text-gray-500 text-center">
                               💡 Double-click a thumbnail or use "Set Primary" to make it the profile image
                             </p>
@@ -1560,7 +1565,11 @@ export default function ListingPage() {
           const ext = url.split('.').pop()?.toLowerCase();
           return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
         }) || [];
-        const allImages = [...normalizedImages, ...imageDigitalFiles];
+        // Remove duplicates from normalizedImages first
+        const uniqueNormalizedImages = Array.from(new Set(normalizedImages));
+        // Combine and remove duplicates
+        const allImagesSet = new Set([...uniqueNormalizedImages, ...imageDigitalFiles]);
+        const allImages = Array.from(allImagesSet);
         
         if (allImages.length > 0 && selectedImageIndex >= 0 && selectedImageIndex < allImages.length) {
           return (
