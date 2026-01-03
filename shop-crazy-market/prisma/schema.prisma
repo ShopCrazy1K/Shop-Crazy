@@ -220,6 +220,7 @@ model Listing {
   // Digital files / assets (store URLs or storage keys)
   digitalFiles String[] @default([])
   images       String[] @default([])
+  thumbnailIndices Int[] @default([]) // Indices of images to show as thumbnails (max 4)
 
   // Listing subscription fee state ($0.20/mo)
   isActive              Boolean @default(false)

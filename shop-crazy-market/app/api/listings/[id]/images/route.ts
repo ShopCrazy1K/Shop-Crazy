@@ -21,11 +21,12 @@ export async function POST(req: NextRequest, context: Ctx) {
     const body = await req.json().catch(() => ({}));
     const images = body?.images as unknown;
     const setPrimaryIndex = body?.setPrimaryIndex as number | undefined;
+    const thumbnailIndices = body?.thumbnailIndices as number[] | undefined;
 
     // Verify listing exists and user is the seller
     const existingListing = await prisma.listing.findUnique({
       where: { id },
-      select: { id: true, sellerId: true, images: true },
+      select: { id: true, sellerId: true, images: true, thumbnailIndices: true },
     });
 
     if (!existingListing) {
@@ -43,9 +44,34 @@ export async function POST(req: NextRequest, context: Ctx) {
       );
     }
 
-    let updatedImages: string[];
+    let updatedImages: string[] | undefined;
+    let updatedThumbnailIndices: number[] | undefined;
 
-    if (setPrimaryIndex !== undefined) {
+    if (thumbnailIndices !== undefined) {
+      // Set thumbnail indices (must be valid indices and max 4)
+      if (!Array.isArray(thumbnailIndices) || thumbnailIndices.length > 4) {
+        return NextResponse.json(
+          { ok: false, message: "Thumbnail indices must be an array with maximum 4 items" },
+          { status: 400 }
+        );
+      }
+
+      const currentImages = Array.isArray(existingListing.images) 
+        ? existingListing.images 
+        : typeof existingListing.images === 'string' 
+          ? JSON.parse(existingListing.images) 
+          : [];
+
+      // Validate all indices are within bounds
+      if (thumbnailIndices.some((idx: number) => idx < 0 || idx >= currentImages.length)) {
+        return NextResponse.json(
+          { ok: false, message: "Invalid thumbnail index" },
+          { status: 400 }
+        );
+      }
+
+      updatedThumbnailIndices = thumbnailIndices;
+    } else if (setPrimaryIndex !== undefined) {
       // Set primary image by moving selected image to first position
       const currentImages = Array.isArray(existingListing.images) 
         ? existingListing.images 
@@ -82,10 +108,18 @@ export async function POST(req: NextRequest, context: Ctx) {
       );
     }
 
+    const updateData: any = {};
+    if (updatedImages !== undefined) {
+      updateData.images = updatedImages;
+    }
+    if (updatedThumbnailIndices !== undefined) {
+      updateData.thumbnailIndices = updatedThumbnailIndices;
+    }
+
     const listing = await prisma.listing.update({
       where: { id },
-      data: { images: updatedImages },
-      select: { id: true, images: true },
+      data: updateData,
+      select: { id: true, images: true, thumbnailIndices: true },
     });
 
     return NextResponse.json({ ok: true, listing });

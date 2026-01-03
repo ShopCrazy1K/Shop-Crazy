@@ -48,6 +48,8 @@ export default function ListingPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [averageRating, setAverageRating] = useState(0);
   const [settingPrimary, setSettingPrimary] = useState(false);
+  const [editingThumbnails, setEditingThumbnails] = useState(false);
+  const [savingThumbnails, setSavingThumbnails] = useState(false);
   const feeStatus = searchParams.get("fee");
 
   // Handle "new" route - redirect to create page
@@ -726,12 +728,58 @@ export default function ListingPage() {
                 const allImages = [...normalizedImages, ...imageDigitalFiles];
                 const primaryImageIndex = 0; // First image in normalizedImages is primary
                 
+                // Get thumbnail indices (default to first 4 if not set)
+                const thumbnailIndices = (listing.thumbnailIndices && Array.isArray(listing.thumbnailIndices) && listing.thumbnailIndices.length > 0)
+                  ? listing.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < normalizedImages.length)
+                  : normalizedImages.slice(0, 4).map((_: string, idx: number) => idx);
+                
                 if (allImages.length > 0) {
                   // Ensure mainImageIndex is within bounds
                   const safeMainIndex = mainImageIndex >= 0 && mainImageIndex < allImages.length 
                     ? mainImageIndex 
                     : 0;
                   const currentImage = allImages[safeMainIndex];
+                  
+                  // Function to save thumbnail selection
+                  async function saveThumbnailSelection(selectedIndices: number[]) {
+                    if (!user || !isSeller || savingThumbnails) return;
+                    
+                    if (selectedIndices.length > 4) {
+                      alert("You can only select up to 4 thumbnail images");
+                      return;
+                    }
+                    
+                    setSavingThumbnails(true);
+                    try {
+                      const response = await fetch(`/api/listings/${listingId}/images`, {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "x-user-id": user.id,
+                        },
+                        body: JSON.stringify({ thumbnailIndices: selectedIndices }),
+                      });
+                      
+                      const data = await response.json();
+                      if (response.ok && data.ok) {
+                        // Refresh listing to get updated thumbnail indices
+                        const listingResponse = await fetch(`/api/listings/${listingId}`);
+                        if (listingResponse.ok) {
+                          const listingData = await listingResponse.json();
+                          setListing(listingData);
+                          setEditingThumbnails(false);
+                          alert("✅ Thumbnail selection saved!");
+                        }
+                      } else {
+                        alert(data.message || "Failed to save thumbnail selection");
+                      }
+                    } catch (error) {
+                      console.error("Error saving thumbnail selection:", error);
+                      alert("Error saving thumbnail selection");
+                    } finally {
+                      setSavingThumbnails(false);
+                    }
+                  }
                   
                   // Function to set primary image
                   async function setPrimaryImage(imageIndex: number) {
@@ -856,72 +904,148 @@ export default function ListingPage() {
                       {/* 4-Image Thumbnail Grid (Etsy-style) */}
                       {allImages.length > 1 && (
                         <div className="space-y-2">
-                          <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                            {allImages.slice(0, 4).map((image: string, index: number) => {
-                              const isPrimary = index === primaryImageIndex && index < normalizedImages.length;
-                              const isNormalizedImage = index < normalizedImages.length;
-                              const isActive = safeMainIndex === index;
-                              
-                              return (
-                                <div
-                                  key={index}
-                                  className={`aspect-square bg-gray-100 cursor-pointer border-2 rounded-lg overflow-hidden transition-all relative group ${
-                                    isActive
-                                      ? 'border-purple-600 ring-2 ring-purple-300'
-                                      : 'border-transparent hover:border-purple-400'
-                                  }`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setMainImageIndex(index);
-                                  }}
-                                  onDoubleClick={(e) => {
-                                    e.stopPropagation();
-                                    if (isSeller && isNormalizedImage) {
-                                      setPrimaryImage(index);
-                                    }
-                                  }}
+                          {editingThumbnails && isSeller ? (
+                            // Edit mode: Select which images to show as thumbnails
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-semibold text-gray-700">Select 4 thumbnail images:</p>
+                                <button
+                                  onClick={() => setEditingThumbnails(false)}
+                                  className="text-sm text-gray-600 hover:text-gray-800"
                                 >
-                                  <img
-                                    src={image}
-                                    alt={`${listing.title} - Image ${index + 1}`}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.style.display = 'none';
-                                      const parent = target.parentElement;
-                                      if (parent && !parent.querySelector('.image-error-placeholder')) {
-                                        const placeholder = document.createElement('div');
-                                        placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 text-xs image-error-placeholder';
-                                        placeholder.textContent = '📦';
-                                        parent.appendChild(placeholder);
-                                      }
-                                    }}
-                                  />
-                                  {/* Primary Badge */}
-                                  {isPrimary && (
-                                    <div className="absolute top-1 left-1 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                      ✓
+                                  Cancel
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                                {normalizedImages.map((image: string, index: number) => {
+                                  const isSelected = thumbnailIndices.includes(index);
+                                  return (
+                                    <div
+                                      key={index}
+                                      className={`aspect-square bg-gray-100 cursor-pointer border-2 rounded-lg overflow-hidden transition-all relative ${
+                                        isSelected
+                                          ? 'border-purple-600 ring-2 ring-purple-300'
+                                          : 'border-transparent hover:border-gray-300 opacity-60'
+                                      }`}
+                                      onClick={() => {
+                                        const newIndices = isSelected
+                                          ? thumbnailIndices.filter((idx: number) => idx !== index)
+                                          : thumbnailIndices.length < 4
+                                            ? [...thumbnailIndices, index]
+                                            : thumbnailIndices;
+                                        // Update local state for preview
+                                        if (listing) {
+                                          setListing({ ...listing, thumbnailIndices: newIndices });
+                                        }
+                                      }}
+                                    >
+                                      <img
+                                        src={image}
+                                        alt={`${listing.title} - Image ${index + 1}`}
+                                        className="w-full h-full object-cover"
+                                      />
+                                      {isSelected && (
+                                        <div className="absolute top-1 right-1 bg-purple-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                                          {thumbnailIndices.indexOf(index) + 1}
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
-                                  {/* Set as Primary Button (for sellers) */}
-                                  {isSeller && isNormalizedImage && !isPrimary && (
-                                    <button
+                                  );
+                                })}
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => saveThumbnailSelection(thumbnailIndices)}
+                                  disabled={savingThumbnails || thumbnailIndices.length === 0}
+                                  className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
+                                >
+                                  {savingThumbnails ? "Saving..." : `Save ${thumbnailIndices.length} Thumbnail${thumbnailIndices.length !== 1 ? 's' : ''}`}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            // Display mode: Show selected thumbnails
+                            <>
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs text-gray-500">Thumbnail images</p>
+                                {isSeller && normalizedImages.length > 4 && (
+                                  <button
+                                    onClick={() => setEditingThumbnails(true)}
+                                    className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
+                                  >
+                                    Edit Thumbnails
+                                  </button>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                                {thumbnailIndices.map((thumbIndex: number) => {
+                                  if (thumbIndex >= normalizedImages.length) return null;
+                                  const image = normalizedImages[thumbIndex];
+                                  const isPrimary = thumbIndex === primaryImageIndex;
+                                  const isActive = safeMainIndex === thumbIndex;
+                                  
+                                  return (
+                                    <div
+                                      key={thumbIndex}
+                                      className={`aspect-square bg-gray-100 cursor-pointer border-2 rounded-lg overflow-hidden transition-all relative group ${
+                                        isActive
+                                          ? 'border-purple-600 ring-2 ring-purple-300'
+                                          : 'border-transparent hover:border-purple-400'
+                                      }`}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setPrimaryImage(index);
+                                        setMainImageIndex(thumbIndex);
                                       }}
-                                      disabled={settingPrimary}
-                                      className="absolute bottom-1 right-1 bg-purple-600 text-white text-[10px] font-semibold px-2 py-1 rounded hover:bg-purple-700 transition-colors disabled:opacity-50 z-10 shadow-lg"
-                                      title="Set as primary image (profile image)"
-                                      onMouseEnter={(e) => e.stopPropagation()}
+                                      onDoubleClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isSeller) {
+                                          setPrimaryImage(thumbIndex);
+                                        }
+                                      }}
                                     >
-                                      {settingPrimary ? "..." : "Set Primary"}
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
+                                      <img
+                                        src={image}
+                                        alt={`${listing.title} - Image ${thumbIndex + 1}`}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          target.style.display = 'none';
+                                          const parent = target.parentElement;
+                                          if (parent && !parent.querySelector('.image-error-placeholder')) {
+                                            const placeholder = document.createElement('div');
+                                            placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 text-xs image-error-placeholder';
+                                            placeholder.textContent = '📦';
+                                            parent.appendChild(placeholder);
+                                          }
+                                        }}
+                                      />
+                                      {/* Primary Badge */}
+                                      {isPrimary && (
+                                        <div className="absolute top-1 left-1 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                          ✓
+                                        </div>
+                                      )}
+                                      {/* Set as Primary Button (for sellers) */}
+                                      {isSeller && !isPrimary && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setPrimaryImage(thumbIndex);
+                                          }}
+                                          disabled={settingPrimary}
+                                          className="absolute bottom-1 right-1 bg-purple-600 text-white text-[10px] font-semibold px-2 py-1 rounded hover:bg-purple-700 transition-colors disabled:opacity-50 z-10 shadow-lg"
+                                          title="Set as primary image (profile image)"
+                                          onMouseEnter={(e) => e.stopPropagation()}
+                                        >
+                                          {settingPrimary ? "..." : "Set Primary"}
+                                        </button>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </>
+                          )}
                           
                           {/* Show more images indicator */}
                           {allImages.length > 4 && (
