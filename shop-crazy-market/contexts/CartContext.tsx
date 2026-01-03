@@ -28,20 +28,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
   useEffect(() => {
-    // Load cart from localStorage
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
+    // Load cart from localStorage - only in browser
+    if (typeof window !== 'undefined') {
       try {
-        setItems(JSON.parse(savedCart));
-      } catch {
+        const savedCart = localStorage.getItem("cart");
+        if (savedCart) {
+          try {
+            const parsedCart = JSON.parse(savedCart);
+            // Validate cart items structure
+            if (Array.isArray(parsedCart)) {
+              setItems(parsedCart.filter(item => item && item.id && item.title && typeof item.price === 'number'));
+            } else {
+              setItems([]);
+            }
+          } catch (error) {
+            console.error("Error parsing cart:", error);
+            setItems([]);
+          }
+        }
+      } catch (error) {
+        console.error("Error accessing localStorage:", error);
         setItems([]);
       }
     }
   }, []);
 
   useEffect(() => {
-    // Save cart to localStorage whenever it changes
-    localStorage.setItem("cart", JSON.stringify(items));
+    // Save cart to localStorage whenever it changes - only in browser
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem("cart", JSON.stringify(items));
+      } catch (error) {
+        console.error("Error saving cart to localStorage:", error);
+      }
+    }
   }, [items]);
 
   const addItem = (item: CartItem) => {

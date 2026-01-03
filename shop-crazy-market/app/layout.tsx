@@ -120,18 +120,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <MobileMetaTags />
         <ErrorBoundary>
           <ThemeProvider>
-            <AuthProvider>
-              <CartProvider>
-                {/* Decorations disabled for better mobile performance */}
-                {/* <ChristmasDecorations /> */}
-                {/* <NewYearDecorations /> */}
-                {/* <WinterDecorations /> */}
-                <Navbar />
-                <div className="pb-20 md:pb-0 min-h-screen flex flex-col">{children}</div>
-                <Footer />
-                <BottomNav />
-              </CartProvider>
-            </AuthProvider>
+            <ErrorBoundary fallback={<div className="p-4 text-center text-red-600">Authentication error. Please refresh.</div>}>
+              <AuthProvider>
+                <ErrorBoundary fallback={<div className="p-4 text-center text-red-600">Cart error. Please refresh.</div>}>
+                  <CartProvider>
+                    {/* Decorations disabled for better mobile performance */}
+                    {/* <ChristmasDecorations /> */}
+                    {/* <NewYearDecorations /> */}
+                    {/* <WinterDecorations /> */}
+                    <ErrorBoundary fallback={<div className="p-4 text-center text-red-600">Navigation error. Please refresh.</div>}>
+                      <Navbar />
+                    </ErrorBoundary>
+                    <div className="pb-20 md:pb-0 min-h-screen flex flex-col">{children}</div>
+                    <ErrorBoundary fallback={null}>
+                      <Footer />
+                    </ErrorBoundary>
+                    <ErrorBoundary fallback={null}>
+                      <BottomNav />
+                    </ErrorBoundary>
+                  </CartProvider>
+                </ErrorBoundary>
+              </AuthProvider>
+            </ErrorBoundary>
           </ThemeProvider>
         </ErrorBoundary>
       </body>

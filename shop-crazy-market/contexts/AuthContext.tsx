@@ -24,13 +24,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored session
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
+    // Check for stored session - only in browser
+    if (typeof window !== 'undefined') {
       try {
-        setUser(JSON.parse(storedUser));
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            // Validate user object structure
+            if (parsedUser && parsedUser.id && parsedUser.email) {
+              setUser(parsedUser);
+            } else {
+              localStorage.removeItem("user");
+            }
+          } catch (error) {
+            console.error("Error parsing stored user:", error);
+            localStorage.removeItem("user");
+          }
+        }
       } catch (error) {
-        localStorage.removeItem("user");
+        console.error("Error accessing localStorage:", error);
       }
     }
     setLoading(false);
@@ -72,7 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("user");
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem("user");
+      } catch (error) {
+        console.error("Error removing user from localStorage:", error);
+      }
+    }
   };
 
   return (
