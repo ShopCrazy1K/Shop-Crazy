@@ -50,6 +50,7 @@ export default function ListingPage() {
   const [settingPrimary, setSettingPrimary] = useState(false);
   const [editingThumbnails, setEditingThumbnails] = useState(false);
   const [savingThumbnails, setSavingThumbnails] = useState(false);
+  const [selectedThumbnailIndices, setSelectedThumbnailIndices] = useState<number[]>([]);
   const feeStatus = searchParams.get("fee");
 
   // Handle "new" route - redirect to create page
@@ -79,8 +80,15 @@ export default function ListingPage() {
   useEffect(() => {
     if (listing) {
       setMainImageIndex(0);
+      // Initialize thumbnail indices from listing or default to first 4
+      if (listing.thumbnailIndices && Array.isArray(listing.thumbnailIndices) && listing.thumbnailIndices.length > 0) {
+        setSelectedThumbnailIndices(listing.thumbnailIndices.slice(0, 4));
+      } else if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
+        const firstFour = Math.min(4, listing.images.length);
+        setSelectedThumbnailIndices(Array.from({ length: firstFour }, (_, i) => i));
+      }
     }
-  }, [listing?.id]);
+  }, [listing?.id, listing?.thumbnailIndices]);
 
   useEffect(() => {
     let isMounted = true;
@@ -728,10 +736,12 @@ export default function ListingPage() {
                 const allImages = [...normalizedImages, ...imageDigitalFiles];
                 const primaryImageIndex = 0; // First image in normalizedImages is primary
                 
-                // Get thumbnail indices (default to first 4 if not set)
-                const thumbnailIndices = (listing.thumbnailIndices && Array.isArray(listing.thumbnailIndices) && listing.thumbnailIndices.length > 0)
-                  ? listing.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < normalizedImages.length)
-                  : normalizedImages.slice(0, 4).map((_: string, idx: number) => idx);
+                // Get thumbnail indices (use selectedThumbnailIndices state if editing, otherwise from listing)
+                const thumbnailIndices = editingThumbnails
+                  ? selectedThumbnailIndices
+                  : (listing.thumbnailIndices && Array.isArray(listing.thumbnailIndices) && listing.thumbnailIndices.length > 0)
+                    ? listing.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < normalizedImages.length)
+                    : normalizedImages.slice(0, 4).map((_: string, idx: number) => idx);
                 
                 if (allImages.length > 0) {
                   // Ensure mainImageIndex is within bounds
@@ -929,14 +939,11 @@ export default function ListingPage() {
                                       }`}
                                       onClick={() => {
                                         const newIndices = isSelected
-                                          ? thumbnailIndices.filter((idx: number) => idx !== index)
-                                          : thumbnailIndices.length < 4
-                                            ? [...thumbnailIndices, index]
-                                            : thumbnailIndices;
-                                        // Update local state for preview
-                                        if (listing) {
-                                          setListing({ ...listing, thumbnailIndices: newIndices });
-                                        }
+                                          ? selectedThumbnailIndices.filter((idx: number) => idx !== index)
+                                          : selectedThumbnailIndices.length < 4
+                                            ? [...selectedThumbnailIndices, index]
+                                            : selectedThumbnailIndices;
+                                        setSelectedThumbnailIndices(newIndices);
                                       }}
                                     >
                                       <img
@@ -955,11 +962,11 @@ export default function ListingPage() {
                               </div>
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => saveThumbnailSelection(thumbnailIndices)}
-                                  disabled={savingThumbnails || thumbnailIndices.length === 0}
+                                  onClick={() => saveThumbnailSelection(selectedThumbnailIndices)}
+                                  disabled={savingThumbnails || selectedThumbnailIndices.length === 0}
                                   className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
                                 >
-                                  {savingThumbnails ? "Saving..." : `Save ${thumbnailIndices.length} Thumbnail${thumbnailIndices.length !== 1 ? 's' : ''}`}
+                                  {savingThumbnails ? "Saving..." : `Save ${selectedThumbnailIndices.length} Thumbnail${selectedThumbnailIndices.length !== 1 ? 's' : ''}`}
                                 </button>
                               </div>
                             </div>
@@ -970,7 +977,14 @@ export default function ListingPage() {
                                 <p className="text-xs text-gray-500">Thumbnail images</p>
                                 {isSeller && normalizedImages.length > 4 && (
                                   <button
-                                    onClick={() => setEditingThumbnails(true)}
+                                    onClick={() => {
+                                      // Initialize with current thumbnail indices when entering edit mode
+                                      const currentIndices = (listing.thumbnailIndices && Array.isArray(listing.thumbnailIndices) && listing.thumbnailIndices.length > 0)
+                                        ? listing.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < normalizedImages.length)
+                                        : normalizedImages.slice(0, 4).map((_: string, idx: number) => idx);
+                                      setSelectedThumbnailIndices(currentIndices);
+                                      setEditingThumbnails(true);
+                                    }}
                                     className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
                                   >
                                     Edit Thumbnails
