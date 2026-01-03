@@ -46,6 +46,7 @@ export default function NotificationBell() {
     }
     
     try {
+      setLoading(true);
       const response = await fetch(`/api/notifications?userId=${user.id}`, {
         method: 'GET',
         headers: {
@@ -55,18 +56,41 @@ export default function NotificationBell() {
       });
       
       if (response.ok) {
-        const data = await response.json();
+        let data: any;
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.error("Failed to parse notifications JSON:", jsonError);
+          // Don't clear notifications on JSON parse error, keep existing ones
+          return;
+        }
+        
         if (data && typeof data === 'object') {
-          setNotifications(Array.isArray(data.notifications) ? data.notifications : []);
-          setUnreadCount(typeof data.unreadCount === 'number' ? data.unreadCount : 0);
+          // Validate and set notifications
+          const notificationsArray = Array.isArray(data.notifications) 
+            ? data.notifications.filter((n: any) => n && n.id && n.title && n.message)
+            : [];
+          setNotifications(notificationsArray);
+          setUnreadCount(typeof data.unreadCount === 'number' ? Math.max(0, data.unreadCount) : 0);
+        } else {
+          console.error("Invalid notifications data format:", data);
+          // Don't clear notifications on invalid data, keep existing ones
         }
       } else {
-        console.error("Failed to fetch notifications:", response.status, response.statusText);
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error("Failed to fetch notifications:", response.status, response.statusText, errorText);
         // Don't clear notifications on error, keep existing ones
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching notifications:", error);
+      console.error("Error details:", {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+      });
       // Don't clear notifications on error, keep existing ones
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -163,18 +187,26 @@ export default function NotificationBell() {
   }
 
   function formatTime(dateString: string): string {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
+    try {
+      if (!dateString) return "Unknown";
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Invalid date";
+      
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
 
-    if (minutes < 1) return "Just now";
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
+      if (minutes < 1) return "Just now";
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      if (days < 7) return `${days}d ago`;
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return "Unknown";
+    }
   }
 
   if (!user) {
@@ -243,13 +275,23 @@ export default function NotificationBell() {
             </div>
 
             <div className="overflow-y-auto flex-1">
-              {notifications.length === 0 ? (
+              {loading ? (
+                <div className="p-4 sm:p-6 text-center text-gray-500 text-xs sm:text-sm">
+                  Loading notifications...
+                </div>
+              ) : notifications.length === 0 ? (
                 <div className="p-4 sm:p-6 text-center text-gray-500 text-xs sm:text-sm">
                   No notifications yet
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {notifications.map((notification) => (
+                  {notifications.map((notification) => {
+                    // Validate notification data before rendering
+                    if (!notification || !notification.id || !notification.title || !notification.message) {
+                      console.warn("Invalid notification data:", notification);
+                      return null;
+                    }
+                    return (
                     <div
                       key={notification.id}
                       className={`p-3 sm:p-4 hover:bg-gray-50 transition-colors ${
@@ -268,14 +310,26 @@ export default function NotificationBell() {
                               // Small delay to ensure state updates
                               await new Promise(resolve => setTimeout(resolve, 100));
                               // Navigate to the link using router
-                              if (notification.link) {
-                                router.push(notification.link);
+                              if (notification.link && typeof notification.link === 'string' && notification.link.trim()) {
+                                try {
+                                  router.push(notification.link);
+                                } catch (navError: any) {
+                                  console.error("Navigation error:", navError);
+                                  // Fallback to window.location if router.push fails
+                                  window.location.href = notification.link;
+                                }
                               }
-                            } catch (error) {
+                            } catch (error: any) {
                               console.error("Error handling notification click:", error);
                               // Still try to navigate even if mark as read fails
-                              if (notification.link) {
-                                router.push(notification.link);
+                              if (notification.link && typeof notification.link === 'string' && notification.link.trim()) {
+                                try {
+                                  router.push(notification.link);
+                                } catch (navError: any) {
+                                  console.error("Navigation error:", navError);
+                                  // Fallback to window.location if router.push fails
+                                  window.location.href = notification.link;
+                                }
                               }
                             }
                           }}
@@ -355,7 +409,8 @@ export default function NotificationBell() {
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

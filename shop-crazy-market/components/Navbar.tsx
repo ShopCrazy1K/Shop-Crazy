@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import NotificationBell from "@/components/NotificationBell";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function Navbar() {
   const { user } = useAuth();
@@ -33,7 +34,9 @@ export default function Navbar() {
         </Link>
         {user && (
           <div className="flex items-center gap-2">
-            <NotificationBell />
+            <ErrorBoundary fallback={<div className="p-2 text-red-500 text-xs">⚠️ Notifications unavailable</div>}>
+              <NotificationBell />
+            </ErrorBoundary>
           </div>
         )}
         <Link href="/sell" className="text-pink-600 hover:text-pink-700 transition-colors">Sell</Link>
