@@ -753,10 +753,6 @@ export default function ListingPage() {
                   thumbnailIndices = normalizedImages.slice(0, Math.min(4, normalizedImages.length)).map((_: string, idx: number) => idx);
                 }
                 
-                console.log("[THUMBNAILS] Listing thumbnailIndices:", listing.thumbnailIndices);
-                console.log("[THUMBNAILS] Normalized images count:", normalizedImages.length);
-                console.log("[THUMBNAILS] Final thumbnail indices:", thumbnailIndices);
-                
                 if (allImages.length > 0) {
                   // Ensure mainImageIndex is within bounds
                   const safeMainIndex = mainImageIndex >= 0 && mainImageIndex < allImages.length 
@@ -786,18 +782,22 @@ export default function ListingPage() {
                       
                       const data = await response.json();
                       if (response.ok && data.ok) {
-                        // Refresh listing to get updated thumbnail indices
+                        // Update listing immediately with the response data
+                        if (data.listing && data.listing.thumbnailIndices) {
+                          setListing({ ...listing, thumbnailIndices: data.listing.thumbnailIndices });
+                          setSelectedThumbnailIndices(data.listing.thumbnailIndices.slice(0, 4));
+                        }
+                        // Also refresh from API to ensure we have the latest data
                         const listingResponse = await fetch(`/api/listings/${listingId}`);
                         if (listingResponse.ok) {
                           const listingData = await listingResponse.json();
                           setListing(listingData);
-                          // Update selectedThumbnailIndices from the response
-                          if (data.listing?.thumbnailIndices && Array.isArray(data.listing.thumbnailIndices)) {
-                            setSelectedThumbnailIndices(data.listing.thumbnailIndices.slice(0, 4));
+                          if (listingData.thumbnailIndices && Array.isArray(listingData.thumbnailIndices)) {
+                            setSelectedThumbnailIndices(listingData.thumbnailIndices.slice(0, 4));
                           }
-                          setEditingThumbnails(false);
-                          alert("✅ Thumbnail selection saved!");
                         }
+                        setEditingThumbnails(false);
+                        alert("✅ Thumbnail selection saved!");
                       } else {
                         alert(data.message || "Failed to save thumbnail selection");
                       }
