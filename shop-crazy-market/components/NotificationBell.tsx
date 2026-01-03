@@ -55,7 +55,18 @@ export default function NotificationBell() {
   }
 
   async function markAsRead(notificationId: string) {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.error("Cannot mark as read: no user ID");
+      return;
+    }
+    
+    // Optimistically update UI first
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id === notificationId ? { ...n, read: true } : n
+      )
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
     
     try {
       const response = await fetch("/api/notifications", {
@@ -67,27 +78,45 @@ export default function NotificationBell() {
         body: JSON.stringify({ notificationId }),
       });
 
-      if (response.ok) {
-        // Update local state
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Failed to mark notification as read:", response.status, errorData);
+        // Revert optimistic update on error
         setNotifications((prev) =>
           prev.map((n) =>
-            n.id === notificationId ? { ...n, read: true } : n
+            n.id === notificationId ? { ...n, read: false } : n
           )
         );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-        // Refresh notifications to ensure sync
-        await fetchNotifications();
+        setUnreadCount((prev) => prev + 1);
       } else {
-        const errorData = await response.json();
-        console.error("Failed to mark notification as read:", errorData);
+        // Success - refresh to ensure sync
+        await fetchNotifications();
       }
     } catch (error) {
       console.error("Error marking notification as read:", error);
+      // Revert optimistic update on error
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notificationId ? { ...n, read: false } : n
+        )
+      );
+      setUnreadCount((prev) => prev + 1);
     }
   }
 
   async function markAllAsRead() {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.error("Cannot mark all as read: no user ID");
+      return;
+    }
+    
+    // Optimistically update UI first
+    const previousNotifications = [...notifications];
+    const previousUnreadCount = unreadCount;
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, read: true }))
+    );
+    setUnreadCount(0);
     
     try {
       const response = await fetch("/api/notifications", {
@@ -99,19 +128,21 @@ export default function NotificationBell() {
         body: JSON.stringify({ markAllRead: true }),
       });
 
-      if (response.ok) {
-        setNotifications((prev) =>
-          prev.map((n) => ({ ...n, read: true }))
-        );
-        setUnreadCount(0);
-        // Refresh notifications to ensure sync
-        await fetchNotifications();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Failed to mark all notifications as read:", response.status, errorData);
+        // Revert optimistic update on error
+        setNotifications(previousNotifications);
+        setUnreadCount(previousUnreadCount);
       } else {
-        const errorData = await response.json();
-        console.error("Failed to mark all notifications as read:", errorData);
+        // Success - refresh to ensure sync
+        await fetchNotifications();
       }
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
+      // Revert optimistic update on error
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnreadCount);
     }
   }
 
@@ -214,8 +245,8 @@ export default function NotificationBell() {
                           onClick={async (e) => {
                             e.stopPropagation();
                             e.preventDefault();
-                            // Mark as read first
-                            await markAsRead(notification.id);
+                            // Mark as read first (don't await to avoid blocking navigation)
+                            markAsRead(notification.id).catch(err => console.error("Error marking as read:", err));
                             setIsOpen(false);
                             // Navigate to the link using router
                             if (notification.link) {

@@ -85,18 +85,29 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ message: "All notifications marked as read" });
     } else if (notificationId) {
       // Mark specific notification as read
-      const notification = await prisma.notification.update({
-        where: {
-          id: notificationId,
-          userId: userId, // Ensure user owns this notification
-        },
-        data: {
-          read: true,
-          readAt: new Date(),
-        },
-      });
+      try {
+        const notification = await prisma.notification.update({
+          where: {
+            id: notificationId,
+            userId: userId, // Ensure user owns this notification
+          },
+          data: {
+            read: true,
+            readAt: new Date(),
+          },
+        });
 
-      return NextResponse.json(notification);
+        return NextResponse.json({ success: true, notification });
+      } catch (error: any) {
+        // If notification not found or doesn't belong to user
+        if (error.code === 'P2025') {
+          return NextResponse.json(
+            { error: "Notification not found or access denied" },
+            { status: 404 }
+          );
+        }
+        throw error;
+      }
     } else {
       return NextResponse.json(
         { error: "notificationId or markAllRead is required" },
