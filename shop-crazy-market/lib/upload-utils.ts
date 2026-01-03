@@ -29,12 +29,36 @@ const DEFAULT_OPTIONS: Required<UploadOptions> = {
 
 /**
  * Upload a single file with progress tracking and retry logic
+ * Automatically uses chunked upload for large files (>50MB)
  */
 export async function uploadFileWithProgress(
   file: File,
   options: UploadOptions = {}
 ): Promise<string> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
+
+  // Use chunked upload for large files
+  if (shouldUseChunkedUpload(file)) {
+    try {
+      const { uploadFileInChunks } = await import("@/lib/chunked-upload");
+      return await uploadFileInChunks(file, {
+        onProgress: (progress) => {
+          opts.onProgress(file, progress.progress);
+        },
+        onComplete: (file, url) => {
+          opts.onComplete(file, url);
+        },
+        onError: (file, error) => {
+          opts.onError(file, error);
+        },
+      });
+    } catch (error: any) {
+      opts.onError(file, error.message || "Chunked upload failed");
+      throw error;
+    }
+  }
+
+  // Regular upload for smaller files
   let retryCount = 0;
 
   while (retryCount <= opts.maxRetries) {
@@ -182,12 +206,12 @@ export function createImagePreview(file: File): Promise<string> {
  * Validate file before upload
  */
 export function validateFile(file: File, isImage: boolean): { valid: boolean; error?: string } {
-  // Check file size
-  const maxSize = isImage ? 10 * 1024 * 1024 : 50 * 1024 * 1024; // 10MB for images, 50MB for files
+  // Check file size (allow larger files for chunked upload)
+  const maxSize = isImage ? 10 * 1024 * 1024 : 200 * 1024 * 1024; // 10MB for images, 200MB for files (chunked)
   if (file.size > maxSize) {
     return {
       valid: false,
-      error: `File size exceeds ${isImage ? "10MB" : "50MB"} limit`,
+      error: `File size exceeds ${isImage ? "10MB" : "200MB"} limit`,
     };
   }
 
@@ -211,5 +235,12 @@ export function validateFile(file: File, isImage: boolean): { valid: boolean; er
   }
 
   return { valid: true };
+}
+
+/**
+ * Check if file should use chunked upload
+ */
+export function shouldUseChunkedUpload(file: File): boolean {
+  return checkChunkedUpload(file);
 }
 

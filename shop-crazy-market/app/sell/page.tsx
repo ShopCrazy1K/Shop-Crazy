@@ -8,6 +8,8 @@ import Link from "next/link";
 import { categories } from "@/lib/categories";
 import { LISTING_FEE_PER_MONTH } from "@/lib/fees";
 import ImageReorderGrid from "@/components/ImageReorderGrid";
+import DragAndDropUpload from "@/components/DragAndDropUpload";
+import ImageReorderBeforeUpload from "@/components/ImageReorderBeforeUpload";
 import { uploadFilesParallel, validateFile } from "@/lib/upload-utils";
 
 type ImageItem = { id: string; url: string; path?: string };
@@ -899,6 +901,34 @@ export default function SellPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Upload Digital Files
                   </label>
+                  
+                  {/* Drag and Drop Upload */}
+                  <DragAndDropUpload
+                    onFilesSelected={(files) => {
+                      // Create a synthetic event for handleDigitalFileChange
+                      const fileList = {
+                        files: files as any,
+                        target: { files: files as any, value: "" },
+                      };
+                      handleDigitalFileChange(fileList as any);
+                    }}
+                    accept=".zip,.rar,.pdf,.epub,.mobi,.doc,.docx,.txt,.mp3,.mp4,.avi,.mov,.jpg,.png,.gif,.psd,.ai,.svg"
+                    multiple={true}
+                    maxSize={50 * 1024 * 1024}
+                    className="mb-3"
+                  >
+                    <div className="space-y-2">
+                      <div className="text-3xl">📦</div>
+                      <p className="text-sm font-semibold text-gray-700">
+                        Drag and drop files here
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        or click to browse • Max 50MB per file
+                      </p>
+                    </div>
+                  </DragAndDropUpload>
+
+                  {/* Traditional File Input (fallback) */}
                   <input
                     type="file"
                     multiple
@@ -984,6 +1014,31 @@ export default function SellPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Upload Images
                   </label>
+                  
+                  {/* Drag and Drop Upload */}
+                  <DragAndDropUpload
+                    onFilesSelected={(files) => {
+                      setImageFiles((prev) => [...prev, ...files]);
+                    }}
+                    accept="image/*"
+                    multiple={true}
+                    maxFiles={10}
+                    maxSize={10 * 1024 * 1024}
+                    isImage={true}
+                    className="mb-3"
+                  >
+                    <div className="space-y-2">
+                      <div className="text-3xl">📸</div>
+                      <p className="text-sm font-semibold text-gray-700">
+                        Drag and drop images here
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        or click to browse • Max 10MB per image
+                      </p>
+                    </div>
+                  </DragAndDropUpload>
+
+                  {/* Traditional File Input (fallback) */}
                   <input
                     type="file"
                     accept="image/*"
@@ -996,6 +1051,19 @@ export default function SellPage() {
                     Upload images directly (max 10MB per image, will be automatically optimized).
                   </p>
                 </div>
+
+                {/* Image Reordering Before Upload */}
+                {imageFiles.length > 0 && !uploadingImages && (
+                  <ImageReorderBeforeUpload
+                    files={imageFiles}
+                    onReorder={(reorderedFiles) => {
+                      setImageFiles(reorderedFiles);
+                    }}
+                    onRemove={(index) => {
+                      setImageFiles((prev) => prev.filter((_, i) => i !== index));
+                    }}
+                  />
+                )}
 
                 {uploadingImages && imageFiles.length > 0 && (
                   <div className="space-y-2">

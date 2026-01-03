@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { rateLimit } from "@/lib/rate-limit";
 import sharp from "sharp";
 
 /**
@@ -38,30 +39,8 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB (before compression)
 const MAX_DIGITAL_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const MAX_IMAGE_DIMENSION = 2000; // Max width or height in pixels
 
-// Rate limiting (simple in-memory store - use Redis in production)
-const uploadCounts = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_MAX = 20; // Max uploads per window
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-
-/**
- * Check rate limit for IP address
- */
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const record = uploadCounts.get(ip);
-  
-  if (!record || now > record.resetAt) {
-    uploadCounts.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-    return { allowed: true, remaining: RATE_LIMIT_MAX - 1 };
-  }
-  
-  if (record.count >= RATE_LIMIT_MAX) {
-    return { allowed: false, remaining: 0 };
-  }
-  
-  record.count++;
-  return { allowed: true, remaining: RATE_LIMIT_MAX - record.count };
-}
+const RATE_LIMIT_WINDOW = 60; // 1 minute in seconds
 
 /**
  * Validate file type by checking MIME type and extension
@@ -153,15 +132,28 @@ async function optimizeImage(buffer: Buffer, fileType: string): Promise<Buffer> 
 
 export async function POST(request: Request) {
   try {
-    // Rate limiting
+    // Rate limiting with Redis (falls back to in-memory in development)
     const forwarded = request.headers.get('x-forwarded-for');
     const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
-    const rateLimit = checkRateLimit(ip);
     
-    if (!rateLimit.allowed) {
+    const rateLimitResult = await rateLimit({
+      identifier: `upload:${ip}`,
+      limit: RATE_LIMIT_MAX,
+      window: RATE_LIMIT_WINDOW,
+    });
+    
+    if (!rateLimitResult.success) {
       return NextResponse.json(
-        { error: "Too many upload requests. Please try again later." },
-        { status: 429 }
+        { 
+          error: "Too many upload requests. Please try again later.",
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter?.toString() || '60',
+          },
+        }
       );
     }
     

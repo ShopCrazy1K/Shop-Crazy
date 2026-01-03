@@ -1,6 +1,6 @@
 /**
- * Simple in-memory rate limiting utility
- * For production, consider using Redis or Upstash for distributed rate limiting
+ * Rate limiting utility with Redis support for production
+ * Falls back to in-memory store in development
  */
 
 interface RateLimitStore {
@@ -13,62 +13,163 @@ interface RateLimitStore {
 const store: RateLimitStore = {};
 
 interface RateLimitOptions {
-  windowMs: number; // Time window in milliseconds
-  maxRequests: number; // Maximum requests per window
-  keyGenerator?: (req: Request) => string; // Custom key generator
+  identifier: string; // Unique identifier (e.g., IP address, user ID)
+  limit: number; // Maximum requests per window
+  window: number; // Time window in seconds
+}
+
+interface RateLimitResult {
+  success: boolean;
+  remaining: number;
+  retryAfter?: number;
 }
 
 /**
- * Rate limit middleware for Next.js API routes
+ * Get Redis client (if available)
  */
-export function rateLimit(options: RateLimitOptions) {
-  const { windowMs, maxRequests, keyGenerator } = options;
+async function getRedisClient() {
+  // Check if Redis is configured
+  if (!process.env.REDIS_URL && !process.env.UPSTASH_REDIS_REST_URL) {
+    return null;
+  }
 
-  return async (req: Request): Promise<{ success: boolean; remaining: number; resetTime: number }> => {
-    // Generate key (default: IP address)
-    const key = keyGenerator 
-      ? keyGenerator(req)
-      : req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-        req.headers.get('x-real-ip') || 
-        'unknown';
-
-    const now = Date.now();
-    const record = store[key];
-
-    // Clean up expired entries periodically (every 1000 requests)
-    if (Math.random() < 0.001) {
-      cleanupExpiredEntries(now);
+  try {
+    // Try to use Upstash Redis (serverless-friendly)
+    if (process.env.UPSTASH_REDIS_REST_URL) {
+      const { Redis } = await import('@upstash/redis');
+      return new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      });
     }
 
-    if (!record || now > record.resetTime) {
-      // Create new record or reset expired one
-      store[key] = {
-        count: 1,
-        resetTime: now + windowMs,
-      };
-      return {
-        success: true,
-        remaining: maxRequests - 1,
-        resetTime: now + windowMs,
-      };
+    // Try to use standard Redis
+    if (process.env.REDIS_URL) {
+      const Redis = (await import('ioredis')).default;
+      return new Redis(process.env.REDIS_URL);
     }
+  } catch (error) {
+    console.warn('[RATE LIMIT] Redis not available, using in-memory store:', error);
+    return null;
+  }
 
-    if (record.count >= maxRequests) {
-      // Rate limit exceeded
-      return {
-        success: false,
-        remaining: 0,
-        resetTime: record.resetTime,
-      };
+  return null;
+}
+
+/**
+ * Rate limit check with Redis support
+ */
+export async function rateLimit(options: RateLimitOptions): Promise<RateLimitResult> {
+  const { identifier, limit, window } = options;
+  const redis = await getRedisClient();
+  const key = `ratelimit:${identifier}`;
+  const windowMs = window * 1000;
+
+  // Use Redis if available (production)
+  if (redis) {
+    try {
+      const now = Date.now();
+      const windowStart = now - windowMs;
+
+      // Use Redis sorted set for sliding window
+      if ('zadd' in redis && typeof redis.zadd === 'function') {
+        // Upstash Redis
+        const pipeline = (redis as any).pipeline();
+        pipeline.zremrangebyscore(key, 0, windowStart);
+        pipeline.zcard(key);
+        pipeline.zadd(key, { score: now, member: `${now}-${Math.random()}` });
+        pipeline.expire(key, window);
+        const results = await pipeline.exec();
+
+        const count = results[1] as number;
+        const remaining = Math.max(0, limit - count);
+
+        if (count >= limit) {
+          // Get oldest entry to calculate retry after
+          const oldest = await (redis as any).zrange(key, 0, 0, { withScores: true });
+          const retryAfter = oldest.length > 0 
+            ? Math.ceil((oldest[0].score + windowMs - now) / 1000)
+            : window;
+
+          return {
+            success: false,
+            remaining: 0,
+            retryAfter,
+          };
+        }
+
+        return {
+          success: true,
+          remaining,
+        };
+      } else {
+        // Standard Redis (ioredis)
+        const pipeline = (redis as any).pipeline();
+        pipeline.zremrangebyscore(key, 0, windowStart);
+        pipeline.zcard(key);
+        pipeline.zadd(key, now, `${now}-${Math.random()}`);
+        pipeline.expire(key, window);
+        const results = await pipeline.exec();
+
+        const count = results[1][1] as number;
+        const remaining = Math.max(0, limit - count);
+
+        if (count >= limit) {
+          const oldest = await (redis as any).zrange(key, 0, 0, 'WITHSCORES');
+          const retryAfter = oldest.length > 0 
+            ? Math.ceil((parseFloat(oldest[1]) + windowMs - now) / 1000)
+            : window;
+
+          return {
+            success: false,
+            remaining: 0,
+            retryAfter,
+          };
+        }
+
+        return {
+          success: true,
+          remaining,
+        };
+      }
+    } catch (error) {
+      console.error('[RATE LIMIT] Redis error, falling back to in-memory:', error);
+      // Fall through to in-memory store
     }
+  }
 
-    // Increment count
-    record.count++;
+  // Fallback to in-memory store (development)
+  const now = Date.now();
+  const record = store[key];
+
+  // Clean up expired entries periodically
+  if (Math.random() < 0.001) {
+    cleanupExpiredEntries(now);
+  }
+
+  if (!record || now > record.resetTime) {
+    store[key] = {
+      count: 1,
+      resetTime: now + windowMs,
+    };
     return {
       success: true,
-      remaining: maxRequests - record.count,
-      resetTime: record.resetTime,
+      remaining: limit - 1,
     };
+  }
+
+  if (record.count >= limit) {
+    return {
+      success: false,
+      remaining: 0,
+      retryAfter: Math.ceil((record.resetTime - now) / 1000),
+    };
+  }
+
+  record.count++;
+  return {
+    success: true,
+    remaining: limit - record.count,
   };
 }
 
@@ -84,51 +185,15 @@ function cleanupExpiredEntries(now: number) {
 }
 
 /**
- * Pre-configured rate limiters for common use cases
+ * Helper function for rate limiting with identifier
  */
-export const rateLimiters = {
-  // Strict: 10 requests per minute
-  strict: rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    maxRequests: 10,
-  }),
-
-  // Standard: 100 requests per 15 minutes
-  standard: rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 100,
-  }),
-
-  // Lenient: 1000 requests per hour
-  lenient: rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    maxRequests: 1000,
-  }),
-
-  // Auth endpoints: 5 requests per 15 minutes
-  auth: rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 5,
-    keyGenerator: (req) => {
-      // Use IP + user agent for auth endpoints
-      const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-      const ua = req.headers.get('user-agent') || 'unknown';
-      return `auth:${ip}:${ua.substring(0, 50)}`;
-    },
-  }),
-
-  // Upload endpoints: 20 requests per hour
-  upload: rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    maxRequests: 20,
-  }),
-
-  // Payment endpoints: 10 requests per minute
-  payment: rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    maxRequests: 10,
-  }),
-};
+export async function checkRateLimit(
+  identifier: string,
+  limit: number,
+  window: number
+): Promise<RateLimitResult> {
+  return rateLimit({ identifier, limit, window });
+}
 
 /**
  * Helper function to create rate-limited API route handler
