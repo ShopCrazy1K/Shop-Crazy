@@ -993,7 +993,7 @@ export default function SellPage() {
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Upload images directly (max 5MB per image).
+                    Upload images directly (max 10MB per image, will be automatically optimized).
                   </p>
                 </div>
 
