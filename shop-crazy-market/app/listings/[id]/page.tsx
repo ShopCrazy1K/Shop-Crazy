@@ -83,22 +83,28 @@ export default function ListingPage() {
     if (listing) {
       setMainImageIndex(0);
       // Initialize thumbnail indices from listing or default to first 4
+      let normalizedImages: string[] = [];
+      if (listing.images) {
+        if (Array.isArray(listing.images)) {
+          normalizedImages = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
+        } else if (typeof listing.images === 'string' && listing.images.trim()) {
+          normalizedImages = [listing.images];
+        }
+      }
+      
       if (listing.thumbnailIndices && Array.isArray(listing.thumbnailIndices) && listing.thumbnailIndices.length > 0) {
-        // Filter to valid indices
+        // Filter to valid indices based on actual images
         const validIndices = listing.thumbnailIndices.slice(0, 4).filter((idx: number) => {
-          if (Array.isArray(listing.images)) {
-            return idx >= 0 && idx < listing.images.length;
-          }
-          return idx >= 0;
+          return idx >= 0 && idx < normalizedImages.length;
         });
         if (validIndices.length > 0) {
           setSelectedThumbnailIndices(validIndices);
-        } else if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
-          const firstFour = Math.min(4, listing.images.length);
+        } else if (normalizedImages.length > 0) {
+          const firstFour = Math.min(4, normalizedImages.length);
           setSelectedThumbnailIndices(Array.from({ length: firstFour }, (_, i) => i));
         }
-      } else if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
-        const firstFour = Math.min(4, listing.images.length);
+      } else if (normalizedImages.length > 0) {
+        const firstFour = Math.min(4, normalizedImages.length);
         setSelectedThumbnailIndices(Array.from({ length: firstFour }, (_, i) => i));
       }
     }
@@ -1037,21 +1043,31 @@ export default function ListingPage() {
                                 )}
                               </div>
                               <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                                {thumbnailIndices.map((thumbIndex: number) => {
-                                  if (thumbIndex >= normalizedImages.length) return null;
+                                {thumbnailIndices.slice(0, 4).map((thumbIndex: number) => {
+                                  if (thumbIndex >= normalizedImages.length || thumbIndex < 0) return null;
                                   const image = normalizedImages[thumbIndex];
+                                  if (!image) return null;
                                   const isPrimary = thumbIndex === primaryImageIndex;
                                   const isActive = safeMainIndex === thumbIndex;
                                   
                                   return (
                                     <div
-                                      key={thumbIndex}
-                                      className={`aspect-square bg-gray-100 cursor-pointer border-2 rounded-lg overflow-hidden transition-all relative group ${
+                                      key={`thumb-${thumbIndex}`}
+                                      className={`aspect-square bg-gray-100 cursor-pointer border-2 rounded-lg overflow-hidden transition-all relative group touch-manipulation ${
                                         isActive
                                           ? 'border-purple-600 ring-2 ring-purple-300'
-                                          : 'border-transparent hover:border-purple-400'
+                                          : 'border-transparent hover:border-purple-400 active:border-purple-500'
                                       }`}
                                       onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setMainImageIndex(thumbIndex);
+                                      }}
+                                      onTouchStart={(e) => {
+                                        e.stopPropagation();
+                                      }}
+                                      onTouchEnd={(e) => {
+                                        e.preventDefault();
                                         e.stopPropagation();
                                         setMainImageIndex(thumbIndex);
                                       }}
