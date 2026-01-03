@@ -1053,7 +1053,7 @@ export default function ListingPage() {
                                   </button>
                                 )}
                               </div>
-                              <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                              <div className="grid grid-cols-4 gap-2 sm:gap-3 w-full">
                                 {thumbnailIndices.slice(0, 4).map((thumbIndex: number) => {
                                   if (thumbIndex >= normalizedImages.length || thumbIndex < 0) return null;
                                   const image = normalizedImages[thumbIndex];
@@ -1064,7 +1064,7 @@ export default function ListingPage() {
                                   return (
                                     <div
                                       key={`thumb-${thumbIndex}`}
-                                      className={`aspect-square bg-gray-100 cursor-pointer border-2 rounded-lg overflow-hidden transition-all relative group touch-manipulation ${
+                                      className={`aspect-square bg-gray-100 cursor-pointer border-2 rounded-lg overflow-hidden transition-all relative group touch-manipulation flex-shrink-0 ${
                                         isActive
                                           ? 'border-purple-600 ring-2 ring-purple-300'
                                           : 'border-transparent hover:border-purple-400 active:border-purple-500'
@@ -1093,7 +1093,7 @@ export default function ListingPage() {
                                         <img
                                           src={image}
                                           alt={`${listing.title} - Image ${thumbIndex + 1}`}
-                                          className="w-full h-full object-cover"
+                                          className="w-full h-full object-cover block"
                                           onError={(e) => {
                                             const target = e.target as HTMLImageElement;
                                             target.style.display = 'none';
@@ -1110,7 +1110,7 @@ export default function ListingPage() {
                                         <ProtectedImage
                                           src={image}
                                           alt={`${listing.title} - Image ${thumbIndex + 1}`}
-                                          className="w-full h-full object-cover"
+                                          className="object-cover"
                                           onError={(e) => {
                                             const target = e.target as HTMLImageElement;
                                             target.style.display = 'none';

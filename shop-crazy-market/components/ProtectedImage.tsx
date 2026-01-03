@@ -106,8 +106,8 @@ export default function ProtectedImage({
   return (
     <div
       ref={containerRef}
-      className={className}
-      style={{ position: "relative", display: "block", ...style }}
+      className="w-full h-full"
+      style={{ position: "relative", display: "block" }}
       onClick={onClick}
     >
       <img
@@ -126,6 +126,7 @@ export default function ProtectedImage({
           pointerEvents: "auto",
           width: "100%",
           height: "100%",
+          display: "block",
           ...style,
         } as React.CSSProperties}
         onError={onError}
