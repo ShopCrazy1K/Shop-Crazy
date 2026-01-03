@@ -77,19 +77,31 @@ export default function ListingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Reset main image index when listing changes
+  // Reset main image index and initialize thumbnails when listing changes
   useEffect(() => {
     if (listing) {
       setMainImageIndex(0);
       // Initialize thumbnail indices from listing or default to first 4
       if (listing.thumbnailIndices && Array.isArray(listing.thumbnailIndices) && listing.thumbnailIndices.length > 0) {
-        setSelectedThumbnailIndices(listing.thumbnailIndices.slice(0, 4));
+        // Filter to valid indices
+        const validIndices = listing.thumbnailIndices.slice(0, 4).filter((idx: number) => {
+          if (Array.isArray(listing.images)) {
+            return idx >= 0 && idx < listing.images.length;
+          }
+          return idx >= 0;
+        });
+        if (validIndices.length > 0) {
+          setSelectedThumbnailIndices(validIndices);
+        } else if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
+          const firstFour = Math.min(4, listing.images.length);
+          setSelectedThumbnailIndices(Array.from({ length: firstFour }, (_, i) => i));
+        }
       } else if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
         const firstFour = Math.min(4, listing.images.length);
         setSelectedThumbnailIndices(Array.from({ length: firstFour }, (_, i) => i));
       }
     }
-  }, [listing?.id, listing?.thumbnailIndices]);
+  }, [listing?.id, listing?.thumbnailIndices, listing?.images]);
 
   useEffect(() => {
     let isMounted = true;
