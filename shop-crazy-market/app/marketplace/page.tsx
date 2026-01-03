@@ -16,6 +16,7 @@ interface Listing {
   currency: string;
   images: string[];
   digitalFiles: string[];
+  thumbnailIndices?: number[];
   isActive: boolean;
   category: string | null;
   sellerId?: string;
@@ -31,6 +32,7 @@ interface Product {
   title: string;
   price: number;
   images: string | string[];
+  thumbnailIndices?: number[];
   category?: string;
   type?: string;
   shop?: {
@@ -228,6 +230,7 @@ function MarketplaceContent() {
               title: listing.title,
               price: listing.priceCents,
               images: images,
+              thumbnailIndices: listing.thumbnailIndices,
               category: listing.category || undefined,
               type: (() => {
                 const digitalFilesValue = listing.digitalFiles as any;
@@ -480,37 +483,75 @@ function MarketplaceContent() {
                 {products.map((product) => (
                   <Link key={product.id} href={`/listings/${product.id}`}>
                     <div className="bg-white rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group">
-                      {/* Image */}
+                      {/* Images - 4 thumbnail grid */}
                       <div className="relative aspect-square bg-gray-100 overflow-hidden">
                         {(() => {
-                          let imageUrl: string | null = null;
+                          let images: string[] = [];
                           if (product.images) {
-                            if (Array.isArray(product.images) && product.images.length > 0) {
-                              imageUrl = product.images[0];
+                            if (Array.isArray(product.images)) {
+                              images = product.images.filter((img: any) => img && typeof img === 'string' && img.trim());
                             } else if (typeof product.images === 'string' && product.images.trim()) {
-                              imageUrl = product.images;
+                              images = [product.images];
                             }
                           }
                           
-                          if (imageUrl) {
-                            return (
-                              <img
-                                src={imageUrl}
-                                alt={product.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  const parent = target.parentElement;
-                                  if (parent && !parent.querySelector('.image-placeholder')) {
-                                    const placeholder = document.createElement('div');
-                                    placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 image-placeholder';
-                                    placeholder.textContent = '📦';
-                                    parent.appendChild(placeholder);
-                                  }
-                                }}
-                              />
-                            );
+                          if (images.length > 0) {
+                            // Get thumbnail indices or default to first 4
+                            let thumbnailIndices: number[] = [];
+                            if (product.thumbnailIndices && Array.isArray(product.thumbnailIndices) && product.thumbnailIndices.length > 0) {
+                              thumbnailIndices = product.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < images.length);
+                            }
+                            if (thumbnailIndices.length === 0) {
+                              thumbnailIndices = Array.from({ length: Math.min(4, images.length) }, (_, i) => i);
+                            }
+                            
+                            // Show 4-image grid if we have multiple images
+                            if (thumbnailIndices.length > 1) {
+                              return (
+                                <div className="grid grid-cols-2 h-full">
+                                  {thumbnailIndices.slice(0, 4).map((idx: number, gridIdx: number) => (
+                                    <div key={gridIdx} className="relative overflow-hidden">
+                                      <img
+                                        src={images[idx]}
+                                        alt={`${product.title} - Image ${idx + 1}`}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          target.style.display = 'none';
+                                          const parent = target.parentElement;
+                                          if (parent && !parent.querySelector('.image-placeholder')) {
+                                            const placeholder = document.createElement('div');
+                                            placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 text-xs image-placeholder';
+                                            placeholder.textContent = '📦';
+                                            parent.appendChild(placeholder);
+                                          }
+                                        }}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            } else {
+                              // Single image
+                              return (
+                                <img
+                                  src={images[thumbnailIndices[0] || 0]}
+                                  alt={product.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent && !parent.querySelector('.image-placeholder')) {
+                                      const placeholder = document.createElement('div');
+                                      placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 image-placeholder';
+                                      placeholder.textContent = '📦';
+                                      parent.appendChild(placeholder);
+                                    }
+                                  }}
+                                />
+                              );
+                            }
                           }
                           return (
                             <div className="w-full h-full flex items-center justify-center text-gray-400">

@@ -864,30 +864,62 @@ export default function ProfilePage() {
                 className="bg-white rounded-lg shadow-md p-4 sm:p-6 hover:shadow-lg transition-shadow"
               >
                 <div className="flex flex-col sm:flex-row gap-4">
-                  {listing.images && Array.isArray(listing.images) && listing.images.length > 0 ? (
-                    <div className="w-full sm:w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                      <img
-                        src={listing.images[0]}
-                        alt={listing.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Hide image if it fails to load
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  ) : listing.images && typeof listing.images === 'string' ? (
-                    <div className="w-full sm:w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                      <img
-                        src={listing.images}
-                        alt={listing.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  ) : null}
+                  {(() => {
+                    let images: string[] = [];
+                    if (listing.images) {
+                      if (Array.isArray(listing.images)) {
+                        images = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
+                      } else if (typeof listing.images === 'string' && listing.images.trim()) {
+                        images = [listing.images];
+                      }
+                    }
+                    
+                    if (images.length > 0) {
+                      // Get thumbnail indices or default to first 4
+                      let thumbnailIndices: number[] = [];
+                      if (listing.thumbnailIndices && Array.isArray(listing.thumbnailIndices) && listing.thumbnailIndices.length > 0) {
+                        thumbnailIndices = listing.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < images.length);
+                      }
+                      if (thumbnailIndices.length === 0) {
+                        thumbnailIndices = Array.from({ length: Math.min(4, images.length) }, (_, i) => i);
+                      }
+                      
+                      // Show 4-image grid if we have multiple images
+                      if (thumbnailIndices.length > 1) {
+                        return (
+                          <div className="w-full sm:w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 grid grid-cols-2">
+                            {thumbnailIndices.slice(0, 4).map((idx: number) => (
+                              <div key={idx} className="relative overflow-hidden">
+                                <img
+                                  src={images[idx]}
+                                  alt={`${listing.title} - Image ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      } else {
+                        // Single image
+                        return (
+                          <div className="w-full sm:w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                            <img
+                              src={images[thumbnailIndices[0] || 0]}
+                              alt={listing.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
+                  })()}
                   <div className="flex-1">
                     <h3 className="text-lg sm:text-xl font-semibold mb-2">{listing.title}</h3>
                     <p className="text-gray-600 text-sm mb-2 line-clamp-2">{listing.description}</p>

@@ -15,6 +15,7 @@ interface Listing {
   currency: string;
   images: string[];
   digitalFiles: string[];
+  thumbnailIndices?: number[];
   isActive: boolean;
   category: string | null;
   sellerId?: string;
@@ -32,6 +33,7 @@ interface Product {
   title: string;
   price: number;
   images: string | string[];
+  thumbnailIndices?: number[];
   category?: string;
   type?: string;
   shop?: {
@@ -164,6 +166,7 @@ function ShopContent() {
           title: listing.title,
           price: listing.priceCents,
           images: images,
+          thumbnailIndices: listing.thumbnailIndices,
           category: listing.category || "",
           type: hasDigitalFiles ? "DIGITAL" : "PHYSICAL",
           shop: {

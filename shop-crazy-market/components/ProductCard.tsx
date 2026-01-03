@@ -6,6 +6,7 @@ interface Product {
   title: string;
   price: number;
   images?: string | string[];
+  thumbnailIndices?: number[];
   category?: string;
   type?: string;
   shop?: {
@@ -46,11 +47,36 @@ export default function ProductCard({ product }: { product: Product }) {
     ? `/listings/${product.id}` 
     : `/product/${product.id}`;
   
+  // Get thumbnail images
+  let thumbnailImages: string[] = [];
+  if (images.length > 0) {
+    let thumbnailIndices: number[] = [];
+    if (product.thumbnailIndices && Array.isArray(product.thumbnailIndices) && product.thumbnailIndices.length > 0) {
+      thumbnailIndices = product.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < images.length);
+    }
+    if (thumbnailIndices.length === 0) {
+      thumbnailIndices = Array.from({ length: Math.min(4, images.length) }, (_, i) => i);
+    }
+    thumbnailImages = thumbnailIndices.map((idx: number) => images[idx]).filter(Boolean);
+  }
+
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
       <Link href={linkHref} className="block">
         <div className="h-32 bg-gray-200 relative cursor-pointer">
-          {imageUrl ? (
+          {thumbnailImages.length > 1 ? (
+            <div className="grid grid-cols-2 h-full">
+              {thumbnailImages.slice(0, 4).map((img: string, idx: number) => (
+                <div key={idx} className="relative overflow-hidden">
+                  <img
+                    src={img}
+                    alt={`${product.title} - Image ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : imageUrl ? (
             <img
               src={imageUrl}
               alt={product.title}
