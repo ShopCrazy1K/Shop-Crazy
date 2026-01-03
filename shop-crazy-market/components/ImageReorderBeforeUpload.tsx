@@ -116,7 +116,7 @@ export default function ImageReorderBeforeUpload({
   const [previewsLoaded, setPreviewsLoaded] = useState(false);
 
   // Load previews when files change
-  useState(() => {
+  useEffect(() => {
     if (files.length === 0) {
       setImageFiles([]);
       setPreviewsLoaded(false);
@@ -144,7 +144,7 @@ export default function ImageReorderBeforeUpload({
     };
 
     loadPreviews();
-  });
+  }, [files]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
