@@ -47,6 +47,7 @@ export default function ListingPage() {
   const [followLoading, setFollowLoading] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [averageRating, setAverageRating] = useState(0);
+  const [settingPrimary, setSettingPrimary] = useState(false);
   const feeStatus = searchParams.get("fee");
 
   // Handle "new" route - redirect to create page
@@ -721,7 +722,9 @@ export default function ListingPage() {
                 }) || [];
                 
                 // Combine regular images with image-type digital files
+                // Note: Only normalizedImages (not digital files) can be set as primary
                 const allImages = [...normalizedImages, ...imageDigitalFiles];
+                const primaryImageIndex = 0; // First image in normalizedImages is primary
                 
                 if (allImages.length > 0) {
                   // Ensure mainImageIndex is within bounds
@@ -730,11 +733,53 @@ export default function ListingPage() {
                     : 0;
                   const currentImage = allImages[safeMainIndex];
                   
+                  // Function to set primary image
+                  async function setPrimaryImage(imageIndex: number) {
+                    if (!user || !isSeller || settingPrimary) return;
+                    
+                    // Only allow setting primary for images in normalizedImages (not digital files)
+                    if (imageIndex >= normalizedImages.length) {
+                      alert("Only uploaded images can be set as the primary image");
+                      return;
+                    }
+                    
+                    setSettingPrimary(true);
+                    try {
+                      const response = await fetch(`/api/listings/${listingId}/images`, {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "x-user-id": user.id,
+                        },
+                        body: JSON.stringify({ setPrimaryIndex: imageIndex }),
+                      });
+                      
+                      const data = await response.json();
+                      if (response.ok && data.ok) {
+                        // Refresh listing to get updated image order
+                        const listingResponse = await fetch(`/api/listings/${listingId}`);
+                        if (listingResponse.ok) {
+                          const listingData = await listingResponse.json();
+                          setListing(listingData);
+                          setMainImageIndex(0); // Reset to show new primary image
+                          alert("✅ Primary image updated! This will be shown as the profile image.");
+                        }
+                      } else {
+                        alert(data.message || "Failed to set primary image");
+                      }
+                    } catch (error) {
+                      console.error("Error setting primary image:", error);
+                      alert("Error setting primary image");
+                    } finally {
+                      setSettingPrimary(false);
+                    }
+                  }
+                  
                   return (
                     <div className="space-y-4">
                       {/* Main Image */}
                       <div 
-                        className="aspect-square bg-gray-100 cursor-pointer rounded-lg overflow-hidden"
+                        className="aspect-square bg-gray-100 cursor-pointer rounded-lg overflow-hidden relative"
                         onClick={() => setSelectedImageIndex(safeMainIndex)}
                       >
                         <img
@@ -754,41 +799,86 @@ export default function ListingPage() {
                             }
                           }}
                         />
+                        {/* Primary Image Badge */}
+                        {safeMainIndex === primaryImageIndex && normalizedImages.length > 0 && (
+                          <div className="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                            <span>✓</span> Primary
+                          </div>
+                        )}
                       </div>
                       {/* 4-Image Grid Selector */}
                       {allImages.length > 1 && (
-                        <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                          {allImages.slice(0, 4).map((image: string, index: number) => (
-                            <div
-                              key={index}
-                              className={`aspect-square bg-gray-100 cursor-pointer border-2 rounded-lg overflow-hidden transition-all ${
-                                safeMainIndex === index
-                                  ? 'border-purple-600 ring-2 ring-purple-300'
-                                  : 'border-transparent hover:border-purple-400'
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setMainImageIndex(index);
-                              }}
-                            >
-                              <img
-                                src={image}
-                                alt={`${listing.title} - Image ${index + 1}`}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  const parent = target.parentElement;
-                                  if (parent && !parent.querySelector('.image-error-placeholder')) {
-                                    const placeholder = document.createElement('div');
-                                    placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 text-xs image-error-placeholder';
-                                    placeholder.textContent = '📦';
-                                    parent.appendChild(placeholder);
-                                  }
-                                }}
-                              />
-                            </div>
-                          ))}
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                            {allImages.slice(0, 4).map((image: string, index: number) => {
+                              const isPrimary = index === primaryImageIndex && index < normalizedImages.length;
+                              const isNormalizedImage = index < normalizedImages.length;
+                              
+                              return (
+                                <div
+                                  key={index}
+                                  className={`aspect-square bg-gray-100 cursor-pointer border-2 rounded-lg overflow-hidden transition-all relative group ${
+                                    safeMainIndex === index
+                                      ? 'border-purple-600 ring-2 ring-purple-300'
+                                      : 'border-transparent hover:border-purple-400'
+                                  }`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMainImageIndex(index);
+                                  }}
+                                  onDoubleClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isSeller && isNormalizedImage) {
+                                      setPrimaryImage(index);
+                                    }
+                                  }}
+                                >
+                                  <img
+                                    src={image}
+                                    alt={`${listing.title} - Image ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const parent = target.parentElement;
+                                      if (parent && !parent.querySelector('.image-error-placeholder')) {
+                                        const placeholder = document.createElement('div');
+                                        placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 text-xs image-error-placeholder';
+                                        placeholder.textContent = '📦';
+                                        parent.appendChild(placeholder);
+                                      }
+                                    }}
+                                  />
+                                  {/* Primary Badge */}
+                                  {isPrimary && (
+                                    <div className="absolute top-1 left-1 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                      ✓
+                                    </div>
+                                  )}
+                                  {/* Set as Primary Button (for sellers) */}
+                                  {isSeller && isNormalizedImage && !isPrimary && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPrimaryImage(index);
+                                      }}
+                                      disabled={settingPrimary}
+                                      className="absolute bottom-1 right-1 bg-purple-600 text-white text-[10px] font-semibold px-2 py-1 rounded opacity-0 group-hover:opacity-100 hover:bg-purple-700 transition-opacity disabled:opacity-50"
+                                      title="Set as primary image"
+                                    >
+                                      {settingPrimary ? "..." : "Set Primary"}
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {/* Instructions for sellers */}
+                          {isSeller && normalizedImages.length > 1 && (
+                            <p className="text-xs text-gray-500 text-center">
+                              💡 Double-click a thumbnail or use "Set Primary" to make it the profile image
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
