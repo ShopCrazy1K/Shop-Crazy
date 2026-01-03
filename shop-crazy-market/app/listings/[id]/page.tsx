@@ -29,7 +29,7 @@ interface Listing {
   };
 }
 
-export default function ListingPage() {
+function ListingPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -1830,6 +1830,14 @@ export default function ListingPage() {
         return null;
       })()}
     </div>
+  );
+}
+
+export default function ListingPage() {
+  return (
+    <ErrorBoundary>
+      <ListingPageContent />
+    </ErrorBoundary>
   );
 }
 
