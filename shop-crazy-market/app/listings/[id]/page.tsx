@@ -757,19 +757,29 @@ export default function ListingPage() {
                 const primaryImageIndex = 0; // First image in normalizedImages is primary
                 
                 // Get thumbnail indices (use selectedThumbnailIndices state if editing, otherwise from listing)
-                let thumbnailIndices: number[];
+                let thumbnailIndices: number[] = [];
                 if (editingThumbnails) {
-                  thumbnailIndices = selectedThumbnailIndices;
+                  thumbnailIndices = selectedThumbnailIndices.filter((idx: number) => idx >= 0 && idx < normalizedImages.length).slice(0, 4);
                 } else if (listing.thumbnailIndices && Array.isArray(listing.thumbnailIndices) && listing.thumbnailIndices.length > 0) {
                   // Use saved thumbnail indices, filter to valid indices
                   thumbnailIndices = listing.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < normalizedImages.length);
                   // If filtered list is empty, fall back to first 4
-                  if (thumbnailIndices.length === 0) {
-                    thumbnailIndices = normalizedImages.slice(0, Math.min(4, normalizedImages.length)).map((_: string, idx: number) => idx);
+                  if (thumbnailIndices.length === 0 && normalizedImages.length > 0) {
+                    thumbnailIndices = Array.from({ length: Math.min(4, normalizedImages.length) }, (_, i) => i);
                   }
+                } else if (selectedThumbnailIndices.length > 0) {
+                  // Use state if available
+                  thumbnailIndices = selectedThumbnailIndices.filter((idx: number) => idx >= 0 && idx < normalizedImages.length).slice(0, 4);
                 } else {
                   // Default to first 4 images
-                  thumbnailIndices = normalizedImages.slice(0, Math.min(4, normalizedImages.length)).map((_: string, idx: number) => idx);
+                  if (normalizedImages.length > 0) {
+                    thumbnailIndices = Array.from({ length: Math.min(4, normalizedImages.length) }, (_, i) => i);
+                  }
+                }
+                
+                // Ensure we always have at least one thumbnail if images exist
+                if (thumbnailIndices.length === 0 && normalizedImages.length > 0) {
+                  thumbnailIndices = [0];
                 }
                 
                 if (allImages.length > 0) {
