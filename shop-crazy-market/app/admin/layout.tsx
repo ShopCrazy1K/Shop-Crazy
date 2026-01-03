@@ -20,15 +20,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
 
         try {
+          // Check admin status via API (this checks the database directly)
           const response = await fetch(`/api/admin/check?userId=${user.id}`);
           if (response.ok) {
             const data = await response.json();
             if (data.isAdmin) {
               setIsAdmin(true);
+              // Update localStorage with admin role if it's different
+              if (user.role !== "ADMIN") {
+                const updatedUser = { ...user, role: "ADMIN" };
+                localStorage.setItem("user", JSON.stringify(updatedUser));
+              }
             } else {
+              console.log("User is not admin. Current role in localStorage:", user.role);
               router.push("/");
             }
           } else {
+            console.log("Admin check failed");
             router.push("/");
           }
         } catch (error) {
