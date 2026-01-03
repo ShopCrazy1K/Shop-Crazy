@@ -1042,13 +1042,13 @@ export default function ListingPage() {
                             <>
                               <div className="flex items-center justify-between">
                                 <p className="text-xs text-gray-500">Thumbnail images</p>
-                                {isSeller && normalizedImages.length > 4 && (
+                                {isSeller && uniqueNormalizedImages.length > 4 && (
                                   <button
                                     onClick={() => {
                                       // Initialize with current thumbnail indices when entering edit mode
                                       const currentIndices = (listing.thumbnailIndices && Array.isArray(listing.thumbnailIndices) && listing.thumbnailIndices.length > 0)
-                                        ? listing.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < normalizedImages.length)
-                                        : normalizedImages.slice(0, 4).map((_: string, idx: number) => idx);
+                                        ? listing.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < uniqueNormalizedImages.length)
+                                        : uniqueNormalizedImages.slice(0, 4).map((_: string, idx: number) => idx);
                                       setSelectedThumbnailIndices(currentIndices);
                                       setEditingThumbnails(true);
                                     }}
@@ -1060,8 +1060,8 @@ export default function ListingPage() {
                               </div>
                               <div className="grid grid-cols-4 gap-2 sm:gap-3 w-full">
                                 {thumbnailIndices.slice(0, 4).map((thumbIndex: number) => {
-                                  if (thumbIndex >= normalizedImages.length || thumbIndex < 0) return null;
-                                  const image = normalizedImages[thumbIndex];
+                                  if (thumbIndex >= uniqueNormalizedImages.length || thumbIndex < 0) return null;
+                                  const image = uniqueNormalizedImages[thumbIndex];
                                   if (!image) return null;
                                   const isPrimary = thumbIndex === primaryImageIndex;
                                   const isActive = safeMainIndex === thumbIndex;
