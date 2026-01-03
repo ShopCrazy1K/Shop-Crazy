@@ -1833,3 +1833,11 @@ export default function ListingPage() {
   );
 }
 
+export default function ListingPage() {
+  return (
+    <ErrorBoundary>
+      <ListingPageContent />
+    </ErrorBoundary>
+  );
+}
+
