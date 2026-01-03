@@ -35,6 +35,7 @@ export default function ListingPage() {
   const { addItem } = useCart();
   const listingId = params.id as string;
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [mainImageIndex, setMainImageIndex] = useState<number>(0); // For main image display
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [deals, setDeals] = useState<any[]>([]);
@@ -716,15 +717,19 @@ export default function ListingPage() {
                 const allImages = [...normalizedImages, ...imageDigitalFiles];
                 
                 if (allImages.length > 0) {
-                  const currentImageIndex = selectedImageIndex !== null && selectedImageIndex < allImages.length 
-                    ? selectedImageIndex 
+                  // Ensure mainImageIndex is within bounds
+                  const safeMainIndex = mainImageIndex >= 0 && mainImageIndex < allImages.length 
+                    ? mainImageIndex 
                     : 0;
-                  const currentImage = allImages[currentImageIndex];
+                  const currentImage = allImages[safeMainIndex];
                   
                   return (
                     <div className="space-y-4">
                       {/* Main Image */}
-                      <div className="aspect-square bg-gray-100 cursor-pointer rounded-lg overflow-hidden">
+                      <div 
+                        className="aspect-square bg-gray-100 cursor-pointer rounded-lg overflow-hidden"
+                        onClick={() => setSelectedImageIndex(safeMainIndex)}
+                      >
                         <img
                           src={currentImage}
                           alt={listing.title}
@@ -750,11 +755,14 @@ export default function ListingPage() {
                             <div
                               key={index}
                               className={`aspect-square bg-gray-100 cursor-pointer border-2 rounded-lg overflow-hidden transition-all ${
-                                currentImageIndex === index
+                                safeMainIndex === index
                                   ? 'border-purple-600 ring-2 ring-purple-300'
                                   : 'border-transparent hover:border-purple-400'
                               }`}
-                              onClick={() => setSelectedImageIndex(index)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMainImageIndex(index);
+                              }}
                             >
                               <img
                                 src={image}
