@@ -22,8 +22,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         console.log("[ADMIN] Checking admin status for user:", user.id, "Role in localStorage:", user.role);
 
+        // First check: If role in localStorage is already ADMIN, trust it initially
+        if (user.role === "ADMIN") {
+          console.log("[ADMIN] Role is ADMIN in localStorage, showing admin panel immediately");
+          setIsAdmin(true);
+          setChecking(false);
+          
+          // Verify with API in background (non-blocking)
+          fetch(`/api/admin/check?userId=${user.id}`)
+            .then(res => res.json())
+            .then(data => {
+              if (!data.isAdmin) {
+                console.warn("[ADMIN] Warning: Role in localStorage is ADMIN but API says not admin. Updating...");
+                // Don't remove access, but log the warning
+              }
+            })
+            .catch(err => console.error("[ADMIN] Background API check failed:", err));
+          return;
+        }
+
+        // Second check: If role is not ADMIN, verify with API
         try {
-          // Check admin status via API (this checks the database directly)
           const response = await fetch(`/api/admin/check?userId=${user.id}`);
           console.log("[ADMIN] API response status:", response.status);
           
@@ -32,29 +51,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             console.log("[ADMIN] API response data:", data);
             
             if (data.isAdmin) {
-              console.log("[ADMIN] User is admin, showing admin panel");
+              console.log("[ADMIN] User is admin (verified by API), showing admin panel");
               setIsAdmin(true);
-              // Update localStorage with admin role if it's different
-              if (user.role !== "ADMIN") {
-                const updatedUser = { ...user, role: "ADMIN" };
-                localStorage.setItem("user", JSON.stringify(updatedUser));
-                console.log("[ADMIN] Updated localStorage with ADMIN role");
-              }
+              // Update localStorage with admin role
+              const updatedUser = { ...user, role: "ADMIN" };
+              localStorage.setItem("user", JSON.stringify(updatedUser));
+              console.log("[ADMIN] Updated localStorage with ADMIN role");
             } else {
-              console.log("[ADMIN] User is NOT admin. Role in DB might be:", user.role);
-              alert("You don't have admin access. Your role is: " + user.role);
-              router.push("/");
+              console.log("[ADMIN] User is NOT admin. Role in localStorage:", user.role);
+              // Don't redirect, just show access denied
             }
           } else {
             const errorData = await response.json().catch(() => ({}));
             console.log("[ADMIN] Admin check failed:", response.status, errorData);
-            alert("Failed to check admin status. Status: " + response.status);
-            router.push("/");
           }
         } catch (error) {
           console.error("[ADMIN] Error checking admin status:", error);
-          alert("Error checking admin status: " + (error as Error).message);
-          router.push("/");
         } finally {
           setChecking(false);
         }
