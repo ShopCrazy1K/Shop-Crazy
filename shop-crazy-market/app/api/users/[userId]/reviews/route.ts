@@ -78,7 +78,8 @@ export async function POST(req: NextRequest, context: Ctx) {
       );
     }
 
-    // Verify the reviewer has purchased from this seller
+    // Verify the reviewer has purchased from this seller (only if orderId is provided)
+    // Allow general reviews without orderId for shop ratings
     if (orderId) {
       const order = await prisma.order.findUnique({
         where: { id: orderId },
@@ -117,6 +118,7 @@ export async function POST(req: NextRequest, context: Ctx) {
         );
       }
     }
+    // If no orderId, allow general shop review (no purchase verification required)
 
     // Check if user already reviewed this seller (only if orderId is provided)
     // Allow multiple general reviews without orderId, but only one per order
