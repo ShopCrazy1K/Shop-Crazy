@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 interface Notification {
@@ -16,6 +17,7 @@ interface Notification {
 
 export default function NotificationBell() {
   const { user } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -180,13 +182,16 @@ export default function NotificationBell() {
                       }`}
                     >
                       {notification.link ? (
-                        <Link
-                          href={notification.link}
+                        <div
                           onClick={() => {
                             markAsRead(notification.id);
                             setIsOpen(false);
+                            // Navigate to the link using router
+                            if (notification.link) {
+                              router.push(notification.link);
+                            }
                           }}
-                          className="block"
+                          className="block cursor-pointer"
                         >
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0">
@@ -228,7 +233,7 @@ export default function NotificationBell() {
                               </div>
                             )}
                           </div>
-                        </Link>
+                        </div>
                       ) : (
                         <div className="flex items-start gap-3">
                           <div className="flex-shrink-0">

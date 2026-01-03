@@ -187,10 +187,14 @@ export default function NotificationsPage() {
               }`}
             >
               {notification.link ? (
-                <Link
-                  href={notification.link}
-                  onClick={() => markAsRead(notification.id)}
-                  className="block"
+                <div
+                  onClick={() => {
+                    markAsRead(notification.id);
+                    if (notification.link) {
+                      router.push(notification.link);
+                    }
+                  }}
+                  className="block cursor-pointer"
                 >
                   <div className="flex items-start gap-4">
                     <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-2xl ${getNotificationColor(notification.type)}`}>
@@ -217,7 +221,7 @@ export default function NotificationsPage() {
                       </div>
                     </div>
                   </div>
-                </Link>
+                </div>
               ) : (
                 <div className="flex items-start gap-4">
                   <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-2xl ${getNotificationColor(notification.type)}`}>
