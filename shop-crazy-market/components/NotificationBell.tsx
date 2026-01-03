@@ -24,26 +24,33 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchNotifications();
       // Poll for new notifications every 30 seconds
-      const interval = setInterval(fetchNotifications, 30000);
+      const interval = setInterval(() => {
+        fetchNotifications();
+      }, 30000);
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [user?.id]);
 
   async function fetchNotifications() {
     if (!user?.id) return;
     
+    setLoading(true);
     try {
       const response = await fetch(`/api/notifications?userId=${user.id}`);
       if (response.ok) {
         const data = await response.json();
         setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
+      } else {
+        console.error("Failed to fetch notifications:", response.status, response.statusText);
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -120,9 +127,13 @@ export default function NotificationBell() {
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
         className="relative p-2 text-gray-600 hover:text-purple-600 transition-colors"
         aria-label="Notifications"
+        type="button"
       >
         <svg
           className="w-6 h-6"
@@ -154,7 +165,7 @@ export default function NotificationBell() {
           />
           
           {/* Dropdown - Positioned differently for mobile vs desktop */}
-          <div className="absolute bottom-full right-0 mb-2 md:bottom-auto md:top-full md:mt-2 md:mb-0 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden flex flex-col">
+          <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-hidden flex flex-col">
             <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
               {unreadCount > 0 && (
