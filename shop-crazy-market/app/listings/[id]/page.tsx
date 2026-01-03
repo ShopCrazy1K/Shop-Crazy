@@ -1451,25 +1451,47 @@ export default function ListingPage() {
       </div>
 
       {/* Image Modal */}
-      {selectedImageIndex !== null && (() => {
-        // Combine images and image-type digital files for modal
+      {selectedImageIndex !== null && listing && (() => {
+        // Normalize images for modal
+        let normalizedImages: string[] = [];
+        if (listing.images) {
+          if (Array.isArray(listing.images)) {
+            normalizedImages = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
+          } else {
+            const imagesValue = listing.images as any;
+            if (typeof imagesValue === 'string' && imagesValue.trim()) {
+              normalizedImages = [imagesValue];
+            }
+          }
+        }
+        
         const imageDigitalFiles = listing.digitalFiles?.filter((url: string) => {
           const ext = url.split('.').pop()?.toLowerCase();
           return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
         }) || [];
-        const allImages = [...listing.images, ...imageDigitalFiles];
+        const allImages = [...normalizedImages, ...imageDigitalFiles];
         
-        if (allImages.length > 0) {
+        if (allImages.length > 0 && selectedImageIndex >= 0 && selectedImageIndex < allImages.length) {
           return (
             <div
               className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
-              onClick={() => setSelectedImageIndex(null)}
+              onClick={(e) => {
+                // Close modal when clicking backdrop
+                if (e.target === e.currentTarget) {
+                  setSelectedImageIndex(null);
+                }
+              }}
             >
               <div className="relative max-w-7xl max-h-full">
                 <button
-                  onClick={() => setSelectedImageIndex(null)}
-                  className="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-75 transition-colors z-10"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedImageIndex(null);
+                  }}
+                  className="absolute top-4 right-4 text-white bg-black bg-opacity-70 rounded-full p-2 hover:bg-opacity-100 transition-colors z-20 cursor-pointer"
                   aria-label="Close"
+                  type="button"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1483,39 +1505,41 @@ export default function ListingPage() {
                   onClick={(e) => e.stopPropagation()}
                 />
                 
-                {/* Navigation Arrows */}
+                {/* Navigation Arrows - Always show, wrap around */}
                 {allImages.length > 1 && (
                   <>
-                    {selectedImageIndex > 0 && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedImageIndex(selectedImageIndex - 1);
-                        }}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-black bg-opacity-50 rounded-full p-3 hover:bg-opacity-75 transition-colors"
-                        aria-label="Previous image"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                    )}
-                    {selectedImageIndex < allImages.length - 1 && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedImageIndex(selectedImageIndex + 1);
-                        }}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black bg-opacity-50 rounded-full p-3 hover:bg-opacity-75 transition-colors"
-                        aria-label="Next image"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const newIndex = selectedImageIndex > 0 ? selectedImageIndex - 1 : allImages.length - 1;
+                        setSelectedImageIndex(newIndex);
+                      }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-black bg-opacity-70 rounded-full p-3 hover:bg-opacity-100 transition-colors z-10 cursor-pointer"
+                      aria-label="Previous image"
+                      type="button"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const newIndex = selectedImageIndex < allImages.length - 1 ? selectedImageIndex + 1 : 0;
+                        setSelectedImageIndex(newIndex);
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black bg-opacity-70 rounded-full p-3 hover:bg-opacity-100 transition-colors z-10 cursor-pointer"
+                      aria-label="Next image"
+                      type="button"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
                     {/* Image Counter */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white bg-black bg-opacity-50 rounded-full px-4 py-2">
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white bg-black bg-opacity-70 rounded-full px-4 py-2 z-10">
                       {selectedImageIndex + 1} / {allImages.length}
                     </div>
                   </>
