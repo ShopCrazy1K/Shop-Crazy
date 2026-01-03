@@ -53,6 +53,14 @@ export async function POST(
       );
     }
 
+    // Check if user has a password (OAuth users might not have one)
+    if (!user.passwordHash) {
+      return NextResponse.json(
+        { error: "This account does not have a password set. Please use the password reset feature." },
+        { status: 400 }
+      );
+    }
+
     // Verify current password
     const isValidPassword = await verifyPassword(currentPassword, user.passwordHash);
     if (!isValidPassword) {
