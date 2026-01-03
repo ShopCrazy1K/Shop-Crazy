@@ -239,8 +239,10 @@ export function validateFile(file: File, isImage: boolean): { valid: boolean; er
 
 /**
  * Check if file should use chunked upload
+ * Files larger than 50MB should use chunked upload
  */
 export function shouldUseChunkedUpload(file: File): boolean {
-  return checkChunkedUpload(file);
+  const CHUNKED_UPLOAD_THRESHOLD = 50 * 1024 * 1024; // 50MB
+  return file.size > CHUNKED_UPLOAD_THRESHOLD;
 }
 

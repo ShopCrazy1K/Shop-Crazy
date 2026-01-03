@@ -280,7 +280,7 @@ export async function POST(request: Request) {
         const optimizedBuffer = await optimizeImage(buffer, file.type);
         const compressionRatio = ((1 - optimizedBuffer.length / buffer.length) * 100).toFixed(1);
         console.log(`[UPLOAD] Image optimized: ${compressionRatio}% size reduction`);
-        buffer = optimizedBuffer;
+        buffer = Buffer.from(optimizedBuffer);
         finalSize = buffer.length;
         // Update content type if converted to WebP
         if (fileExt === 'webp' && file.type !== 'image/webp') {
