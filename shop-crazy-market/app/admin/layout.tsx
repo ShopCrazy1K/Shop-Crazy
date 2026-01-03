@@ -15,32 +15,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     async function checkAdmin() {
       if (!loading) {
         if (!user) {
+          console.log("[ADMIN] No user, redirecting to login");
           router.push("/login");
           return;
         }
 
+        console.log("[ADMIN] Checking admin status for user:", user.id, "Role in localStorage:", user.role);
+
         try {
           // Check admin status via API (this checks the database directly)
           const response = await fetch(`/api/admin/check?userId=${user.id}`);
+          console.log("[ADMIN] API response status:", response.status);
+          
           if (response.ok) {
             const data = await response.json();
+            console.log("[ADMIN] API response data:", data);
+            
             if (data.isAdmin) {
+              console.log("[ADMIN] User is admin, showing admin panel");
               setIsAdmin(true);
               // Update localStorage with admin role if it's different
               if (user.role !== "ADMIN") {
                 const updatedUser = { ...user, role: "ADMIN" };
                 localStorage.setItem("user", JSON.stringify(updatedUser));
+                console.log("[ADMIN] Updated localStorage with ADMIN role");
               }
             } else {
-              console.log("User is not admin. Current role in localStorage:", user.role);
+              console.log("[ADMIN] User is NOT admin. Role in DB might be:", user.role);
+              alert("You don't have admin access. Your role is: " + user.role);
               router.push("/");
             }
           } else {
-            console.log("Admin check failed");
+            const errorData = await response.json().catch(() => ({}));
+            console.log("[ADMIN] Admin check failed:", response.status, errorData);
+            alert("Failed to check admin status. Status: " + response.status);
             router.push("/");
           }
         } catch (error) {
-          console.error("Error checking admin status:", error);
+          console.error("[ADMIN] Error checking admin status:", error);
+          alert("Error checking admin status: " + (error as Error).message);
           router.push("/");
         } finally {
           setChecking(false);
@@ -63,7 +76,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (!isAdmin) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-4">
+            You don't have admin access. Your current role is: <strong>{user?.role || "Unknown"}</strong>
+          </p>
+          <p className="text-sm text-gray-500 mb-4">
+            User ID: {user?.id}
+          </p>
+          <div className="space-y-2">
+            <button
+              onClick={() => {
+                localStorage.removeItem("user");
+                window.location.href = "/login";
+              }}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              Clear Cache & Re-login
+            </button>
+            <br />
+            <a
+              href="/admin/test"
+              className="text-blue-600 hover:underline"
+            >
+              Run Admin Test
+            </a>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
