@@ -1551,7 +1551,7 @@ export default function ListingPage() {
                         router.push("/login");
                         return;
                       }
-                      if (!listing.isActive) {
+                      if (!listing || !listing.isActive) {
                         alert("This listing is not active. Please contact the seller.");
                         return;
                       }
