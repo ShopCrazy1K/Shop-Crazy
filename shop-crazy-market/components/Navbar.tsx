@@ -20,6 +20,8 @@ export default function Navbar() {
         <Link href="/category/shop-4-us" className="hover:text-purple-600 transition-colors">🧸 Shop 4 Us</Link>
         <Link href="/category/game-zone" className="hover:text-purple-600 transition-colors">🎮 Game Zone</Link>
         <Link href="/category/fresh-out-world" className="hover:text-purple-600 transition-colors">👕 Fresh Out World</Link>
+        <Link href="/category/health" className="hover:text-purple-600 transition-colors">💊 Health</Link>
+        <Link href="/category/skin-care" className="hover:text-purple-600 transition-colors">✨ Skin Care</Link>
         <Link href="/messages" className="hover:text-purple-600 transition-colors">Messages</Link>
         <Link href="/cart" className="relative hover:text-purple-600 transition-colors">
           🛒 Cart

@@ -60,6 +60,18 @@ export const categories: Category[] = [
     emoji: "🧢",
     description: "Hats, bags & extras",
   },
+  {
+    name: "Health",
+    slug: "health",
+    emoji: "💊",
+    description: "Health supplements, vitamins & wellness products",
+  },
+  {
+    name: "Skin Care",
+    slug: "skin-care",
+    emoji: "✨",
+    description: "Skincare products, beauty & personal care",
+  },
 ];
 
 export function getCategoryBySlug(slug: string): Category | undefined {
