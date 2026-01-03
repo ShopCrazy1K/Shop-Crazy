@@ -36,6 +36,11 @@ export default function ListingPage() {
   const { user } = useAuth();
   const { addItem } = useCart();
   const listingId = params.id as string;
+  
+  // All state hooks must be declared before any conditional returns
+  const [listing, setListing] = useState<Listing | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [mainImageIndex, setMainImageIndex] = useState<number>(0); // For main image display
   const [isFavorited, setIsFavorited] = useState(false);
@@ -65,6 +70,7 @@ export default function ListingPage() {
     }
   }, [listingId, router]);
 
+  // Early return after all hooks are declared
   if (listingId === "new" || !listingId || listingId.length < 10) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -75,10 +81,6 @@ export default function ListingPage() {
       </div>
     );
   }
-  
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   // Reset main image index and initialize thumbnails when listing changes
   useEffect(() => {
@@ -789,19 +791,34 @@ export default function ListingPage() {
                   }
                 }
                 
-                // Check if digital files are images
-                const imageDigitalFiles = listing.digitalFiles?.filter((url: string) => {
-                  const ext = url.split('.').pop()?.toLowerCase();
-                  return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
-                }) || [];
+                // Check if digital files are images - with error handling
+                let imageDigitalFiles: string[] = [];
+                try {
+                  if (listing.digitalFiles && Array.isArray(listing.digitalFiles)) {
+                    imageDigitalFiles = listing.digitalFiles.filter((url: any) => {
+                      if (!url || typeof url !== 'string') return false;
+                      const ext = url.split('.').pop()?.toLowerCase();
+                      return ext && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+                    });
+                  }
+                } catch (err) {
+                  console.error("Error processing digital files:", err);
+                  imageDigitalFiles = [];
+                }
                 
                 // Remove duplicates from normalizedImages first
                 const uniqueNormalizedImages = Array.from(new Set(normalizedImages));
                 
                 // Combine regular images with image-type digital files, removing duplicates
                 // Note: Only normalizedImages (not digital files) can be set as primary
-                const allImagesSet = new Set([...uniqueNormalizedImages, ...imageDigitalFiles]);
-                const allImages = Array.from(allImagesSet);
+                let allImages: string[] = [];
+                try {
+                  const allImagesSet = new Set([...uniqueNormalizedImages, ...imageDigitalFiles]);
+                  allImages = Array.from(allImagesSet).filter((img): img is string => typeof img === 'string' && img.trim().length > 0);
+                } catch (err) {
+                  console.error("Error combining images:", err);
+                  allImages = uniqueNormalizedImages.length > 0 ? uniqueNormalizedImages : imageDigitalFiles;
+                }
                 const primaryImageIndex = 0; // First image in normalizedImages is primary
                 
                 // Get thumbnail indices (use selectedThumbnailIndices state if editing, otherwise from listing)
@@ -833,10 +850,17 @@ export default function ListingPage() {
                 
                 if (allImages.length > 0) {
                   // Ensure mainImageIndex is within bounds
-                  const safeMainIndex = mainImageIndex >= 0 && mainImageIndex < allImages.length 
-                    ? mainImageIndex 
-                    : 0;
+                  const safeMainIndex = Math.max(0, Math.min(mainImageIndex, allImages.length - 1));
                   const currentImage = allImages[safeMainIndex];
+                  
+                  if (!currentImage || typeof currentImage !== 'string') {
+                    console.error("Current image is invalid:", safeMainIndex, allImages);
+                    return (
+                      <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                        <span className="text-gray-400">Image not available</span>
+                      </div>
+                    );
+                  }
                   
                   // Function to save thumbnail selection
                   async function saveThumbnailSelection(selectedIndices: number[]) {
