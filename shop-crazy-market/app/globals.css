@@ -12,7 +12,7 @@
 }
 
 html, body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -24,12 +24,44 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior-y: none;
   font-weight: 400;
   font-style: normal;
+}
+
+/* Force normal fonts on mobile browsers - override all decorative fonts */
+@media screen and (max-width: 768px) {
+  * {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif !important;
+  }
+  
+  /* Override decorative fonts on mobile */
+  .font-baloo,
+  .font-fredoka,
+  .font-luckiest,
+  .font-bungee,
+  .font-cartoon,
+  .font-neon,
+  .font-spooky,
+  .font-winter,
+  [class*="font-baloo"],
+  [class*="font-fredoka"],
+  [class*="font-luckiest"],
+  [class*="font-bungee"],
+  [class*="font-cartoon"],
+  [class*="font-neon"],
+  [class*="font-spooky"],
+  [class*="font-winter"] {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif !important;
+  }
+  
+  /* Ensure all text elements use normal font */
+  p, span, div, h1, h2, h3, h4, h5, h6, a, button, input, textarea, select, label, li, td, th {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif !important;
+  }
 }
 
 /* Prevent zoom on input focus (iOS) */

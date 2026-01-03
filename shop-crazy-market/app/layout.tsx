@@ -116,7 +116,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest.json" />
         {/* Google Search Console verification - add your verification code if you have one */}
       </head>
-      <body>
+      <body className="font-sans">
         <MobileMetaTags />
         <ErrorBoundary>
           <ThemeProvider>
