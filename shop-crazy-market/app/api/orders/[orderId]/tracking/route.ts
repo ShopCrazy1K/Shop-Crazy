@@ -90,7 +90,7 @@ export async function PUT(
       // Check if this is the first time this order is being marked as delivered
       if (order.shippingStatus !== "delivered") {
         try {
-          await awardFirstOrderCredit(order.userId);
+          await awardFirstOrderCredit(order.userId, orderId);
         } catch (error) {
           console.error("Error awarding first order credit:", error);
           // Don't fail the request if credit awarding fails
