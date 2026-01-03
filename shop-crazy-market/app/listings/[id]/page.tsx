@@ -794,11 +794,6 @@ export default function ListingPage() {
                       
                       const data = await response.json();
                       if (response.ok && data.ok) {
-                        // Update listing immediately with the response data
-                        if (data.listing && data.listing.thumbnailIndices) {
-                          setListing({ ...listing, thumbnailIndices: data.listing.thumbnailIndices });
-                          setSelectedThumbnailIndices(data.listing.thumbnailIndices.slice(0, 4));
-                        }
                         // Also refresh from API to ensure we have the latest data
                         const listingResponse = await fetch(`/api/listings/${listingId}`);
                         if (listingResponse.ok) {
