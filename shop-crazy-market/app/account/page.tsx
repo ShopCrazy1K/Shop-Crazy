@@ -21,6 +21,9 @@ export default function AccountPage() {
   const [newUsername, setNewUsername] = useState("");
   const [savingUsername, setSavingUsername] = useState(false);
   const [usernameError, setUsernameError] = useState("");
+  const [creditHistory, setCreditHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -31,6 +34,26 @@ export default function AccountPage() {
     if (user) {
       fetchStoreCredit();
       fetchReferralInfo();
+    }
+  }, [user, authLoading, router]);
+
+  async function fetchCreditHistory() {
+    if (!user?.id) return;
+    setLoadingHistory(true);
+    try {
+      const response = await fetch(`/api/users/${user.id}/store-credit/history`, {
+        headers: {
+          "x-user-id": user.id,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCreditHistory(data.history || []);
+      }
+    } catch (error) {
+      console.error("Error fetching credit history:", error);
+    } finally {
+      setLoadingHistory(false);
     }
   }, [user, authLoading, router]);
 
@@ -121,7 +144,62 @@ export default function AccountPage() {
             <p className="text-xs sm:text-sm text-gray-500 mt-2">
               Use your store credit during checkout to save on purchases
             </p>
+            <button
+              onClick={() => {
+                setShowHistory(!showHistory);
+                if (!showHistory && creditHistory.length === 0) {
+                  fetchCreditHistory();
+                }
+              }}
+              className="mt-3 text-sm text-purple-600 hover:text-purple-700 font-semibold underline"
+            >
+              {showHistory ? "Hide" : "View"} Credit History
+            </button>
           </div>
+
+          {/* Credit History */}
+          {showHistory && (
+            <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 border border-gray-200">
+              <h3 className="text-lg font-bold mb-4">Credit History</h3>
+              {loadingHistory ? (
+                <div className="text-center py-4 text-gray-500">Loading...</div>
+              ) : creditHistory.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">No credit history yet</div>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {creditHistory.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className={`p-3 rounded-lg border ${
+                        entry.isUsage
+                          ? "bg-red-50 border-red-200"
+                          : "bg-green-50 border-green-200"
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">
+                            {entry.isUsage ? "Used" : "Earned"}: ${Math.abs(entry.amountDollars).toFixed(2)}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {entry.reason.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                          </p>
+                          {entry.expiresAt && (
+                            <p className={`text-xs mt-1 ${entry.isExpired ? "text-red-600" : "text-gray-500"}`}>
+                              {entry.isExpired ? "Expired" : `Expires: ${new Date(entry.expiresAt).toLocaleDateString()}`}
+                            </p>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {new Date(entry.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* User Info */}
           <div className="space-y-3">

@@ -32,8 +32,22 @@ function CheckoutContent() {
 
     if (listingId && user) {
       fetchListing();
+      fetchStoreCredit();
     }
   }, [listingId, user, authLoading, router]);
+
+  async function fetchStoreCredit() {
+    if (!user?.id) return;
+    try {
+      const response = await fetch(`/api/users/${user.id}/store-credit`);
+      if (response.ok) {
+        const data = await response.json();
+        setStoreCredit(data.storeCredit || 0); // Use available (non-expired) credit
+      }
+    } catch (error) {
+      console.error("Error fetching store credit:", error);
+    }
+  }
 
   async function fetchListing() {
     try {

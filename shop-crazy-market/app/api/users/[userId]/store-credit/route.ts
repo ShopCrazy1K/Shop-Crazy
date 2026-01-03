@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAvailableStoreCredit } from "@/lib/store-credit";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 /**
  * GET /api/users/[userId]/store-credit
- * Get user's store credit balance
+ * Get user's store credit balance (with expiration validation)
  */
 export async function GET(
   req: NextRequest,
@@ -31,9 +32,14 @@ export async function GET(
       );
     }
 
+    // Get available credit (excluding expired)
+    const creditInfo = await getAvailableStoreCredit(userId);
+
     return NextResponse.json({
-      storeCredit: user.storeCredit || 0,
-      storeCreditDollars: (user.storeCredit || 0) / 100,
+      storeCredit: creditInfo.available, // Return available (non-expired) credit
+      storeCreditDollars: creditInfo.available / 100,
+      total: creditInfo.total,
+      expired: creditInfo.expired,
     });
   } catch (error: any) {
     console.error("Error fetching store credit:", error);

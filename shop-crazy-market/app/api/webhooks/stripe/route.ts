@@ -49,8 +49,43 @@ export async function POST(req: Request) {
         else if (session.metadata?.type === "order") {
           const orderId = session.metadata.orderId as string;
           const paymentIntent = session.payment_intent as string;
+          const storeCreditUsedCents = parseInt(session.metadata.storeCreditUsedCents || "0");
           
-          console.log("[WEBHOOK] Processing order payment:", { orderId, paymentIntent });
+          // Get order to find userId and verify store credit amount
+          const existingOrder = await prisma.order.findUnique({
+            where: { id: orderId },
+            select: { userId: true, storeCreditUsedCents: true },
+          });
+          
+          if (!existingOrder) {
+            console.error("[WEBHOOK] Order not found:", orderId);
+            break;
+          }
+          
+          const userId = existingOrder.userId;
+          const actualStoreCreditUsed = existingOrder.storeCreditUsedCents || 0;
+          
+          console.log("[WEBHOOK] Processing order payment:", { orderId, paymentIntent, userId, storeCreditUsedCents: actualStoreCreditUsed });
+          
+          // Deduct store credit if used (only after payment success)
+          if (actualStoreCreditUsed > 0 && userId) {
+            try {
+              const { useStoreCredit } = await import("@/lib/store-credit");
+              const creditResult = await useStoreCredit(userId, actualStoreCreditUsed, orderId);
+              
+              if (!creditResult.success) {
+                console.error("[WEBHOOK] Failed to deduct store credit:", creditResult.error);
+                // Don't fail the webhook, but log the error
+                // In production, you might want to create a failed transaction record
+              } else {
+                console.log("[WEBHOOK] Store credit deducted:", creditResult.used);
+              }
+            } catch (creditError: any) {
+              console.error("[WEBHOOK] Error processing store credit:", creditError);
+              // Continue with order processing even if credit deduction fails
+              // Admin can manually adjust if needed
+            }
+          }
           
           // Update order status
           const updatedOrder = await prisma.order.update({
@@ -71,6 +106,17 @@ export async function POST(req: Request) {
           });
           
           console.log("[WEBHOOK] Order updated to paid:", orderId);
+
+          // Award first order credit if applicable
+          if (updatedOrder.userId) {
+            try {
+              const { awardFirstOrderCredit } = await import("@/lib/store-credit");
+              await awardFirstOrderCredit(updatedOrder.userId, orderId);
+            } catch (creditError: any) {
+              console.error("[WEBHOOK] Error awarding first order credit:", creditError);
+              // Don't fail the webhook if credit award fails
+            }
+          }
 
           // Send order confirmation email
           try {
@@ -113,9 +159,56 @@ export async function POST(req: Request) {
         break;
       }
 
+      case "checkout.session.async_payment_failed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        
+        // Restore store credit if payment failed
+        if (session.metadata?.type === "order") {
+          const orderId = session.metadata.orderId as string;
+          
+          try {
+            const order = await prisma.order.findUnique({
+              where: { id: orderId },
+              select: { userId: true, storeCreditUsedCents: true },
+            });
+            
+            if (order && order.userId && order.storeCreditUsedCents && order.storeCreditUsedCents > 0) {
+              const { restoreStoreCredit } = await import("@/lib/store-credit");
+              await restoreStoreCredit(order.userId, order.storeCreditUsedCents, orderId);
+              console.log("[WEBHOOK] Restored store credit for failed payment:", { userId: order.userId, orderId, amount: order.storeCreditUsedCents });
+            }
+          } catch (error: any) {
+            console.error("[WEBHOOK] Error restoring store credit:", error);
+          }
+        }
+        break;
+      }
+
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.log("Payment succeeded:", paymentIntent.id);
+        break;
+      }
+
+      case "payment_intent.payment_failed": {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        console.log("Payment failed:", paymentIntent.id);
+        
+        // Find order by payment intent and restore credit if needed
+        try {
+          const order = await prisma.order.findFirst({
+            where: { stripePaymentIntent: paymentIntent.id },
+            select: { id: true, userId: true, storeCreditUsedCents: true },
+          });
+          
+          if (order && order.userId && order.storeCreditUsedCents && order.storeCreditUsedCents > 0) {
+            const { restoreStoreCredit } = await import("@/lib/store-credit");
+            await restoreStoreCredit(order.userId, order.storeCreditUsedCents, order.id);
+            console.log("[WEBHOOK] Restored store credit for failed payment intent:", { userId: order.userId, orderId: order.id });
+          }
+        } catch (error: any) {
+          console.error("[WEBHOOK] Error handling failed payment intent:", error);
+        }
         break;
       }
 

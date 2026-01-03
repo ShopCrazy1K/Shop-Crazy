@@ -40,37 +40,19 @@ export async function POST(req: Request) {
     // Get buyer ID from request (if authenticated)
     const buyerId = req.headers.get("x-user-id") || null;
     
-    // Validate and deduct store credit if used
+    // Validate store credit if used (but don't deduct yet - wait for payment success)
     if (storeCreditUsedCents > 0 && buyerId) {
-      const user = await prisma.user.findUnique({
-        where: { id: buyerId },
-        select: { id: true, storeCredit: true },
-      });
+      const { getAvailableStoreCredit } = await import("@/lib/store-credit");
+      const creditInfo = await getAvailableStoreCredit(buyerId);
       
-      if (!user) {
+      if (storeCreditUsedCents > creditInfo.available) {
         return NextResponse.json(
-          { ok: false, message: "User not found" },
-          { status: 404 }
-        );
-      }
-      
-      const availableCredit = user.storeCredit || 0;
-      if (storeCreditUsedCents > availableCredit) {
-        return NextResponse.json(
-          { ok: false, message: `Insufficient store credit. Available: $${(availableCredit / 100).toFixed(2)}` },
+          { ok: false, message: `Insufficient store credit. Available: $${(creditInfo.available / 100).toFixed(2)}` },
           { status: 400 }
         );
       }
       
-      // Deduct store credit from user's account
-      await prisma.user.update({
-        where: { id: buyerId },
-        data: {
-          storeCredit: { decrement: storeCreditUsedCents },
-        },
-      });
-      
-      console.log(`[CHECKOUT] Deducted ${storeCreditUsedCents} cents store credit from user ${buyerId}`);
+      console.log(`[CHECKOUT] Validated ${storeCreditUsedCents} cents store credit for user ${buyerId} (will deduct after payment)`);
     }
 
     const listing = await prisma.listing.findUnique({
@@ -159,14 +141,34 @@ export async function POST(req: Request) {
     // Calculate final amount to charge (after store credit)
     const finalChargeAmount = Math.max(0, breakdown.orderTotalCents - (storeCreditUsedCents || 0));
     
-    // If store credit covers the entire order, mark as paid immediately
-    if (finalChargeAmount === 0 && storeCreditUsedCents > 0) {
+    // If store credit covers the entire order, process payment immediately
+    if (finalChargeAmount === 0 && storeCreditUsedCents > 0 && buyerId) {
+      const { useStoreCredit, awardFirstOrderCredit } = await import("@/lib/store-credit");
+      
+      // Deduct store credit
+      const creditResult = await useStoreCredit(buyerId, storeCreditUsedCents, order.id);
+      
+      if (!creditResult.success) {
+        // Rollback order creation if credit deduction fails
+        await prisma.order.delete({ where: { id: order.id } });
+        return NextResponse.json(
+          { ok: false, message: creditResult.error || "Failed to process store credit" },
+          { status: 400 }
+        );
+      }
+      
+      // Mark order as paid
       await prisma.order.update({
         where: { id: order.id },
         data: {
           paymentStatus: "paid",
         },
       });
+      
+      // Award first order credit if applicable
+      if (buyerId) {
+        await awardFirstOrderCredit(buyerId, order.id);
+      }
       
       return NextResponse.json({
         ok: true,
@@ -206,6 +208,8 @@ export async function POST(req: Request) {
         orderId: order.id,
         listingId: listing.id,
         sellerId: listing.sellerId,
+        userId: buyerId || "",
+        storeCreditUsedCents: storeCreditUsedCents.toString(), // Store in metadata for webhook
       },
       // Enable automatic payment methods (Apple Pay, Google Pay) - Stripe handles this automatically
       // No additional configuration needed - they appear when device/browser supports them
