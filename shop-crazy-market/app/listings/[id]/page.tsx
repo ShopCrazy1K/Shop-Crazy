@@ -946,7 +946,7 @@ export default function ListingPage() {
                   };
                   
                   const onTouchEnd = () => {
-                    if (!touchStart || !touchEnd) return;
+                    if (touchStart === null || touchEnd === null) return;
                     const distance = touchStart - touchEnd;
                     const isLeftSwipe = distance > minSwipeDistance;
                     const isRightSwipe = distance < -minSwipeDistance;
@@ -956,10 +956,15 @@ export default function ListingPage() {
                     } else if (isRightSwipe) {
                       goToPrevious();
                     }
+                    // Reset touch state
+                    setTouchStart(null);
+                    setTouchEnd(null);
                   };
 
-                  // Keyboard navigation
+                  // Keyboard navigation - only for main view, not modal
                   useEffect(() => {
+                    if (selectedImageIndex !== null) return; // Don't navigate if modal is open
+                    
                     const handleKeyPress = (e: KeyboardEvent) => {
                       if (selectedImageIndex !== null) return; // Don't navigate if modal is open
                       if (e.key === 'ArrowLeft') {
@@ -973,18 +978,23 @@ export default function ListingPage() {
                     
                     window.addEventListener('keydown', handleKeyPress);
                     return () => window.removeEventListener('keydown', handleKeyPress);
-                  }, [allImages.length, selectedImageIndex]);
+                  }, [allImages.length, selectedImageIndex, mainImageIndex]);
                   
                   return (
                     <div className="space-y-4">
                       {/* Main Image with Navigation */}
                       <div className="relative">
                         <div 
-                          className="aspect-square bg-gray-100 cursor-pointer rounded-lg overflow-hidden relative select-none"
-                          onClick={() => setSelectedImageIndex(safeMainIndex)}
+                          className="aspect-square bg-gray-100 cursor-pointer rounded-lg overflow-hidden relative select-none touch-pan-y"
+                          onClick={() => {
+                            if (allImages.length > 0 && safeMainIndex >= 0 && safeMainIndex < allImages.length) {
+                              setSelectedImageIndex(safeMainIndex);
+                            }
+                          }}
                           onTouchStart={onTouchStart}
                           onTouchMove={onTouchMove}
                           onTouchEnd={onTouchEnd}
+                          style={{ touchAction: 'pan-y' }}
                         >
                           {isSeller || hasPaidOrder ? (
                             <img
@@ -1672,16 +1682,20 @@ export default function ListingPage() {
           // Swipe gesture handlers for modal
           const minSwipeDistanceModal = 50;
           const onTouchStartModal = (e: React.TouchEvent) => {
+            e.stopPropagation();
             setTouchEnd(null);
             setTouchStart(e.targetTouches[0].clientX);
           };
           
           const onTouchMoveModal = (e: React.TouchEvent) => {
-            setTouchEnd(e.targetTouches[0].clientX);
+            e.stopPropagation();
+            if (touchStart !== null) {
+              setTouchEnd(e.targetTouches[0].clientX);
+            }
           };
           
           const onTouchEndModal = () => {
-            if (!touchStart || !touchEnd) return;
+            if (touchStart === null || touchEnd === null) return;
             const distance = touchStart - touchEnd;
             const isLeftSwipe = distance > minSwipeDistanceModal;
             const isRightSwipe = distance < -minSwipeDistanceModal;
@@ -1691,6 +1705,9 @@ export default function ListingPage() {
             } else if (isRightSwipe) {
               goToPreviousModal();
             }
+            // Reset touch state
+            setTouchStart(null);
+            setTouchEnd(null);
           };
 
           // Keyboard navigation for modal - handled inline in the component

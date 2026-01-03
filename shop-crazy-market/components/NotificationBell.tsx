@@ -31,26 +31,42 @@ export default function NotificationBell() {
         fetchNotifications();
       }, 30000);
       return () => clearInterval(interval);
+    } else {
+      // Reset notifications when user logs out
+      setNotifications([]);
+      setUnreadCount(0);
     }
   }, [user?.id]);
 
   async function fetchNotifications() {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
     
-    setLoading(true);
     try {
-      const response = await fetch(`/api/notifications?userId=${user.id}`);
+      const response = await fetch(`/api/notifications?userId=${user.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store', // Ensure fresh data
+      });
+      
       if (response.ok) {
         const data = await response.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
+        if (data && typeof data === 'object') {
+          setNotifications(Array.isArray(data.notifications) ? data.notifications : []);
+          setUnreadCount(typeof data.unreadCount === 'number' ? data.unreadCount : 0);
+        }
       } else {
         console.error("Failed to fetch notifications:", response.status, response.statusText);
+        // Don't clear notifications on error, keep existing ones
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
-    } finally {
-      setLoading(false);
+      // Don't clear notifications on error, keep existing ones
     }
   }
 
@@ -245,12 +261,22 @@ export default function NotificationBell() {
                           onClick={async (e) => {
                             e.stopPropagation();
                             e.preventDefault();
-                            // Mark as read first (don't await to avoid blocking navigation)
-                            markAsRead(notification.id).catch(err => console.error("Error marking as read:", err));
-                            setIsOpen(false);
-                            // Navigate to the link using router
-                            if (notification.link) {
-                              router.push(notification.link);
+                            try {
+                              // Mark as read first (don't await to avoid blocking navigation)
+                              markAsRead(notification.id).catch(err => console.error("Error marking as read:", err));
+                              setIsOpen(false);
+                              // Small delay to ensure state updates
+                              await new Promise(resolve => setTimeout(resolve, 100));
+                              // Navigate to the link using router
+                              if (notification.link) {
+                                router.push(notification.link);
+                              }
+                            } catch (error) {
+                              console.error("Error handling notification click:", error);
+                              // Still try to navigate even if mark as read fails
+                              if (notification.link) {
+                                router.push(notification.link);
+                              }
                             }
                           }}
                           className="block cursor-pointer"
