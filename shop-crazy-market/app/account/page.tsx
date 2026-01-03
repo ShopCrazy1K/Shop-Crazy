@@ -17,6 +17,10 @@ export default function AccountPage() {
   const [referralStats, setReferralStats] = useState({ referralCount: 0, totalEarned: 0 });
   const [loadingReferral, setLoadingReferral] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [savingUsername, setSavingUsername] = useState(false);
+  const [usernameError, setUsernameError] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -129,15 +133,113 @@ export default function AccountPage() {
               <span className="text-xl sm:text-2xl flex-shrink-0">📧</span>
             </div>
 
-            {user.username && (
-              <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg sm:rounded-xl">
-                <div className="flex-1 min-w-0 pr-2">
-                  <p className="text-gray-500 text-xs sm:text-sm">Username</p>
-                  <p className="font-semibold text-sm sm:text-lg truncate">{user.username}</p>
+            {/* Username Section */}
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg sm:rounded-xl p-3 sm:p-4">
+              {!editingUsername ? (
+                <div className="flex justify-between items-center">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <p className="text-gray-500 text-xs sm:text-sm">Username</p>
+                    <p className="font-semibold text-sm sm:text-lg truncate">
+                      {user.username || "Not set"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl sm:text-2xl flex-shrink-0">👤</span>
+                    <button
+                      onClick={() => {
+                        setNewUsername(user.username || "");
+                        setEditingUsername(true);
+                        setUsernameError("");
+                      }}
+                      className="text-purple-600 hover:text-purple-700 text-xs sm:text-sm font-semibold px-2 py-1"
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </div>
-                <span className="text-xl sm:text-2xl flex-shrink-0">👤</span>
-              </div>
-            )}
+              ) : (
+                <div className="space-y-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700">Username</label>
+                  <input
+                    type="text"
+                    value={newUsername}
+                    onChange={(e) => {
+                      setNewUsername(e.target.value);
+                      setUsernameError("");
+                    }}
+                    placeholder="Enter username"
+                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
+                    maxLength={20}
+                  />
+                  {usernameError && (
+                    <p className="text-xs text-red-600">{usernameError}</p>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    3-20 characters, letters, numbers, underscores, or hyphens
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        if (!newUsername.trim()) {
+                          setUsernameError("Username cannot be empty");
+                          return;
+                        }
+
+                        const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+                        if (!usernameRegex.test(newUsername.trim())) {
+                          setUsernameError("Username must be 3-20 characters and contain only letters, numbers, underscores, or hyphens");
+                          return;
+                        }
+
+                        setSavingUsername(true);
+                        setUsernameError("");
+                        try {
+                          const response = await fetch(`/api/users/${user.id}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ username: newUsername.trim() }),
+                          });
+
+                          const data = await response.json();
+                          if (response.ok) {
+                            // Update local user state
+                            const updatedUser = { ...user, username: newUsername.trim() };
+                            // Update in localStorage if it exists
+                            const storedUser = localStorage.getItem("user");
+                            if (storedUser) {
+                              localStorage.setItem("user", JSON.stringify(updatedUser));
+                            }
+                            // Force page reload to update auth context
+                            window.location.reload();
+                          } else {
+                            setUsernameError(data.error || "Failed to update username");
+                          }
+                        } catch (error) {
+                          console.error("Error updating username:", error);
+                          setUsernameError("An error occurred while updating username");
+                        } finally {
+                          setSavingUsername(false);
+                        }
+                      }}
+                      disabled={savingUsername}
+                      className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 text-sm sm:text-base"
+                    >
+                      {savingUsername ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingUsername(false);
+                        setNewUsername("");
+                        setUsernameError("");
+                      }}
+                      className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-sm sm:text-base"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg sm:rounded-xl">
               <div className="flex-1 min-w-0 pr-2">
