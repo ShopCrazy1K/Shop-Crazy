@@ -6,7 +6,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         body: ["Inter", "sans-serif"],
-        accent: ["var(--accent-font)", "Fredoka", "sans-serif"],
+        accent: ["Inter", "system-ui", "-apple-system", "sans-serif"], // Changed to normal font
         baloo: ["Baloo 2", "cursive"],
         fredoka: ["Fredoka", "sans-serif"],
         luckiest: ["Luckiest Guy", "cursive"],

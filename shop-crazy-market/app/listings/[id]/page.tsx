@@ -716,12 +716,17 @@ export default function ListingPage() {
                 const allImages = [...normalizedImages, ...imageDigitalFiles];
                 
                 if (allImages.length > 0) {
+                  const currentImageIndex = selectedImageIndex !== null && selectedImageIndex < allImages.length 
+                    ? selectedImageIndex 
+                    : 0;
+                  const currentImage = allImages[currentImageIndex];
+                  
                   return (
                     <div className="space-y-4">
                       {/* Main Image */}
-                      <div className="aspect-square bg-gray-100 cursor-pointer" onClick={() => setSelectedImageIndex(0)}>
+                      <div className="aspect-square bg-gray-100 cursor-pointer rounded-lg overflow-hidden">
                         <img
-                          src={allImages[0]}
+                          src={currentImage}
                           alt={listing.title}
                           className="w-full h-full object-contain hover:opacity-90 transition-opacity"
                           onError={(e) => {
@@ -738,19 +743,34 @@ export default function ListingPage() {
                           }}
                         />
                       </div>
-                      {/* Thumbnail Gallery */}
+                      {/* 4-Image Grid Selector */}
                       {allImages.length > 1 && (
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-4 gap-2 sm:gap-3">
                           {allImages.slice(0, 4).map((image: string, index: number) => (
                             <div
                               key={index}
-                              className="aspect-square bg-gray-100 cursor-pointer border-2 border-transparent hover:border-purple-500 rounded overflow-hidden"
+                              className={`aspect-square bg-gray-100 cursor-pointer border-2 rounded-lg overflow-hidden transition-all ${
+                                currentImageIndex === index
+                                  ? 'border-purple-600 ring-2 ring-purple-300'
+                                  : 'border-transparent hover:border-purple-400'
+                              }`}
                               onClick={() => setSelectedImageIndex(index)}
                             >
                               <img
                                 src={image}
                                 alt={`${listing.title} - Image ${index + 1}`}
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const parent = target.parentElement;
+                                  if (parent && !parent.querySelector('.image-error-placeholder')) {
+                                    const placeholder = document.createElement('div');
+                                    placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 text-xs image-error-placeholder';
+                                    placeholder.textContent = '📦';
+                                    parent.appendChild(placeholder);
+                                  }
+                                }}
                               />
                             </div>
                           ))}
