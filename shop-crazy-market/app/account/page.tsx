@@ -55,7 +55,7 @@ export default function AccountPage() {
     } finally {
       setLoadingHistory(false);
     }
-  }, [user, authLoading, router]);
+  }
 
   async function fetchStoreCredit() {
     if (!user?.id) return;
