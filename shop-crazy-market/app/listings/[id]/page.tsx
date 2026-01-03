@@ -863,8 +863,8 @@ export default function ListingPage() {
                                         setPrimaryImage(index);
                                       }}
                                       disabled={settingPrimary}
-                                      className="absolute bottom-1 right-1 bg-purple-600 text-white text-[10px] font-semibold px-2 py-1 rounded opacity-0 group-hover:opacity-100 hover:bg-purple-700 transition-opacity disabled:opacity-50 z-10"
-                                      title="Set as primary image"
+                                      className="absolute bottom-1 right-1 bg-purple-600 text-white text-[10px] font-semibold px-2 py-1 rounded hover:bg-purple-700 transition-colors disabled:opacity-50 z-10 shadow-lg"
+                                      title="Set as primary image (profile image)"
                                       onMouseEnter={(e) => e.stopPropagation()}
                                     >
                                       {settingPrimary ? "..." : "Set Primary"}
