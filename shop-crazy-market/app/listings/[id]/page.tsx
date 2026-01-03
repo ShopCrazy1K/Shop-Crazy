@@ -307,7 +307,7 @@ export default function ListingPage() {
   // Auto-activate on payment success (only after listing is loaded and not already active)
   useEffect(() => {
     if (!listing || loading) return; // Wait for listing to load first
-    if (listing.isActive) {
+    if (listing?.isActive) {
       console.log("[LISTING PAGE] Listing already active, skipping activation");
       return; // Don't activate if already active
     }
@@ -375,7 +375,7 @@ export default function ListingPage() {
     if (!user || !listing) return;
 
     // Check if user is the seller
-    if (listing.seller.id === user.id) {
+    if (listing?.seller?.id && listing.seller.id === user.id) {
       setIsSeller(true);
       setHasPaidOrder(true); // Sellers can always access their own files
       return;
@@ -508,7 +508,7 @@ export default function ListingPage() {
       return;
     }
 
-    if (user.id === listing.seller.id) return;
+    if (!listing?.seller?.id || user.id === listing.seller.id) return;
 
     setFollowLoading(true);
     try {
@@ -685,7 +685,7 @@ export default function ListingPage() {
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Success/Cancel Messages */}
-        {feeStatus === "success" && (
+        {feeStatus === "success" && listing && (
           <div className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
             <p className="text-green-700">
               ✅ Payment successful! {listing.isActive ? "Your listing is now active." : "Processing activation..."}
@@ -697,7 +697,7 @@ export default function ListingPage() {
             )}
           </div>
         )}
-        {feeStatus === "cancel" && (
+        {feeStatus === "cancel" && listing && (
           <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
             <p className="text-yellow-700">
               ⚠️ Payment was cancelled. Your listing is inactive until payment is completed.
@@ -706,7 +706,7 @@ export default function ListingPage() {
         )}
 
         {/* Listing Status */}
-        {!listing.isActive && feeStatus !== "success" && (
+        {listing && !listing.isActive && feeStatus !== "success" && (
           <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
             <p className="text-red-700">
               ⚠️ This listing is inactive. Please complete payment to activate it.
@@ -714,7 +714,7 @@ export default function ListingPage() {
           </div>
         )}
         
-        {!listing.isActive && feeStatus === "success" && (
+        {listing && !listing.isActive && feeStatus === "success" && (
           <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
             <p className="text-yellow-700">
               ⚠️ Payment received but listing activation is pending. This usually takes a few seconds.
@@ -1314,7 +1314,7 @@ export default function ListingPage() {
             {/* Details */}
             <div className="md:w-1/2 p-4 sm:p-8">
               <div className="flex items-start justify-between mb-3 sm:mb-4">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex-1 pr-2">{listing.title}</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex-1 pr-2">{listing?.title || "Untitled Listing"}</h1>
                 {/* Favorite Button */}
                 {user && (
                   <button
@@ -1342,10 +1342,10 @@ export default function ListingPage() {
               </div>
               
               {/* Active Deal Badge - Always show if deal exists, even if listing is inactive for debugging */}
-              {activeDeal && (
+              {activeDeal && listing && (
                 <div className="mb-6">
-                  <DealBadge deal={activeDeal} priceCents={listing.priceCents} />
-                  {!listing.isActive && (
+                  <DealBadge deal={activeDeal} priceCents={listing.priceCents || 0} />
+                  {listing && !listing.isActive && (
                     <p className="text-xs text-yellow-600 mt-2">
                       ⚠️ Deal is active but listing is inactive
                     </p>
@@ -1368,46 +1368,48 @@ export default function ListingPage() {
               )}
 
               <div className="mb-4 sm:mb-6">
-                {activeDeal ? (
+                {activeDeal && listing ? (
                   <>
                     <div className="flex items-baseline gap-2 sm:gap-3">
                       <p className="text-3xl sm:text-4xl font-bold text-red-600">
                         ${(() => {
+                          const priceCents = listing.priceCents || 0;
                           const discountCents = activeDeal.discountType === "PERCENTAGE"
-                            ? Math.round((listing.priceCents * activeDeal.discountValue) / 100)
+                            ? Math.round((priceCents * activeDeal.discountValue) / 100)
                             : activeDeal.discountValue;
-                          const discountedPrice = listing.priceCents - discountCents;
+                          const discountedPrice = priceCents - discountCents;
                           return (discountedPrice / 100).toFixed(2);
                         })()}
                       </p>
                       <p className="text-2xl text-gray-400 line-through">
-                        ${(listing.priceCents / 100).toFixed(2)}
+                        ${((listing.priceCents || 0) / 100).toFixed(2)}
                       </p>
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
-                      {listing.currency.toUpperCase()} • Save ${(() => {
+                      {(listing.currency || "USD").toUpperCase()} • Save ${(() => {
+                        const priceCents = listing.priceCents || 0;
                         const discountCents = activeDeal.discountType === "PERCENTAGE"
-                          ? Math.round((listing.priceCents * activeDeal.discountValue) / 100)
+                          ? Math.round((priceCents * activeDeal.discountValue) / 100)
                           : activeDeal.discountValue;
                         return (discountCents / 100).toFixed(2);
                       })()}
                     </p>
                   </>
-                ) : (
+                ) : listing ? (
                   <>
                     <p className="text-3xl sm:text-4xl font-bold text-purple-600 mb-2">
-                      ${(listing.priceCents / 100).toFixed(2)}
+                      ${((listing.priceCents || 0) / 100).toFixed(2)}
                     </p>
                     <p className="text-sm text-gray-500">
-                      {listing.currency.toUpperCase()}
+                      {(listing.currency || "USD").toUpperCase()}
                     </p>
                   </>
-                )}
+                ) : null}
               </div>
 
               <div className="mb-6">
                 <h2 className="text-lg font-semibold mb-2">Description</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{listing.description}</p>
+                <p className="text-gray-700 whitespace-pre-wrap">{listing?.description || "No description available."}</p>
               </div>
 
               {/* Seller Info Box - Etsy Style */}
@@ -1449,7 +1451,7 @@ export default function ListingPage() {
                     )}
                   </div>
                   {/* Follow Button */}
-                  {user && user.id !== listing.seller.id && (
+                  {user && listing?.seller?.id && user.id !== listing.seller.id && (
                     <button
                       onClick={toggleFollow}
                       disabled={followLoading}
@@ -1464,7 +1466,7 @@ export default function ListingPage() {
                   )}
                 </div>
                 {/* Message Seller Button */}
-                {user && user.id !== listing.seller.id && (
+                {user && listing?.seller?.id && user.id !== listing.seller.id && (
                   <Link
                     href={`/messages/${listing.seller.id}`}
                     className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
@@ -1474,7 +1476,7 @@ export default function ListingPage() {
                 )}
                 
                 {/* Report Button - Show for all users except the seller */}
-                {user && user.id !== listing.seller.id && (
+                {user && listing?.seller?.id && user.id !== listing.seller.id && (
                   <div className="mt-2">
                     <ReportButton listingId={listingId} />
                   </div>
@@ -1541,7 +1543,7 @@ export default function ListingPage() {
               )}
 
               {/* Purchase Section - Etsy Style */}
-              {listing.isActive && (
+              {listing && listing.isActive && (
                 <div className="space-y-3">
                   <button
                     onClick={() => {
