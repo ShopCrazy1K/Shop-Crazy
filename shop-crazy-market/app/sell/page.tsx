@@ -8,6 +8,7 @@ import Link from "next/link";
 import { categories } from "@/lib/categories";
 import { LISTING_FEE_PER_MONTH } from "@/lib/fees";
 import ImageReorderGrid from "@/components/ImageReorderGrid";
+import { uploadFilesParallel, validateFile } from "@/lib/upload-utils";
 
 type ImageItem = { id: string; url: string; path?: string };
 
@@ -50,6 +51,7 @@ export default function SellPage() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [images, setImages] = useState<ImageItem[]>([]);
   const [imageUrls, setImageUrls] = useState<string>(""); // Manual URLs
+  const [imageUploadProgress, setImageUploadProgress] = useState<Map<File, number>>(new Map());
   
   // Ref to prevent auto-save when canceling
   const isCancelingRef = useRef(false);
@@ -210,140 +212,181 @@ export default function SellPage() {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    console.log("[DIGITAL FILES] Starting upload for", files.length, "file(s)");
-    setDigitalFiles((prev) => [...prev, ...files]);
+    // Validate files first
+    const validFiles: File[] = [];
+    const invalidFiles: string[] = [];
+
+    files.forEach(file => {
+      const validation = validateFile(file, false);
+      if (!validation.valid) {
+        invalidFiles.push(`${file.name}: ${validation.error}`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (invalidFiles.length > 0) {
+      alert(`Some files are invalid:\n\n${invalidFiles.join('\n')}`);
+    }
+
+    if (validFiles.length === 0) {
+      e.target.value = "";
+      return;
+    }
+
+    console.log("[DIGITAL FILES] Starting upload for", validFiles.length, "file(s)");
+    setDigitalFiles((prev) => [...prev, ...validFiles]);
     setUploadingDigitalFiles(true);
-    setError(""); // Clear previous errors
+    setError("");
 
     const newUrls: string[] = [];
     const errors: string[] = [];
-    
-    for (const file of files) {
-      try {
-        console.log("[DIGITAL FILES] Uploading:", file.name);
-        
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: (() => {
-            const formData = new FormData();
-            formData.append("file", file);
-            return formData;
-          })(),
-        });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-          let errorMsg = errorData.error || `Failed to upload ${file.name}`;
-          
-          // Include details and help if available
-          if (errorData.details) {
-            errorMsg += `\n\nDetails: ${errorData.details}`;
-          }
-          if (errorData.help) {
-            errorMsg += `\n\n${errorData.help}`;
-          }
-          
-          console.error("[DIGITAL FILES] Upload failed:", errorData);
-          throw new Error(errorMsg);
+    try {
+      const results = await uploadFilesParallel(
+        validFiles,
+        {
+          onProgress: (file, progress) => {
+            console.log(`[DIGITAL FILES] ${file.name}: ${Math.round(progress)}%`);
+          },
+          onComplete: (file, url) => {
+            newUrls.push(url);
+            console.log("[DIGITAL FILES] Uploaded successfully:", url);
+          },
+          onError: (file, error) => {
+            errors.push(`${file.name}: ${error}`);
+            setDigitalFiles((prev) => prev.filter(f => f !== file));
+          },
+        },
+        3 // Max 3 concurrent uploads
+      );
+
+      // Process any remaining results
+      results.forEach((result, file) => {
+        if (result.url && !newUrls.includes(result.url)) {
+          newUrls.push(result.url);
+        } else if (result.error) {
+          errors.push(`${file.name}: ${result.error}`);
+          setDigitalFiles((prev) => prev.filter(f => f !== file));
         }
-
-        const uploaded = await response.json();
-        if (!uploaded.url) {
-          throw new Error("Upload succeeded but no URL returned");
-        }
-        
-        newUrls.push(uploaded.url);
-        console.log("[DIGITAL FILES] Uploaded successfully:", uploaded.url);
-      } catch (error: any) {
-        const errorMsg = error.message || `Failed to upload ${file.name}`;
-        console.error("[DIGITAL FILES] Upload failed:", {
-          message: errorMsg,
-          error: error,
-          file: file.name,
-        });
-        errors.push(errorMsg);
-        // Remove failed file from list
-        setDigitalFiles((prev) => prev.filter(f => f !== file));
-      }
-    }
-
-    if (errors.length > 0) {
-      setError(`Upload errors: ${errors.join(", ")}`);
-    }
-
-    if (newUrls.length > 0) {
-      setUploadedDigitalFileUrls((prev) => {
-        const updated = [...prev, ...newUrls];
-        console.log("[DIGITAL FILES] Total uploaded URLs:", updated.length);
-        return updated;
       });
-    }
 
-    setUploadingDigitalFiles(false);
-    e.target.value = ""; // Clear input
+      if (errors.length > 0) {
+        setError(`Some uploads failed: ${errors.join(', ')}`);
+      }
+
+      if (newUrls.length > 0) {
+        setUploadedDigitalFileUrls((prev) => {
+          const updated = [...prev, ...newUrls];
+          console.log("[DIGITAL FILES] Total uploaded URLs:", updated.length);
+          return updated;
+        });
+      }
+    } catch (error: any) {
+      console.error("[DIGITAL FILES] Upload error:", error);
+      setError(error.message || "Failed to upload files");
+    } finally {
+      setUploadingDigitalFiles(false);
+      e.target.value = ""; // Clear input
+    }
   }
 
   async function handleImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    setImageFiles((prev) => [...prev, ...files]);
-    setUploadingImages(true);
+    // Validate files first
+    const validFiles: File[] = [];
+    const invalidFiles: string[] = [];
 
-    const newImages: ImageItem[] = [];
-    for (const file of files) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert(`${file.name} is too large. Max size is 5MB.`);
-        setImageFiles((prev) => prev.filter(f => f !== file));
-        continue;
+    files.forEach(file => {
+      const validation = validateFile(file, true);
+      if (!validation.valid) {
+        invalidFiles.push(`${file.name}: ${validation.error}`);
+      } else {
+        validFiles.push(file);
       }
-      try {
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: (() => {
-            const formData = new FormData();
-            formData.append("file", file);
-            return formData;
-          })(),
-        });
+    });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-          let errorMsg = errorData.error || `Failed to upload ${file.name}`;
-          
-          // Include details and help if available
-          if (errorData.details) {
-            errorMsg += `\n\nDetails: ${errorData.details}`;
-          }
-          if (errorData.help) {
-            errorMsg += `\n\n${errorData.help}`;
-          }
-          
-          console.error("[IMAGE UPLOAD] Upload failed:", errorData);
-          throw new Error(errorMsg);
-        }
-
-        const uploaded = await response.json();
-        if (!uploaded.url) {
-          throw new Error("Upload succeeded but no URL returned");
-        }
-        
-        newImages.push({
-          id: crypto.randomUUID(),
-          url: uploaded.url,
-          path: uploaded.path,
-        });
-      } catch (error: any) {
-        const errorMsg = error.message || `Failed to upload ${file.name}`;
-        console.error("[IMAGE UPLOAD] Error:", errorMsg);
-        alert(`Failed to upload ${file.name}:\n\n${errorMsg}`);
-        setImageFiles((prev) => prev.filter(f => f !== file));
-      }
+    if (invalidFiles.length > 0) {
+      alert(`Some files are invalid:\n\n${invalidFiles.join('\n')}`);
     }
 
-    setImages((prev) => [...prev, ...newImages]);
-    setUploadingImages(false);
-    e.target.value = ""; // Clear input
+    if (validFiles.length === 0) {
+      e.target.value = "";
+      return;
+    }
+
+    setImageFiles((prev) => [...prev, ...validFiles]);
+    setUploadingImages(true);
+    setError("");
+
+    // Initialize progress tracking
+    const progressMap = new Map<File, number>();
+    validFiles.forEach(file => progressMap.set(file, 0));
+    setImageUploadProgress(new Map(progressMap));
+
+    const newImages: ImageItem[] = [];
+    const errors: string[] = [];
+
+    try {
+      const results = await uploadFilesParallel(
+        validFiles,
+        {
+          onProgress: (file, progress) => {
+            setImageUploadProgress(prev => {
+              const updated = new Map(prev);
+              updated.set(file, progress);
+              return updated;
+            });
+          },
+          onComplete: (file, url) => {
+            newImages.push({
+              id: crypto.randomUUID(),
+              url,
+            });
+            setImageUploadProgress(prev => {
+              const updated = new Map(prev);
+              updated.set(file, 100);
+              return updated;
+            });
+          },
+          onError: (file, error) => {
+            errors.push(`${file.name}: ${error}`);
+            setImageFiles((prev) => prev.filter(f => f !== file));
+          },
+        },
+        3 // Max 3 concurrent uploads
+      );
+
+      // Process any remaining results
+      results.forEach((result, file) => {
+        if (result.url && !newImages.find(img => img.url === result.url)) {
+          newImages.push({
+            id: crypto.randomUUID(),
+            url: result.url,
+          });
+        } else if (result.error) {
+          errors.push(`${file.name}: ${result.error}`);
+          setImageFiles((prev) => prev.filter(f => f !== file));
+        }
+      });
+
+      if (newImages.length > 0) {
+        setImages((prev) => [...prev, ...newImages]);
+      }
+
+      if (errors.length > 0) {
+        setError(`Some uploads failed: ${errors.join(', ')}`);
+      }
+    } catch (error: any) {
+      console.error("[IMAGE UPLOAD] Upload error:", error);
+      setError(error.message || "Failed to upload images");
+    } finally {
+      setUploadingImages(false);
+      setImageUploadProgress(new Map());
+      e.target.value = ""; // Clear input
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -954,10 +997,25 @@ export default function SellPage() {
                   </p>
                 </div>
 
-                {uploadingImages && (
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
-                    <span className="text-blue-600 animate-spin">🔄</span>
-                    <p className="text-sm text-blue-800">Uploading images...</p>
+                {uploadingImages && imageFiles.length > 0 && (
+                  <div className="space-y-2">
+                    {imageFiles.map((file) => {
+                      const progress = imageUploadProgress.get(file) || 0;
+                      return (
+                        <div key={`${file.name}-${file.size}`} className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-semibold text-blue-800 truncate flex-1">{file.name}</p>
+                            <span className="text-xs text-blue-600 ml-2">{Math.round(progress)}%</span>
+                          </div>
+                          <div className="w-full bg-blue-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
