@@ -53,6 +53,12 @@ export default function ProfilePage() {
   const [newUsername, setNewUsername] = useState("");
   const [savingUsername, setSavingUsername] = useState(false);
   const [usernameError, setUsernameError] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -476,6 +482,164 @@ export default function ProfilePage() {
             <span className="text-xl sm:text-2xl flex-shrink-0">
               {user.role === "ADMIN" ? "👑" : "⭐"}
             </span>
+          </div>
+
+          {/* Password Change Section */}
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg sm:rounded-xl p-3 sm:p-4">
+            {!changingPassword ? (
+              <div className="flex justify-between items-center">
+                <div className="flex-1 min-w-0 pr-2">
+                  <p className="text-gray-500 text-xs sm:text-sm">Password</p>
+                  <p className="font-semibold text-sm sm:text-lg">••••••••</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl sm:text-2xl flex-shrink-0">🔒</span>
+                  <button
+                    onClick={() => {
+                      setChangingPassword(true);
+                      setCurrentPassword("");
+                      setNewPassword("");
+                      setConfirmPassword("");
+                      setPasswordError("");
+                      setPasswordSuccess(false);
+                    }}
+                    className="text-purple-600 hover:text-purple-700 text-xs sm:text-sm font-semibold px-2 py-1"
+                  >
+                    Change
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700">Change Password</label>
+                  <button
+                    onClick={() => {
+                      setChangingPassword(false);
+                      setCurrentPassword("");
+                      setNewPassword("");
+                      setConfirmPassword("");
+                      setPasswordError("");
+                      setPasswordSuccess(false);
+                    }}
+                    className="text-gray-500 hover:text-gray-700 text-xs"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                
+                {passwordSuccess && (
+                  <div className="bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded-lg text-xs sm:text-sm">
+                    Password changed successfully!
+                  </div>
+                )}
+                
+                {passwordError && (
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded-lg text-xs sm:text-sm">
+                    {passwordError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Current Password</label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => {
+                      setCurrentPassword(e.target.value);
+                      setPasswordError("");
+                    }}
+                    placeholder="Enter current password"
+                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      setPasswordError("");
+                    }}
+                    placeholder="Enter new password"
+                    minLength={8}
+                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Must be at least 8 characters
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      setPasswordError("");
+                    }}
+                    placeholder="Confirm new password"
+                    minLength={8}
+                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
+                  />
+                </div>
+
+                <button
+                  onClick={async () => {
+                    if (!currentPassword) {
+                      setPasswordError("Please enter your current password");
+                      return;
+                    }
+                    if (!newPassword || newPassword.length < 8) {
+                      setPasswordError("New password must be at least 8 characters");
+                      return;
+                    }
+                    if (newPassword !== confirmPassword) {
+                      setPasswordError("Passwords do not match");
+                      return;
+                    }
+
+                    setPasswordError("");
+                    try {
+                      const response = await fetch(`/api/users/${user.id}/change-password`, {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "x-user-id": user.id,
+                        },
+                        body: JSON.stringify({
+                          currentPassword,
+                          newPassword,
+                        }),
+                      });
+
+                      const data = await response.json();
+                      if (response.ok) {
+                        setPasswordSuccess(true);
+                        setCurrentPassword("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                        setTimeout(() => {
+                          setChangingPassword(false);
+                          setPasswordSuccess(false);
+                        }, 2000);
+                      } else {
+                        setPasswordError(data.error || "Failed to change password");
+                      }
+                    } catch (error) {
+                      console.error("Error changing password:", error);
+                      setPasswordError("An error occurred while changing password");
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors text-sm sm:text-base"
+                >
+                  Change Password
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Store Credit */}
