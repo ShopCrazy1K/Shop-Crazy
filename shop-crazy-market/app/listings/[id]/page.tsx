@@ -17,6 +17,7 @@ interface Listing {
   currency: string;
   images: string[];
   digitalFiles: string[];
+  thumbnailIndices?: number[];
   isActive: boolean;
   feeSubscriptionStatus: string | null;
   createdAt: string;
