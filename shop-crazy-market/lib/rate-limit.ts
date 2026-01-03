@@ -196,11 +196,95 @@ export async function checkRateLimit(
 }
 
 /**
+ * Legacy rate limiters for backward compatibility
+ * These wrap the new rateLimit function to match the old API
+ */
+export const rateLimiters = {
+  // Strict: 10 requests per minute
+  strict: async (req: Request) => {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+               req.headers.get('x-real-ip') || 
+               'unknown';
+    const result = await rateLimit({ identifier: `strict:${ip}`, limit: 10, window: 60 });
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      resetTime: Date.now() + (result.retryAfter || 60) * 1000,
+    };
+  },
+
+  // Standard: 100 requests per 15 minutes
+  standard: async (req: Request) => {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+               req.headers.get('x-real-ip') || 
+               'unknown';
+    const result = await rateLimit({ identifier: `standard:${ip}`, limit: 100, window: 900 });
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      resetTime: Date.now() + (result.retryAfter || 900) * 1000,
+    };
+  },
+
+  // Lenient: 1000 requests per hour
+  lenient: async (req: Request) => {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+               req.headers.get('x-real-ip') || 
+               'unknown';
+    const result = await rateLimit({ identifier: `lenient:${ip}`, limit: 1000, window: 3600 });
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      resetTime: Date.now() + (result.retryAfter || 3600) * 1000,
+    };
+  },
+
+  // Auth endpoints: 5 requests per 15 minutes
+  auth: async (req: Request) => {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const ua = req.headers.get('user-agent') || 'unknown';
+    const identifier = `auth:${ip}:${ua.substring(0, 50)}`;
+    const result = await rateLimit({ identifier, limit: 5, window: 900 });
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      resetTime: Date.now() + (result.retryAfter || 900) * 1000,
+    };
+  },
+
+  // Upload endpoints: 20 requests per hour
+  upload: async (req: Request) => {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+               req.headers.get('x-real-ip') || 
+               'unknown';
+    const result = await rateLimit({ identifier: `upload:${ip}`, limit: 20, window: 3600 });
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      resetTime: Date.now() + (result.retryAfter || 3600) * 1000,
+    };
+  },
+
+  // Payment endpoints: 10 requests per minute
+  payment: async (req: Request) => {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+               req.headers.get('x-real-ip') || 
+               'unknown';
+    const result = await rateLimit({ identifier: `payment:${ip}`, limit: 10, window: 60 });
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      resetTime: Date.now() + (result.retryAfter || 60) * 1000,
+    };
+  },
+};
+
+/**
  * Helper function to create rate-limited API route handler
  */
 export function withRateLimit(
   handler: (req: Request) => Promise<Response>,
-  limiter: ReturnType<typeof rateLimit>
+  limiter: (req: Request) => Promise<{ success: boolean; remaining: number; resetTime: number }>
 ) {
   return async (req: Request): Promise<Response> => {
     const result = await limiter(req);
