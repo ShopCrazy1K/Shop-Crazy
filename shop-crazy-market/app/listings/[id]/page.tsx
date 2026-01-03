@@ -775,50 +775,98 @@ export default function ListingPage() {
                     }
                   }
                   
+                  // Navigation functions
+                  const goToPrevious = () => {
+                    setMainImageIndex((prev) => (prev > 0 ? prev - 1 : allImages.length - 1));
+                  };
+                  
+                  const goToNext = () => {
+                    setMainImageIndex((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
+                  };
+                  
                   return (
                     <div className="space-y-4">
-                      {/* Main Image */}
-                      <div 
-                        className="aspect-square bg-gray-100 cursor-pointer rounded-lg overflow-hidden relative"
-                        onClick={() => setSelectedImageIndex(safeMainIndex)}
-                      >
-                        <img
-                          src={currentImage}
-                          alt={listing.title}
-                          className="w-full h-full object-contain hover:opacity-90 transition-opacity"
-                          onError={(e) => {
-                            // Show placeholder if image fails to load
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent && !parent.querySelector('.image-error-placeholder')) {
-                              const placeholder = document.createElement('div');
-                              placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 image-error-placeholder';
-                              placeholder.textContent = '📦 Image not available';
-                              parent.appendChild(placeholder);
-                            }
-                          }}
-                        />
-                        {/* Primary Image Badge */}
-                        {safeMainIndex === primaryImageIndex && normalizedImages.length > 0 && (
-                          <div className="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
-                            <span>✓</span> Primary
-                          </div>
+                      {/* Main Image with Navigation */}
+                      <div className="relative">
+                        <div 
+                          className="aspect-square bg-gray-100 cursor-pointer rounded-lg overflow-hidden relative"
+                          onClick={() => setSelectedImageIndex(safeMainIndex)}
+                        >
+                          <img
+                            src={currentImage}
+                            alt={listing.title}
+                            className="w-full h-full object-contain hover:opacity-90 transition-opacity"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent && !parent.querySelector('.image-error-placeholder')) {
+                                const placeholder = document.createElement('div');
+                                placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 image-error-placeholder';
+                                placeholder.textContent = '📦 Image not available';
+                                parent.appendChild(placeholder);
+                              }
+                            }}
+                          />
+                          {/* Primary Image Badge */}
+                          {safeMainIndex === primaryImageIndex && normalizedImages.length > 0 && (
+                            <div className="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                              <span>✓</span> Primary
+                            </div>
+                          )}
+                          {/* Image Counter */}
+                          {allImages.length > 1 && (
+                            <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                              {safeMainIndex + 1} / {allImages.length}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Navigation Arrows */}
+                        {allImages.length > 1 && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                goToPrevious();
+                              }}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 text-gray-800 rounded-full p-2 shadow-lg transition-all z-10"
+                              aria-label="Previous image"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                goToNext();
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 text-gray-800 rounded-full p-2 shadow-lg transition-all z-10"
+                              aria-label="Next image"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </button>
+                          </>
                         )}
                       </div>
-                      {/* 4-Image Grid Selector */}
+                      
+                      {/* 4-Image Thumbnail Grid (Etsy-style) */}
                       {allImages.length > 1 && (
                         <div className="space-y-2">
                           <div className="grid grid-cols-4 gap-2 sm:gap-3">
                             {allImages.slice(0, 4).map((image: string, index: number) => {
                               const isPrimary = index === primaryImageIndex && index < normalizedImages.length;
                               const isNormalizedImage = index < normalizedImages.length;
+                              const isActive = safeMainIndex === index;
                               
                               return (
                                 <div
                                   key={index}
                                   className={`aspect-square bg-gray-100 cursor-pointer border-2 rounded-lg overflow-hidden transition-all relative group ${
-                                    safeMainIndex === index
+                                    isActive
                                       ? 'border-purple-600 ring-2 ring-purple-300'
                                       : 'border-transparent hover:border-purple-400'
                                   }`}
@@ -874,6 +922,19 @@ export default function ListingPage() {
                               );
                             })}
                           </div>
+                          
+                          {/* Show more images indicator */}
+                          {allImages.length > 4 && (
+                            <div className="text-center">
+                              <button
+                                onClick={() => setSelectedImageIndex(safeMainIndex)}
+                                className="text-sm text-purple-600 hover:text-purple-700 font-semibold underline"
+                              >
+                                View all {allImages.length} images →
+                              </button>
+                            </div>
+                          )}
+                          
                           {/* Instructions for sellers */}
                           {isSeller && normalizedImages.length > 1 && (
                             <p className="text-xs text-gray-500 text-center">
