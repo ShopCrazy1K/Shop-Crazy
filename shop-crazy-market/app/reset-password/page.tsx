@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function ResetPasswordPage() {
+export const dynamic = 'force-dynamic';
+
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -162,6 +164,21 @@ export default function ResetPasswordPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <main className="p-6 max-w-md mx-auto">
+        <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+          <h1 className="font-accent text-4xl text-center">Reset Password</h1>
+          <div className="text-center text-gray-500">Loading...</div>
+        </div>
+      </main>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
 
