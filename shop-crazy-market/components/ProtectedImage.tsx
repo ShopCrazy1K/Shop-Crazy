@@ -73,11 +73,11 @@ export default function ProtectedImage({
     // CSS to prevent selection
     img.style.userSelect = "none";
     img.style.webkitUserSelect = "none";
-    img.style.MozUserSelect = "none";
-    img.style.msUserSelect = "none";
-    img.style.webkitUserDrag = "none";
-    img.style.khtmlUserDrag = "none";
-    img.style.userDrag = "none";
+    (img.style as any).MozUserSelect = "none";
+    (img.style as any).msUserSelect = "none";
+    (img.style as any).webkitUserDrag = "none";
+    (img.style as any).khtmlUserDrag = "none";
+    (img.style as any).userDrag = "none";
     img.style.pointerEvents = "auto";
 
     // Add watermark overlay effect (subtle)
@@ -118,16 +118,16 @@ export default function ProtectedImage({
         style={{
           userSelect: "none",
           WebkitUserSelect: "none",
-          MozUserSelect: "none",
-          msUserSelect: "none",
-          WebkitUserDrag: "none",
-          KhtmlUserDrag: "none",
-          userDrag: "none",
+          MozUserSelect: "none" as any,
+          msUserSelect: "none" as any,
+          WebkitUserDrag: "none" as any,
+          KhtmlUserDrag: "none" as any,
+          userDrag: "none" as any,
           pointerEvents: "auto",
           width: "100%",
           height: "100%",
           ...style,
-        }}
+        } as React.CSSProperties}
         onError={onError}
         draggable={false}
         onContextMenu={(e) => e.preventDefault()}
