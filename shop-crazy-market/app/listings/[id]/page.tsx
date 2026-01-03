@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import DealBadge from "@/components/DealBadge";
 import ReportButton from "@/components/ReportButton";
+import ProtectedImage from "@/components/ProtectedImage";
 
 interface Listing {
   id: string;
@@ -875,22 +876,41 @@ export default function ListingPage() {
                           className="aspect-square bg-gray-100 cursor-pointer rounded-lg overflow-hidden relative"
                           onClick={() => setSelectedImageIndex(safeMainIndex)}
                         >
-                          <img
-                            src={currentImage}
-                            alt={listing.title}
-                            className="w-full h-full object-contain hover:opacity-90 transition-opacity"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const parent = target.parentElement;
-                              if (parent && !parent.querySelector('.image-error-placeholder')) {
-                                const placeholder = document.createElement('div');
-                                placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 image-error-placeholder';
-                                placeholder.textContent = '📦 Image not available';
-                                parent.appendChild(placeholder);
-                              }
-                            }}
-                          />
+                          {isSeller || hasPaidOrder ? (
+                            <img
+                              src={currentImage}
+                              alt={listing.title}
+                              className="w-full h-full object-contain hover:opacity-90 transition-opacity"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent && !parent.querySelector('.image-error-placeholder')) {
+                                  const placeholder = document.createElement('div');
+                                  placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 image-error-placeholder';
+                                  placeholder.textContent = '📦 Image not available';
+                                  parent.appendChild(placeholder);
+                                }
+                              }}
+                            />
+                          ) : (
+                            <ProtectedImage
+                              src={currentImage}
+                              alt={listing.title}
+                              className="w-full h-full object-contain hover:opacity-90 transition-opacity"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent && !parent.querySelector('.image-error-placeholder')) {
+                                  const placeholder = document.createElement('div');
+                                  placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 image-error-placeholder';
+                                  placeholder.textContent = '📦 Image not available';
+                                  parent.appendChild(placeholder);
+                                }
+                              }}
+                            />
+                          )}
                           {/* Primary Image Badge */}
                           {safeMainIndex === primaryImageIndex && normalizedImages.length > 0 && (
                             <div className="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
@@ -1042,22 +1062,41 @@ export default function ListingPage() {
                                         }
                                       }}
                                     >
-                                      <img
-                                        src={image}
-                                        alt={`${listing.title} - Image ${thumbIndex + 1}`}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          const target = e.target as HTMLImageElement;
-                                          target.style.display = 'none';
-                                          const parent = target.parentElement;
-                                          if (parent && !parent.querySelector('.image-error-placeholder')) {
-                                            const placeholder = document.createElement('div');
-                                            placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 text-xs image-error-placeholder';
-                                            placeholder.textContent = '📦';
-                                            parent.appendChild(placeholder);
-                                          }
-                                        }}
-                                      />
+                                      {isSeller || hasPaidOrder ? (
+                                        <img
+                                          src={image}
+                                          alt={`${listing.title} - Image ${thumbIndex + 1}`}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.style.display = 'none';
+                                            const parent = target.parentElement;
+                                            if (parent && !parent.querySelector('.image-error-placeholder')) {
+                                              const placeholder = document.createElement('div');
+                                              placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 text-xs image-error-placeholder';
+                                              placeholder.textContent = '📦';
+                                              parent.appendChild(placeholder);
+                                            }
+                                          }}
+                                        />
+                                      ) : (
+                                        <ProtectedImage
+                                          src={image}
+                                          alt={`${listing.title} - Image ${thumbIndex + 1}`}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.style.display = 'none';
+                                            const parent = target.parentElement;
+                                            if (parent && !parent.querySelector('.image-error-placeholder')) {
+                                              const placeholder = document.createElement('div');
+                                              placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400 text-xs image-error-placeholder';
+                                              placeholder.textContent = '📦';
+                                              parent.appendChild(placeholder);
+                                            }
+                                          }}
+                                        />
+                                      )}
                                       {/* Primary Badge */}
                                       {isPrimary && (
                                         <div className="absolute top-1 left-1 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
@@ -1523,12 +1562,22 @@ export default function ListingPage() {
                   </svg>
                 </button>
                 
-                <img
-                  src={allImages[selectedImageIndex]}
-                  alt={listing.title}
-                  className="max-w-full max-h-[90vh] object-contain"
-                  onClick={(e) => e.stopPropagation()}
-                />
+                {isSeller || hasPaidOrder ? (
+                  <img
+                    src={allImages[selectedImageIndex]}
+                    alt={listing.title}
+                    className="max-w-full max-h-[90vh] object-contain"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <ProtectedImage
+                    src={allImages[selectedImageIndex]}
+                    alt={listing.title}
+                    className="max-w-full max-h-[90vh] object-contain"
+                    onClick={() => {}}
+                    style={{ maxWidth: "100%", maxHeight: "90vh" }}
+                  />
+                )}
                 
                 {/* Navigation Arrows - Always show, wrap around */}
                 {allImages.length > 1 && (

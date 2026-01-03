@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCategoryBySlug } from "@/lib/categories";
+import ProtectedImage from "@/components/ProtectedImage";
 
 interface Product {
   id: string;
@@ -68,7 +69,7 @@ export default function ProductCard({ product }: { product: Product }) {
             <div className="grid grid-cols-2 h-full">
               {thumbnailImages.slice(0, 4).map((img: string, idx: number) => (
                 <div key={idx} className="relative overflow-hidden">
-                  <img
+                  <ProtectedImage
                     src={img}
                     alt={`${product.title} - Image ${idx + 1}`}
                     className="w-full h-full object-cover"
@@ -77,7 +78,7 @@ export default function ProductCard({ product }: { product: Product }) {
               ))}
             </div>
           ) : imageUrl ? (
-            <img
+            <ProtectedImage
               src={imageUrl}
               alt={product.title}
               className="w-full h-full object-cover"

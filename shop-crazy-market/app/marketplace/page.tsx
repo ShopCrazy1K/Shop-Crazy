@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { categories } from "@/lib/categories";
 import SearchBar from "@/components/SearchBar";
 import FavoriteButton from "@/components/FavoriteButton";
+import ProtectedImage from "@/components/ProtectedImage";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Listing {
@@ -511,7 +512,7 @@ function MarketplaceContent() {
                                 <div className="grid grid-cols-2 h-full">
                                   {thumbnailIndices.slice(0, 4).map((idx: number, gridIdx: number) => (
                                     <div key={gridIdx} className="relative overflow-hidden">
-                                      <img
+                                      <ProtectedImage
                                         src={images[idx]}
                                         alt={`${product.title} - Image ${idx + 1}`}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
