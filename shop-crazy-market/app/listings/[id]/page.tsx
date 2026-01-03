@@ -778,6 +778,10 @@ export default function ListingPage() {
                         if (listingResponse.ok) {
                           const listingData = await listingResponse.json();
                           setListing(listingData);
+                          // Update selectedThumbnailIndices from the response
+                          if (data.listing?.thumbnailIndices && Array.isArray(data.listing.thumbnailIndices)) {
+                            setSelectedThumbnailIndices(data.listing.thumbnailIndices.slice(0, 4));
+                          }
                           setEditingThumbnails(false);
                           alert("✅ Thumbnail selection saved!");
                         }
