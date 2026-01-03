@@ -197,8 +197,30 @@ function ShopContent() {
         setReviews(reviewsData);
         
         if (reviewsData.length > 0) {
-          const total = reviewsData.reduce((sum: number, review: any) => sum + review.rating, 0);
-          setAverageRating(Math.round((total / reviewsData.length) * 10) / 10);
+          const validReviews = reviewsData.filter((r: any) => r.rating && r.rating > 0);
+          if (validReviews.length > 0) {
+            const total = validReviews.reduce((sum: number, review: any) => sum + (review.rating || 0), 0);
+            setAverageRating(Math.round((total / validReviews.length) * 10) / 10);
+          } else {
+            setAverageRating(0);
+          }
+        } else {
+          setAverageRating(0);
+        }
+        
+        // Also refresh seller stats to get updated rating
+        try {
+          const statsResponse = await fetch(`/api/users/${userId}/stats`);
+          if (statsResponse.ok) {
+            const stats = await statsResponse.json();
+            setSellerStats(stats);
+            // Use stats averageRating if available (more accurate)
+            if (stats.averageRating !== undefined) {
+              setAverageRating(stats.averageRating);
+            }
+          }
+        } catch (statsErr) {
+          console.error("Error fetching updated stats:", statsErr);
         }
       }
     } catch (err: any) {
@@ -510,9 +532,9 @@ function ShopContent() {
                 <div className="mb-6 pb-6 border-b border-gray-200">
                   <ReviewForm
                     sellerId={userId}
-                    onSuccess={() => {
+                    onSuccess={async () => {
                       setShowReviewForm(false);
-                      fetchReviews();
+                      await fetchReviews();
                     }}
                     onCancel={() => setShowReviewForm(false)}
                   />
@@ -684,6 +706,43 @@ function ShopContent() {
                   👁️ View My Shop (Opens in New Tab)
                 </Link>
               </div>
+
+              {/* Cover Photo Upload Section */}
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Cover Photo</h3>
+                <div className="space-y-4">
+                  <div className="relative h-48 w-full bg-gradient-to-r from-purple-400 via-pink-400 to-purple-600 rounded-lg overflow-hidden">
+                    {coverPhoto ? (
+                      <img
+                        src={coverPhoto}
+                        alt="Cover photo"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white text-sm">
+                        No cover photo set
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Upload Cover Photo
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCoverPhotoUpload}
+                      disabled={uploadingCover}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 disabled:opacity-50"
+                    />
+                    {uploadingCover && (
+                      <p className="text-sm text-gray-500 mt-2">Uploading cover photo...</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">Recommended size: 1200x400px. Max size: 5MB</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-gray-50 rounded-lg p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Shop Preview</h3>
                 <p className="text-gray-600 mb-2">

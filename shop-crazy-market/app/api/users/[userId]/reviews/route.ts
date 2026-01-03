@@ -118,20 +118,23 @@ export async function POST(req: NextRequest, context: Ctx) {
       }
     }
 
-    // Check if user already reviewed this seller (for this order or in general)
-    const existingReview = await prisma.review.findFirst({
-      where: {
-        sellerId: userId,
-        userId: reviewerId,
-        ...(orderId ? { orderId } : {}),
-      },
-    });
+    // Check if user already reviewed this seller (only if orderId is provided)
+    // Allow multiple general reviews without orderId, but only one per order
+    if (orderId) {
+      const existingReview = await prisma.review.findFirst({
+        where: {
+          sellerId: userId,
+          userId: reviewerId,
+          orderId: orderId,
+        },
+      });
 
-    if (existingReview) {
-      return NextResponse.json(
-        { error: "You have already reviewed this seller" },
-        { status: 400 }
-      );
+      if (existingReview) {
+        return NextResponse.json(
+          { error: "You have already reviewed this order" },
+          { status: 400 }
+        );
+      }
     }
 
     const review = await prisma.review.create({
