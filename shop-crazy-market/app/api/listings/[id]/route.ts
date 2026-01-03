@@ -126,7 +126,24 @@ export async function GET(req: NextRequest, context: Ctx) {
     }
 
     console.log("[API LISTINGS ID] Listing found:", listing.id, "isActive:", listing.isActive);
-    return NextResponse.json(listing);
+    
+    // Ensure seller data is present
+    if (!listing.seller) {
+      console.error("[API LISTINGS ID] Listing missing seller data:", listing.id);
+      return NextResponse.json(
+        { error: "Listing data is incomplete" },
+        { status: 500 }
+      );
+    }
+    
+    // Ensure arrays are properly formatted
+    const responseData = {
+      ...listing,
+      images: Array.isArray(listing.images) ? listing.images : (listing.images ? [listing.images] : []),
+      digitalFiles: Array.isArray(listing.digitalFiles) ? listing.digitalFiles : (listing.digitalFiles ? [listing.digitalFiles] : []),
+    };
+    
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error("[API LISTINGS ID] Error fetching listing:", error);
     

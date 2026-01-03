@@ -205,25 +205,55 @@ function ListingPageContent() {
           throw new Error(errorData.error || errorData.message || "Listing not found");
         }
         
-        const data = await response.json();
-        console.log("[LISTING PAGE] Listing fetched:", data.id, "isActive:", data.isActive);
+        let data: any;
+        try {
+          data = await response.json();
+        } catch (jsonError: any) {
+          console.error("[LISTING PAGE] JSON parse error:", jsonError);
+          throw new Error("Failed to parse listing data. The server may have returned invalid JSON.");
+        }
+        
+        console.log("[LISTING PAGE] Listing fetched:", data?.id, "isActive:", data?.isActive);
+        console.log("[LISTING PAGE] Full data structure:", JSON.stringify(data, null, 2));
         
         if (!data || !data.id) {
-          throw new Error("Invalid listing data received");
+          console.error("[LISTING PAGE] Invalid listing data:", data);
+          throw new Error("Invalid listing data received: missing ID");
+        }
+        
+        // Validate required fields
+        if (!data.seller || !data.seller.id) {
+          console.error("[LISTING PAGE] Missing seller data:", data);
+          throw new Error("Invalid listing data: missing seller information");
+        }
+        
+        // Ensure arrays are arrays
+        if (data.images && !Array.isArray(data.images)) {
+          console.warn("[LISTING PAGE] Images is not an array, converting:", data.images);
+          data.images = typeof data.images === 'string' ? [data.images] : [];
+        }
+        if (data.digitalFiles && !Array.isArray(data.digitalFiles)) {
+          console.warn("[LISTING PAGE] DigitalFiles is not an array, converting:", data.digitalFiles);
+          data.digitalFiles = typeof data.digitalFiles === 'string' ? [data.digitalFiles] : [];
         }
         
         // Update state - use functional update to ensure it works
         if (isMounted) {
           console.log("[LISTING PAGE] Setting listing state and stopping loading");
-          setListing((prev) => {
-            console.log("[LISTING PAGE] setListing called, prev:", prev);
-            return data;
-          });
-          setLoading((prev) => {
-            console.log("[LISTING PAGE] setLoading(false) called, prev:", prev);
-            return false;
-          });
-          console.log("[LISTING PAGE] State updates called");
+          try {
+            setListing((prev) => {
+              console.log("[LISTING PAGE] setListing called, prev:", prev);
+              return data;
+            });
+            setLoading((prev) => {
+              console.log("[LISTING PAGE] setLoading(false) called, prev:", prev);
+              return false;
+            });
+            console.log("[LISTING PAGE] State updates called");
+          } catch (stateError: any) {
+            console.error("[LISTING PAGE] Error setting state:", stateError);
+            throw new Error(`Failed to update component state: ${stateError.message}`);
+          }
         } else {
           console.log("[LISTING PAGE] Component unmounted, not updating state");
         }
@@ -1834,11 +1864,22 @@ function ListingPageContent() {
   );
 }
 
-export default function ListingPage() {
+function ListingPageWrapper() {
   return (
     <ErrorBoundary>
-      <ListingPageContent />
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading listing...</p>
+          </div>
+        </div>
+      }>
+        <ListingPageContent />
+      </Suspense>
     </ErrorBoundary>
   );
 }
+
+export default ListingPageWrapper;
 
