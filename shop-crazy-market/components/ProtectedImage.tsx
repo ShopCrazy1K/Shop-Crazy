@@ -132,7 +132,6 @@ export default function ProtectedImage({
         draggable={false}
         onContextMenu={(e) => e.preventDefault()}
         onDragStart={(e) => e.preventDefault()}
-        onSelectStart={(e) => e.preventDefault()}
       />
     </div>
   );
