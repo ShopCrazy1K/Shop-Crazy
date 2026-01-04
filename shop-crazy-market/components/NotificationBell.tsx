@@ -43,6 +43,7 @@ export default function NotificationBell() {
       setNotifications([]);
       setUnreadCount(0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
   
   // Log state changes for debugging
@@ -241,12 +242,8 @@ export default function NotificationBell() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" style={{ zIndex: 100 }}>
       <button
-        onMouseDown={(e) => {
-          e.preventDefault(); // Prevent focus/blur issues
-          e.stopPropagation();
-        }}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -257,10 +254,11 @@ export default function NotificationBell() {
             return newState;
           });
         }}
-        className="relative p-2 text-gray-600 hover:text-purple-600 transition-colors cursor-pointer"
+        className="relative p-2 text-gray-600 hover:text-purple-600 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md"
         aria-label="Notifications"
         aria-expanded={isOpen}
         type="button"
+        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 101 }}
       >
         <svg
           className="w-6 h-6"
@@ -287,23 +285,26 @@ export default function NotificationBell() {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-[99] bg-transparent"
+            className="fixed inset-0 bg-black/20"
+            style={{ zIndex: 99 }}
             onClick={(e) => {
               e.stopPropagation();
               console.log("[NOTIFICATION BELL] Backdrop clicked, closing dropdown");
               setIsOpen(false);
             }}
             onMouseDown={(e) => {
+              e.preventDefault();
               e.stopPropagation();
             }}
           />
           
           {/* Dropdown - Positioned differently for mobile vs desktop */}
           <div 
-            className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-hidden flex flex-col"
+            className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-hidden flex flex-col"
             style={{ 
               position: 'absolute',
-              zIndex: 100,
+              zIndex: 102,
+              pointerEvents: 'auto',
             }}
             onClick={(e) => {
               e.stopPropagation();
