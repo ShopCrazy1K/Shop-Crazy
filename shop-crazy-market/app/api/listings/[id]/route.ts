@@ -22,8 +22,24 @@ export async function GET(req: NextRequest, context: Ctx) {
         { 
           error: "Database configuration error. Please contact support.",
           details: "DATABASE_URL environment variable is missing.",
+          fix: "Please add DATABASE_URL to Vercel environment variables and redeploy.",
         },
         { status: 500 }
+      );
+    }
+
+    // Test database connection first
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch (dbTestError: any) {
+      console.error("[API LISTINGS ID] Database connection test failed:", dbTestError);
+      return NextResponse.json(
+        { 
+          error: "Database connection failed.",
+          details: dbTestError.message || "Cannot connect to database.",
+          fix: "Please check DATABASE_URL in Vercel environment variables and ensure the database is accessible.",
+        },
+        { status: 503 }
       );
     }
 
@@ -48,23 +64,53 @@ export async function GET(req: NextRequest, context: Ctx) {
         },
       });
 
-      // Race against timeout (reduced to 4 seconds for faster failure)
+      // Race against timeout (increased to 10 seconds for reliability)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Database query timeout")), 4000)
+        setTimeout(() => reject(new Error("Database query timeout")), 10000)
       );
 
       listing = await Promise.race([queryPromise, timeoutPromise]) as any;
     } catch (queryError: any) {
       console.error("[API LISTINGS ID] Query error:", queryError);
-      if (queryError.message?.includes("timeout")) {
+      console.error("[API LISTINGS ID] Error name:", queryError.name);
+      console.error("[API LISTINGS ID] Error code:", queryError.code);
+      console.error("[API LISTINGS ID] Error stack:", queryError.stack);
+      
+      if (queryError.message?.includes("timeout") || queryError.name === "TimeoutError") {
         return NextResponse.json(
           { 
             error: "Request timed out. The database may be slow to respond.",
-            details: "Please try refreshing the page.",
+            details: "The query took longer than 10 seconds to complete.",
+            fix: "Please try again in a moment. If the problem persists, check database connectivity.",
           },
           { status: 504 } // Gateway Timeout
         );
       }
+      
+      // Handle Prisma connection errors
+      if (queryError.code === 'P1001' || queryError.message?.includes("Can't reach database")) {
+        return NextResponse.json(
+          { 
+            error: "Cannot connect to database server.",
+            details: queryError.message || "Database server is unreachable.",
+            fix: "Please check DATABASE_URL and ensure the database is running and accessible.",
+          },
+          { status: 503 }
+        );
+      }
+      
+      // Handle authentication errors
+      if (queryError.code === 'P1000' || queryError.message?.includes("authentication")) {
+        return NextResponse.json(
+          { 
+            error: "Database authentication failed.",
+            details: queryError.message || "Invalid database credentials.",
+            fix: "Please check DATABASE_URL credentials in Vercel environment variables.",
+          },
+          { status: 503 }
+        );
+      }
+      
       throw queryError; // Re-throw to be caught by outer catch
     }
 
