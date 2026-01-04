@@ -110,5 +110,7 @@ let config = withPWA(nextConfig);
 config = process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN
   ? withSentryConfig(config, sentryWebpackPluginOptions)
   : config;
+// Force fresh deployment - cache cleared
+// DEPLOY: ${new Date().toISOString()}
 module.exports = config;
 
