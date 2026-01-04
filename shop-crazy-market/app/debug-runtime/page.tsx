@@ -58,6 +58,9 @@ export default function DebugRuntimePage() {
     // Test 5: Health check
     tests.health = await testEndpoint('Health Check', '/api/health-check');
 
+    // Test 6: Comprehensive test
+    tests.all = await testEndpoint('Comprehensive Test', '/api/test-all');
+
     setResults(tests);
   }
 
