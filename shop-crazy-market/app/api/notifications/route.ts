@@ -13,12 +13,21 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId") || req.headers.get("x-user-id");
 
+    console.log("[API NOTIFICATIONS GET] Request received:", {
+      userId: userId ? `${userId.substring(0, 8)}...` : 'missing',
+      hasSearchParams: !!searchParams.get("userId"),
+      hasHeader: !!req.headers.get("x-user-id"),
+    });
+
     if (!userId) {
+      console.error("[API NOTIFICATIONS GET] Missing userId");
       return NextResponse.json(
         { error: "User ID is required" },
         { status: 401 }
       );
     }
+
+    console.log("[API NOTIFICATIONS GET] Fetching notifications for user:", userId.substring(0, 8) + '...');
 
     const notifications = await prisma.notification.findMany({
       where: {
@@ -30,6 +39,8 @@ export async function GET(req: NextRequest) {
       take: 50, // Limit to 50 most recent notifications
     });
 
+    console.log("[API NOTIFICATIONS GET] Found", notifications.length, "notifications");
+
     // Count unread notifications
     const unreadCount = await prisma.notification.count({
       where: {
@@ -38,12 +49,32 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      notifications,
+    console.log("[API NOTIFICATIONS GET] Unread count:", unreadCount);
+
+    const response = {
+      notifications: notifications.map((n) => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        message: n.message,
+        link: n.link,
+        read: n.read,
+        createdAt: n.createdAt.toISOString(),
+      })),
       unreadCount,
-    });
+    };
+
+    console.log("[API NOTIFICATIONS GET] Returning response with", response.notifications.length, "notifications");
+
+    return NextResponse.json(response);
   } catch (error: any) {
-    console.error("Error fetching notifications:", error);
+    console.error("[API NOTIFICATIONS GET] Error fetching notifications:", error);
+    console.error("[API NOTIFICATIONS GET] Error details:", {
+      name: error?.name,
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack?.substring(0, 500),
+    });
     return NextResponse.json(
       { error: error.message || "Failed to fetch notifications" },
       { status: 500 }
@@ -59,10 +90,26 @@ export async function PUT(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId") || req.headers.get("x-user-id");
-    const body = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch (jsonError) {
+      console.error("[API NOTIFICATIONS PUT] Failed to parse request body:", jsonError);
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
     const { notificationId, markAllRead } = body;
 
+    console.log("[API NOTIFICATIONS PUT] Request received:", {
+      userId: userId ? `${userId.substring(0, 8)}...` : 'missing',
+      notificationId,
+      markAllRead,
+    });
+
     if (!userId) {
+      console.error("[API NOTIFICATIONS PUT] Missing userId");
       return NextResponse.json(
         { error: "User ID is required" },
         { status: 401 }
@@ -71,7 +118,8 @@ export async function PUT(req: NextRequest) {
 
     if (markAllRead) {
       // Mark all notifications as read
-      await prisma.notification.updateMany({
+      console.log("[API NOTIFICATIONS PUT] Marking all notifications as read for user:", userId.substring(0, 8) + '...');
+      const result = await prisma.notification.updateMany({
         where: {
           userId: userId,
           read: false,
@@ -82,9 +130,11 @@ export async function PUT(req: NextRequest) {
         },
       });
 
-      return NextResponse.json({ message: "All notifications marked as read" });
+      console.log("[API NOTIFICATIONS PUT] Marked", result.count, "notifications as read");
+      return NextResponse.json({ message: "All notifications marked as read", count: result.count });
     } else if (notificationId) {
       // Mark specific notification as read
+      console.log("[API NOTIFICATIONS PUT] Marking notification as read:", notificationId);
       try {
         const notification = await prisma.notification.update({
           where: {
@@ -97,18 +147,22 @@ export async function PUT(req: NextRequest) {
           },
         });
 
+        console.log("[API NOTIFICATIONS PUT] Successfully marked notification as read:", notification.id);
         return NextResponse.json({ success: true, notification });
       } catch (error: any) {
         // If notification not found or doesn't belong to user
         if (error.code === 'P2025') {
+          console.error("[API NOTIFICATIONS PUT] Notification not found or access denied:", notificationId);
           return NextResponse.json(
             { error: "Notification not found or access denied" },
             { status: 404 }
           );
         }
+        console.error("[API NOTIFICATIONS PUT] Error updating notification:", error);
         throw error;
       }
     } else {
+      console.error("[API NOTIFICATIONS PUT] Missing notificationId or markAllRead");
       return NextResponse.json(
         { error: "notificationId or markAllRead is required" },
         { status: 400 }

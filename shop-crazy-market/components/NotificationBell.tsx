@@ -24,28 +24,47 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    console.log("[NOTIFICATION BELL] Component mounted/updated, user:", user?.id ? `${user.id.substring(0, 8)}...` : 'none');
     if (user?.id) {
+      console.log("[NOTIFICATION BELL] User logged in, fetching notifications");
       fetchNotifications();
       // Poll for new notifications every 30 seconds
       const interval = setInterval(() => {
+        console.log("[NOTIFICATION BELL] Polling for new notifications");
         fetchNotifications();
       }, 30000);
-      return () => clearInterval(interval);
+      return () => {
+        console.log("[NOTIFICATION BELL] Cleaning up interval");
+        clearInterval(interval);
+      };
     } else {
       // Reset notifications when user logs out
+      console.log("[NOTIFICATION BELL] User logged out, clearing notifications");
       setNotifications([]);
       setUnreadCount(0);
     }
   }, [user?.id]);
+  
+  // Log state changes for debugging
+  useEffect(() => {
+    console.log("[NOTIFICATION BELL] State changed:", {
+      isOpen,
+      unreadCount,
+      notificationsCount: notifications.length,
+      loading,
+    });
+  }, [isOpen, unreadCount, notifications.length, loading]);
 
   async function fetchNotifications() {
     if (!user?.id) {
+      console.log("[NOTIFICATION BELL] No user ID, clearing notifications");
       setNotifications([]);
       setUnreadCount(0);
       return;
     }
     
     try {
+      console.log("[NOTIFICATION BELL] Fetching notifications for user:", user.id);
       setLoading(true);
       const response = await fetch(`/api/notifications?userId=${user.id}`, {
         method: 'GET',
@@ -55,12 +74,19 @@ export default function NotificationBell() {
         cache: 'no-store', // Ensure fresh data
       });
       
+      console.log("[NOTIFICATION BELL] Response status:", response.status, response.statusText);
+      
       if (response.ok) {
         let data: any;
         try {
           data = await response.json();
+          console.log("[NOTIFICATION BELL] Received data:", {
+            hasNotifications: !!data.notifications,
+            notificationsCount: Array.isArray(data.notifications) ? data.notifications.length : 0,
+            unreadCount: data.unreadCount,
+          });
         } catch (jsonError) {
-          console.error("Failed to parse notifications JSON:", jsonError);
+          console.error("[NOTIFICATION BELL] Failed to parse notifications JSON:", jsonError);
           // Don't clear notifications on JSON parse error, keep existing ones
           return;
         }
@@ -70,20 +96,21 @@ export default function NotificationBell() {
           const notificationsArray = Array.isArray(data.notifications) 
             ? data.notifications.filter((n: any) => n && n.id && n.title && n.message)
             : [];
+          console.log("[NOTIFICATION BELL] Setting notifications:", notificationsArray.length, "valid notifications");
           setNotifications(notificationsArray);
           setUnreadCount(typeof data.unreadCount === 'number' ? Math.max(0, data.unreadCount) : 0);
         } else {
-          console.error("Invalid notifications data format:", data);
+          console.error("[NOTIFICATION BELL] Invalid notifications data format:", data);
           // Don't clear notifications on invalid data, keep existing ones
         }
       } else {
         const errorText = await response.text().catch(() => 'Unknown error');
-        console.error("Failed to fetch notifications:", response.status, response.statusText, errorText);
+        console.error("[NOTIFICATION BELL] Failed to fetch notifications:", response.status, response.statusText, errorText);
         // Don't clear notifications on error, keep existing ones
       }
     } catch (error: any) {
-      console.error("Error fetching notifications:", error);
-      console.error("Error details:", {
+      console.error("[NOTIFICATION BELL] Error fetching notifications:", error);
+      console.error("[NOTIFICATION BELL] Error details:", {
         name: error?.name,
         message: error?.message,
         stack: error?.stack,
@@ -216,12 +243,23 @@ export default function NotificationBell() {
   return (
     <div className="relative">
       <button
-        onClick={(e) => {
+        onMouseDown={(e) => {
+          e.preventDefault(); // Prevent focus/blur issues
           e.stopPropagation();
-          setIsOpen(!isOpen);
         }}
-        className="relative p-2 text-gray-600 hover:text-purple-600 transition-colors"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log("[NOTIFICATION BELL] Button clicked, current state:", { isOpen, unreadCount, notificationsCount: notifications.length });
+          setIsOpen((prev) => {
+            const newState = !prev;
+            console.log("[NOTIFICATION BELL] Setting isOpen to:", newState);
+            return newState;
+          });
+        }}
+        className="relative p-2 text-gray-600 hover:text-purple-600 transition-colors cursor-pointer"
         aria-label="Notifications"
+        aria-expanded={isOpen}
         type="button"
       >
         <svg
@@ -249,14 +287,32 @@ export default function NotificationBell() {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
+            className="fixed inset-0 z-[99] bg-transparent"
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log("[NOTIFICATION BELL] Backdrop clicked, closing dropdown");
+              setIsOpen(false);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
           />
           
           {/* Dropdown - Positioned differently for mobile vs desktop */}
           <div 
             className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-[100] max-h-96 overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
+            style={{ 
+              position: 'absolute',
+              zIndex: 100,
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log("[NOTIFICATION BELL] Dropdown clicked");
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              console.log("[NOTIFICATION BELL] Dropdown mouseDown");
+            }}
           >
             <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
