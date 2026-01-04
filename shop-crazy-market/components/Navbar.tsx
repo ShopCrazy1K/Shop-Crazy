@@ -12,7 +12,7 @@ export default function Navbar() {
   const cartCount = getItemCount();
 
   return (
-    <nav className="hidden md:flex justify-between items-center p-4 sm:p-5 border-b bg-white sticky top-0 z-40 overflow-visible">
+    <nav className="hidden md:flex justify-between items-center p-4 sm:p-5 border-b bg-white sticky top-0 z-40 overflow-visible" style={{ isolation: 'isolate' }}>
       <Link href="/" className="font-accent text-xl sm:text-2xl text-purple-600 hover:text-purple-700 transition-colors">
         Shop Crazy Market
       </Link>
