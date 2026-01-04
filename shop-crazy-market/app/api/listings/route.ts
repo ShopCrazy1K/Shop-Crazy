@@ -117,6 +117,36 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
+    console.log("[API LISTINGS GET] Request received");
+    
+    // Check if DATABASE_URL is available
+    if (!process.env.DATABASE_URL) {
+      console.error("[API LISTINGS GET] DATABASE_URL is not set!");
+      return NextResponse.json(
+        { 
+          error: "Database configuration error. Please contact support.",
+          details: "DATABASE_URL environment variable is missing.",
+          fix: "Please add DATABASE_URL to Vercel environment variables and redeploy.",
+        },
+        { status: 500 }
+      );
+    }
+
+    // Test database connection first
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch (dbTestError: any) {
+      console.error("[API LISTINGS GET] Database connection test failed:", dbTestError);
+      return NextResponse.json(
+        { 
+          error: "Database connection failed.",
+          details: dbTestError.message || "Cannot connect to database.",
+          fix: "Please check DATABASE_URL in Vercel environment variables and ensure the database is accessible.",
+        },
+        { status: 503 }
+      );
+    }
+    
     const { searchParams } = new URL(request.url);
     const isActive = searchParams.get("isActive");
     const userId = searchParams.get("userId") || request.headers.get("x-user-id");
