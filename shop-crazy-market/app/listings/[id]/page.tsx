@@ -217,7 +217,16 @@ function ListingPageContent() {
           }
           
           if (!isMounted) return;
-          throw new Error(errorData.error || errorData.message || "Listing not found");
+          
+          // Create a more descriptive error message
+          let errorMsg = errorData.error || errorData.message || "Listing not found";
+          if (response.status === 500 || response.status === 503) {
+            errorMsg = `Server error: ${errorMsg}. This is likely a database connection issue.`;
+          } else if (response.status === 504) {
+            errorMsg = `Timeout: ${errorMsg}. The server took too long to respond.`;
+          }
+          
+          throw new Error(errorMsg);
         }
         
         let data: any;
