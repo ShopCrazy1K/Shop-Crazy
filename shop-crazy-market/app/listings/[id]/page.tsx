@@ -72,12 +72,27 @@ function ListingPageContent() {
   }, [listingId, router]);
 
   // Early return after all hooks are declared
-  if (listingId === "new" || !listingId || listingId.length < 10) {
+  if (listingId === "new" || !listingId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Create New Listing</h1>
           <p className="text-gray-600 mb-6">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Validate listingId format (should be at least 10 characters for CUID)
+  if (listingId.length < 10 && !listingId.startsWith('cm')) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Invalid Listing ID</h1>
+          <p className="text-gray-600 mb-6">The listing ID is invalid. Please check the URL.</p>
+          <Link href="/marketplace" className="text-purple-600 hover:text-purple-700 font-semibold">
+            ← Back to Marketplace
+          </Link>
         </div>
       </div>
     );

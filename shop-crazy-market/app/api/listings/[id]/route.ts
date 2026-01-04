@@ -125,15 +125,38 @@ export async function GET(req: NextRequest, context: Ctx) {
       );
     }
 
-    console.log("[API LISTINGS ID] Listing found:", listing.id, "isActive:", listing.isActive);
+    console.log("[API LISTINGS ID] Listing found:", listing.id, "isActive:", listing.isActive, "sellerId:", listing.sellerId);
     
     // Ensure seller data is present
-    if (!listing.seller) {
-      console.error("[API LISTINGS ID] Listing missing seller data:", listing.id);
-      return NextResponse.json(
-        { error: "Listing data is incomplete" },
-        { status: 500 }
-      );
+    if (!listing.seller || !listing.seller.id) {
+      console.error("[API LISTINGS ID] Listing missing seller data:", listing.id, "seller:", listing.seller);
+      
+      // Try to fetch seller separately if missing
+      try {
+        const seller = await prisma.user.findUnique({
+          where: { id: listing.sellerId },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+          },
+        });
+        
+        if (seller) {
+          listing.seller = seller;
+        } else {
+          return NextResponse.json(
+            { error: "Listing seller not found" },
+            { status: 404 }
+          );
+        }
+      } catch (sellerError: any) {
+        console.error("[API LISTINGS ID] Error fetching seller:", sellerError);
+        return NextResponse.json(
+          { error: "Failed to load listing seller information" },
+          { status: 500 }
+        );
+      }
     }
     
     // Ensure arrays are properly formatted
@@ -142,6 +165,14 @@ export async function GET(req: NextRequest, context: Ctx) {
       images: Array.isArray(listing.images) ? listing.images : (listing.images ? [listing.images] : []),
       digitalFiles: Array.isArray(listing.digitalFiles) ? listing.digitalFiles : (listing.digitalFiles ? [listing.digitalFiles] : []),
     };
+    
+    console.log("[API LISTINGS ID] Returning listing data:", {
+      id: responseData.id,
+      title: responseData.title,
+      hasSeller: !!responseData.seller,
+      imagesCount: responseData.images.length,
+      digitalFilesCount: responseData.digitalFiles.length,
+    });
     
     return NextResponse.json(responseData);
   } catch (error: any) {

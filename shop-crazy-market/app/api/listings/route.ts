@@ -8,21 +8,51 @@ export const runtime = 'nodejs';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log("[API LISTINGS POST] Received request body:", {
+      hasSellerId: !!body.sellerId,
+      sellerId: body.sellerId,
+      title: body.title,
+      hasImages: Array.isArray(body.images) && body.images.length > 0,
+      hasDigitalFiles: Array.isArray(body.digitalFiles) && body.digitalFiles.length > 0,
+    });
     
     const parsed = createListingSchema.safeParse(body);
     
     if (!parsed.success) {
+      console.error("[API LISTINGS POST] Validation failed:", parsed.error.flatten().fieldErrors);
       return NextResponse.json(
         { ok: false, message: "Validation failed", fieldErrors: parsed.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
     
-    // TODO: Get sellerId from authentication
+    // Get sellerId from request body (sent from client)
     const sellerId = body.sellerId as string;
-    if (!sellerId) {
+    if (!sellerId || typeof sellerId !== 'string' || sellerId.trim().length === 0) {
+      console.error("[API LISTINGS POST] Missing or invalid sellerId:", sellerId);
       return NextResponse.json(
-        { ok: false, message: "Missing sellerId" },
+        { ok: false, message: "Missing or invalid sellerId. Please log in and try again." },
+        { status: 401 }
+      );
+    }
+    
+    // Verify user exists
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: sellerId },
+        select: { id: true, email: true },
+      });
+      if (!user) {
+        console.error("[API LISTINGS POST] User not found:", sellerId);
+        return NextResponse.json(
+          { ok: false, message: "User not found. Please log in and try again." },
+          { status: 401 }
+        );
+      }
+    } catch (userCheckError: any) {
+      console.error("[API LISTINGS POST] Error checking user:", userCheckError);
+      return NextResponse.json(
+        { ok: false, message: "Authentication error. Please log in and try again." },
         { status: 401 }
       );
     }

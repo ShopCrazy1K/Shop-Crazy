@@ -144,7 +144,16 @@ export default function CreateListingForm() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      let data: any;
+      try {
+        data = await res.json();
+      } catch (jsonError) {
+        console.error("[CREATE LISTING FORM] Failed to parse JSON response:", jsonError);
+        setError(`Server error: ${res.status} ${res.statusText}. Please try again.`);
+        setLoading(false);
+        return;
+      }
+      
       console.log("[CREATE LISTING FORM] API response:", data);
 
       if (!res.ok) {
@@ -155,7 +164,9 @@ export default function CreateListingForm() {
             fieldErrorMessages += `\n- ${field}: ${(errors as string[]).join(", ")}`;
           });
         }
+        console.error("[CREATE LISTING FORM] API error:", errorMsg, fieldErrorMessages);
         setError(errorMsg + (fieldErrorMessages || ""));
+        setLoading(false);
         return;
       }
 
@@ -165,13 +176,21 @@ export default function CreateListingForm() {
         // Redirect immediately to the listing page
         // The listing page will handle loading and display
         console.log("[CREATE LISTING FORM] Redirecting to listing page:", `/listings/${data.id}`);
-        router.push(`/listings/${data.id}`);
+        try {
+          router.push(`/listings/${data.id}`);
+        } catch (navError: any) {
+          console.error("[CREATE LISTING FORM] Navigation error:", navError);
+          // Fallback to window.location if router.push fails
+          window.location.href = `/listings/${data.id}`;
+        }
       } else {
-        setError(data?.message || "Could not create listing. No ID returned.");
+        console.error("[CREATE LISTING FORM] Invalid response:", data);
+        setError(data?.message || "Could not create listing. No ID returned. Please try again.");
+        setLoading(false);
       }
     } catch (err: any) {
-      setError(err.message || "Failed to create listing");
-    } finally {
+      console.error("[CREATE LISTING FORM] Unexpected error:", err);
+      setError(err.message || "Failed to create listing. Please check your connection and try again.");
       setLoading(false);
     }
   }
