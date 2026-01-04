@@ -712,16 +712,38 @@ function ListingPageContent() {
 
   if (error || !listing) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Listing Not Found</h1>
-          <p className="text-gray-600 mb-6">{error || "The listing you're looking for doesn't exist."}</p>
-          <Link
-            href="/sell"
-            className="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            Create New Listing
-          </Link>
+          <p className="text-gray-600 mb-4">{error || "The listing you're looking for doesn't exist."}</p>
+          {error && error.includes("timeout") && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-left">
+              <p className="text-yellow-800 text-sm">
+                ⚠️ The server took too long to respond. This might be a database connection issue.
+              </p>
+            </div>
+          )}
+          {error && error.includes("Database") && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-left">
+              <p className="text-red-800 text-sm">
+                ❌ Database connection error. Please check server configuration.
+              </p>
+            </div>
+          )}
+          <div className="flex gap-3 justify-center">
+            <Link
+              href="/marketplace"
+              className="inline-block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              ← Back to Marketplace
+            </Link>
+            <Link
+              href="/sell"
+              className="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Create New Listing
+            </Link>
+          </div>
         </div>
       </div>
     );

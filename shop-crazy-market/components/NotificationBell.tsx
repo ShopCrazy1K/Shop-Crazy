@@ -22,6 +22,7 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     console.log("[NOTIFICATION BELL] Component mounted/updated, user:", user?.id ? `${user.id.substring(0, 8)}...` : 'none');
@@ -100,6 +101,7 @@ export default function NotificationBell() {
           console.log("[NOTIFICATION BELL] Setting notifications:", notificationsArray.length, "valid notifications");
           setNotifications(notificationsArray);
           setUnreadCount(typeof data.unreadCount === 'number' ? Math.max(0, data.unreadCount) : 0);
+          setError(null); // Clear error on success
         } else {
           console.error("[NOTIFICATION BELL] Invalid notifications data format:", data);
           // Don't clear notifications on invalid data, keep existing ones
@@ -275,8 +277,13 @@ export default function NotificationBell() {
           />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] sm:text-xs">
+          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] sm:text-xs" style={{ zIndex: 102 }}>
             {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
+        {error && (
+          <span className="absolute -bottom-1 -right-1 bg-yellow-500 text-white text-[8px] px-1 rounded" title={error}>
+            ⚠️
           </span>
         )}
       </button>
@@ -300,12 +307,14 @@ export default function NotificationBell() {
           
           {/* Dropdown - Positioned differently for mobile vs desktop */}
           <div 
-            className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-hidden flex flex-col"
+            className="fixed sm:absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-hidden flex flex-col"
             style={{ 
-              position: 'absolute',
-              zIndex: 102,
+              position: 'fixed',
+              top: '60px',
+              right: '20px',
+              zIndex: 10000,
               pointerEvents: 'auto',
-              marginTop: '0.5rem',
+              maxWidth: 'calc(100vw - 40px)',
             }}
             onClick={(e) => {
               e.stopPropagation();

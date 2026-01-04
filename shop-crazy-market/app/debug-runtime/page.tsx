@@ -55,6 +55,9 @@ export default function DebugRuntimePage() {
     // Test 4: Runtime environment
     tests.runtime = await testEndpoint('Runtime Env', '/api/check-runtime-env');
 
+    // Test 5: Health check
+    tests.health = await testEndpoint('Health Check', '/api/health-check');
+
     setResults(tests);
   }
 
