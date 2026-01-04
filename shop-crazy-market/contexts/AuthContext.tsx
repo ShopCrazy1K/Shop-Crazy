@@ -50,37 +50,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Login failed");
+      if (!response.ok) {
+        let error: any;
+        try {
+          error = await response.json();
+        } catch {
+          error = { error: `HTTP ${response.status}: ${response.statusText}` };
+        }
+        throw new Error(error.error || "Login failed");
+      }
+
+      const data = await response.json();
+      if (data.user && data.user.id && data.user.email) {
+        setUser(data.user);
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem("user", JSON.stringify(data.user));
+          } catch (error) {
+            console.error("Error saving user to localStorage:", error);
+          }
+        }
+      } else {
+        throw new Error("Invalid user data received");
+      }
+    } catch (error: any) {
+      console.error("Login error:", error);
+      throw error;
     }
-
-    const data = await response.json();
-    setUser(data.user);
-    localStorage.setItem("user", JSON.stringify(data.user));
   };
 
   const signup = async (email: string, password: string, username?: string, referralCode?: string) => {
-    const response = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, username, referralCode }),
-    });
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, username, referralCode }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Signup failed");
+      if (!response.ok) {
+        let error: any;
+        try {
+          error = await response.json();
+        } catch {
+          error = { error: `HTTP ${response.status}: ${response.statusText}` };
+        }
+        throw new Error(error.error || "Signup failed");
+      }
+
+      const data = await response.json();
+      if (data.user && data.user.id && data.user.email) {
+        setUser(data.user);
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem("user", JSON.stringify(data.user));
+          } catch (error) {
+            console.error("Error saving user to localStorage:", error);
+          }
+        }
+      } else {
+        throw new Error("Invalid user data received");
+      }
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      throw error;
     }
-
-    const data = await response.json();
-    setUser(data.user);
-    localStorage.setItem("user", JSON.stringify(data.user));
   };
 
   const logout = () => {
