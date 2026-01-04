@@ -33,11 +33,9 @@ export default function Navbar() {
           )}
         </Link>
         {user && (
-          <div className="flex items-center gap-2">
-            <ErrorBoundary fallback={<div className="p-2 text-red-500 text-xs">⚠️ Notifications unavailable</div>}>
-              <NotificationBell />
-            </ErrorBoundary>
-          </div>
+          <ErrorBoundary fallback={<div className="p-2 text-red-500 text-xs">⚠️ Notifications unavailable</div>}>
+            <NotificationBell />
+          </ErrorBoundary>
         )}
         <Link href="/sell" className="text-pink-600 hover:text-pink-700 transition-colors">Sell</Link>
         {user && (

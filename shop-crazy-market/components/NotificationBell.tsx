@@ -242,7 +242,7 @@ export default function NotificationBell() {
   }
 
   return (
-    <div className="relative" style={{ zIndex: 100 }}>
+    <div className="relative inline-flex items-center" style={{ zIndex: 100 }}>
       <button
         onClick={(e) => {
           e.preventDefault();
@@ -254,7 +254,7 @@ export default function NotificationBell() {
             return newState;
           });
         }}
-        className="relative p-2 text-gray-600 hover:text-purple-600 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md"
+        className="relative p-2 text-gray-600 hover:text-purple-600 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md flex items-center justify-center"
         aria-label="Notifications"
         aria-expanded={isOpen}
         type="button"
@@ -305,6 +305,7 @@ export default function NotificationBell() {
               position: 'absolute',
               zIndex: 102,
               pointerEvents: 'auto',
+              marginTop: '0.5rem',
             }}
             onClick={(e) => {
               e.stopPropagation();
