@@ -50,14 +50,21 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
             <div className="text-6xl mb-4">😅</div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Oops! Something went wrong</h1>
-            <p className="text-gray-600 mb-6">
-              We're sorry, but something unexpected happened. Please try refreshing the page.
-            </p>
-            {process.env.NODE_ENV === "development" && this.state.error && (
+            {this.state.error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-left">
-                <p className="text-sm font-semibold text-red-800 mb-1">Error Details (Dev Only):</p>
-                <p className="text-xs text-red-700 font-mono">{this.state.error.message}</p>
-                {this.state.error.stack && (
+                <p className="text-sm font-semibold text-red-800 mb-1">Error:</p>
+                <p className="text-xs text-red-700 font-mono break-words">{this.state.error.message || "Unknown error occurred"}</p>
+                {this.state.error.message?.includes("DATABASE_URL") && (
+                  <p className="text-xs text-yellow-700 mt-2">
+                    ⚠️ Database configuration issue. Please check server settings.
+                  </p>
+                )}
+                {this.state.error.message?.includes("timeout") && (
+                  <p className="text-xs text-yellow-700 mt-2">
+                    ⚠️ Request timed out. The server may be slow to respond.
+                  </p>
+                )}
+                {process.env.NODE_ENV === "development" && this.state.error.stack && (
                   <details className="mt-2">
                     <summary className="text-xs text-red-600 cursor-pointer">View stack trace</summary>
                     <pre className="mt-2 text-xs text-red-700 overflow-auto max-h-40">
@@ -67,6 +74,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                 )}
               </div>
             )}
+            <p className="text-gray-600 mb-6">
+              We're sorry, but something unexpected happened. Please try refreshing the page.
+            </p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => window.location.reload()}

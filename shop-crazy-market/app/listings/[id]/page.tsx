@@ -723,14 +723,29 @@ function ListingPageContent() {
               </p>
             </div>
           )}
-          {error && error.includes("Database") && (
+          {error && (error.includes("Database") || error.includes("DATABASE_URL")) && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-left">
               <p className="text-red-800 text-sm">
                 ❌ Database connection error. Please check server configuration.
               </p>
+              <p className="text-red-700 text-xs mt-2">
+                This usually means the DATABASE_URL environment variable is not set correctly in Vercel.
+              </p>
             </div>
           )}
-          <div className="flex gap-3 justify-center">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-left">
+            <p className="text-blue-800 text-sm font-semibold mb-2">Debug Information:</p>
+            <p className="text-blue-700 text-xs mb-2">Listing ID: {listingId}</p>
+            <p className="text-blue-700 text-xs mb-2">Error: {error || "No error message"}</p>
+            <Link
+              href="/api/test-all"
+              target="_blank"
+              className="text-blue-600 text-xs underline hover:text-blue-800"
+            >
+              Check API Status →
+            </Link>
+          </div>
+          <div className="flex gap-3 justify-center flex-wrap">
             <Link
               href="/marketplace"
               className="inline-block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
@@ -743,6 +758,12 @@ function ListingPageContent() {
             >
               Create New Listing
             </Link>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Refresh Page
+            </button>
           </div>
         </div>
       </div>
@@ -1903,7 +1924,38 @@ function ListingPageContent() {
 
 function ListingPageWrapper() {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
+          <div className="text-6xl mb-4">😅</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Failed to Load Listing</h1>
+          <p className="text-gray-600 mb-4">
+            There was an error loading the listing page. This might be a database connection issue.
+          </p>
+          <div className="mb-6 space-y-2">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+            >
+              Refresh Page
+            </button>
+            <Link
+              href="/marketplace"
+              className="block w-full px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+            >
+              Back to Marketplace
+            </Link>
+            <Link
+              href="/api/test-all"
+              target="_blank"
+              className="block w-full px-6 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold hover:bg-blue-200 transition-colors text-sm"
+            >
+              Test API Status
+            </Link>
+          </div>
+        </div>
+      </div>
+    }>
       <Suspense fallback={
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
