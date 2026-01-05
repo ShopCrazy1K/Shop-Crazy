@@ -30,13 +30,19 @@ export async function GET(req: NextRequest, context: Ctx) {
 
     // Test database connection first
     try {
-      await prisma.$queryRaw`SELECT 1`;
+      console.log("[API LISTINGS ID] Testing database connection...");
+      const testResult = await prisma.$queryRaw`SELECT 1 as test`;
+      console.log("[API LISTINGS ID] Database connection test passed:", testResult);
     } catch (dbTestError: any) {
       console.error("[API LISTINGS ID] Database connection test failed:", dbTestError);
+      console.error("[API LISTINGS ID] Error code:", dbTestError.code);
+      console.error("[API LISTINGS ID] Error name:", dbTestError.name);
+      console.error("[API LISTINGS ID] Error message:", dbTestError.message);
       return NextResponse.json(
         { 
           error: "Database connection failed.",
           details: dbTestError.message || "Cannot connect to database.",
+          code: dbTestError.code,
           fix: "Please check DATABASE_URL in Vercel environment variables and ensure the database is accessible.",
         },
         { status: 503 }
