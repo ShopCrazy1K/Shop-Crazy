@@ -792,60 +792,140 @@ function ListingPageContent() {
                   )}
                 </div>
 
-              {/* Description */}
-              <div className="mb-8">
-                <h2 className="text-lg font-semibold mb-3">Item details</h2>
-                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                {/* Report Button */}
+                <div className="mb-6">
+                  {user && listing?.seller?.id && user.id !== listing.seller.id && (
+                    <ReportButton listingId={listingId} />
+                  )}
+                  {!user && (
+                    <ReportButton listingId={listingId} />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Description and Additional Info Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          {/* Main Description - Takes 2 columns */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl border border-gray-200 p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Description</h2>
+              <div className="prose prose-gray max-w-none">
+                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed text-base">
                   {listing.description || "No description available."}
                 </p>
               </div>
+            </div>
 
-              {/* Digital Files */}
-              {listing.digitalFiles && listing.digitalFiles.length > 0 && (
-                <div className="mb-8">
-                  <h2 className="text-lg font-semibold mb-3">Digital files</h2>
-                  {hasPaidOrder || isSeller ? (
-                    <div className="space-y-2">
-                      {listing.digitalFiles.map((fileUrl: string, index: number) => {
-                        const fileName = fileUrl.split('/').pop() || `File ${index + 1}`;
-                        const downloadUrl = `/api/download?url=${encodeURIComponent(fileUrl)}&listingId=${listingId}${user ? `&userId=${user.id}` : ''}`;
-                        return (
-                          <a
-                            key={index}
-                            href={downloadUrl}
-                            download={fileName}
-                            className="block p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-purple-100 rounded flex items-center justify-center">
-                                <span className="text-xl">📄</span>
-                              </div>
-                              <span className="text-sm font-medium text-gray-900 flex-1 truncate">{fileName}</span>
-                              <span className="text-sm text-purple-600">Download</span>
-                            </div>
-                          </a>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <p className="text-yellow-800 text-sm">
-                        🔒 Digital files are available after purchase.
+            {/* Digital Files Section */}
+            {listing.digitalFiles && listing.digitalFiles.length > 0 && (
+              <div className="mt-8 bg-white rounded-xl border border-gray-200 p-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Digital Files</h2>
+                {hasPaidOrder || isSeller ? (
+                  <div className="space-y-3">
+                    {listing.digitalFiles.map((fileUrl: string, index: number) => {
+                      const fileName = fileUrl.split('/').pop() || `File ${index + 1}`;
+                      const downloadUrl = `/api/download?url=${encodeURIComponent(fileUrl)}&listingId=${listingId}${user ? `&userId=${user.id}` : ''}`;
+                      return (
+                        <a
+                          key={index}
+                          href={downloadUrl}
+                          download={fileName}
+                          className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-all group"
+                        >
+                          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                            <span className="text-2xl">📄</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{fileName}</p>
+                            <p className="text-xs text-gray-500 truncate">{fileUrl}</p>
+                          </div>
+                          <span className="text-sm font-medium text-purple-600 group-hover:text-purple-700">Download →</span>
+                        </a>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-yellow-800 text-sm">
+                      🔒 Digital files are available after purchase.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar - Seller Stats and Info */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">About the seller</h3>
+              {listing.seller && listing.seller.id ? (
+                <Link
+                  href={`/shop/${listing.seller.id}`}
+                  className="block text-base font-semibold text-gray-900 hover:text-purple-600 transition-colors mb-4"
+                >
+                  {listing.seller.username || listing.seller.email || 'Unknown Seller'}
+                </Link>
+              ) : (
+                <span className="block text-base font-semibold text-gray-900 mb-4">Unknown Seller</span>
+              )}
+              
+              {sellerStats && (
+                <div className="space-y-3 pt-4 border-t border-gray-200">
+                  {averageRating > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <span key={i} className={i < Math.round(averageRating) ? "text-yellow-400" : "text-gray-300"} style={{ fontSize: '16px' }}>
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                        <span className="text-base font-semibold text-gray-900">{averageRating.toFixed(1)}</span>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
                       </p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">{sellerStats.salesCount || 0}</p>
+                    <p className="text-sm text-gray-600">{sellerStats.salesCount === 1 ? 'sale' : 'sales'}</p>
+                  </div>
+                  {sellerStats.followersCount !== undefined && (
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{sellerStats.followersCount || 0}</p>
+                      <p className="text-sm text-gray-600">{sellerStats.followersCount === 1 ? 'follower' : 'followers'}</p>
                     </div>
                   )}
                 </div>
               )}
-
-              {/* Report Button */}
+              
               {user && listing?.seller?.id && user.id !== listing.seller.id && (
-                <div className="mb-4">
-                  <ReportButton listingId={listingId} />
-                </div>
-              )}
-              {!user && (
-                <div className="mb-4">
-                  <ReportButton listingId={listingId} />
+                <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
+                  <button
+                    onClick={toggleFollow}
+                    disabled={followLoading}
+                    className={`w-full px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                      isFollowing
+                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        : "bg-purple-600 text-white hover:bg-purple-700"
+                    }`}
+                  >
+                    {followLoading ? "..." : isFollowing ? "Following" : "Follow Shop"}
+                  </button>
+                  <Link
+                    href={`/messages/${listing.seller.id}`}
+                    className="block w-full text-center px-4 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:border-gray-400 transition-colors text-sm"
+                  >
+                    Message seller
+                  </Link>
                 </div>
               )}
             </div>
@@ -854,39 +934,60 @@ function ListingPageContent() {
 
         {/* Reviews Section */}
         {reviews.length > 0 && (
-          <div className="mt-12 pt-12 border-t">
-            <h2 className="text-2xl font-bold mb-6">Reviews ({reviews.length})</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {reviews.slice(0, 10).map((review: any) => (
-                <div key={review.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="font-semibold text-gray-900">
-                      {review.user?.username || review.user?.email || "Anonymous"}
-                    </p>
+          <div className="mt-12 pt-12 border-t border-gray-200 w-full">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Customer Reviews</h2>
+              <div className="flex items-center gap-4">
+                {averageRating > 0 && (
+                  <div className="flex items-center gap-2">
                     <div className="flex items-center">
                       {[...Array(5)].map((_, i) => (
-                        <span key={i} className={i < review.rating ? "text-yellow-400" : "text-gray-300"}>
+                        <span key={i} className={i < Math.round(averageRating) ? "text-yellow-400" : "text-gray-300"} style={{ fontSize: '20px' }}>
                           ★
                         </span>
                       ))}
                     </div>
+                    <span className="text-2xl font-bold text-gray-900">{averageRating.toFixed(1)}</span>
+                    <span className="text-gray-600">({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})</span>
                   </div>
-                  <p className="text-sm text-gray-500 mb-2">
-                    {new Date(review.createdAt).toLocaleDateString()}
-                  </p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {reviews.slice(0, 10).map((review: any) => (
+                <div key={review.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 mb-1">
+                        {review.user?.username || review.user?.email || "Anonymous"}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <span key={i} className={i < review.rating ? "text-yellow-400" : "text-gray-300"} style={{ fontSize: '14px' }}>
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                        <span className="text-sm text-gray-500">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                   {review.comment && (
-                    <p className="text-gray-700">{review.comment}</p>
+                    <p className="text-gray-700 leading-relaxed">{review.comment}</p>
                   )}
                 </div>
               ))}
             </div>
             {reviews.length > 10 && (
-              <div className="mt-6 text-center">
+              <div className="mt-8 text-center">
                 <Link
                   href={`/shop/${listing.seller?.id || (listing as any)?.sellerId || ''}#reviews`}
-                  className="text-purple-600 hover:text-purple-700 font-semibold"
+                  className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
                 >
-                  View all reviews →
+                  View all {reviews.length} reviews →
                 </Link>
               </div>
             )}
