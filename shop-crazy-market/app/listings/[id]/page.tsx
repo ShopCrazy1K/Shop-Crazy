@@ -594,7 +594,7 @@ function ListingPageContent() {
     if (!user || !listing) return;
 
     // Check if user is the seller
-    const sellerId = listing?.seller?.id || listing?.sellerId;
+    const sellerId = listing?.seller?.id || (listing as any)?.sellerId;
     if (sellerId && sellerId === user.id) {
       setIsSeller(true);
       setHasPaidOrder(true); // Sellers can always access their own files
