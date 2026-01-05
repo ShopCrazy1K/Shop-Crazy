@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function DiagnoseListingPage() {
+export const dynamic = 'force-dynamic';
+
+function DiagnoseListingContent() {
   const searchParams = useSearchParams();
-  const listingId = searchParams.get("id") || "";
+  const [listingId, setListingId] = useState("");
+  
+  useEffect(() => {
+    setListingId(searchParams.get("id") || "");
+  }, [searchParams]);
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -156,5 +162,22 @@ export default function DiagnoseListingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DiagnoseListingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold mb-6">Listing Diagnostic Tool</h1>
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <DiagnoseListingContent />
+    </Suspense>
   );
 }
