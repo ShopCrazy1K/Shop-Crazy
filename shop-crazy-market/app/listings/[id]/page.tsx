@@ -966,23 +966,59 @@ function ListingPageContent() {
     );
   }
 
-  // Ensure listing has required fields before rendering
-  if (!listing.id || !listing.title) {
-    console.error("[LISTING PAGE] Listing missing required fields:", listing);
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md mx-auto p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Invalid Listing Data</h1>
-          <p className="text-gray-600 mb-4">The listing data is incomplete. Please try refreshing.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            Refresh Page
-          </button>
+  // Ensure listing has minimum required fields - provide fallbacks if missing
+  if (!listing.id) {
+    console.error("[LISTING PAGE] Listing missing ID:", listing);
+    // Try to use listingId from URL as fallback
+    if (listingId) {
+      listing.id = listingId;
+    } else {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center max-w-md mx-auto p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Invalid Listing Data</h1>
+            <p className="text-gray-600 mb-4">The listing is missing required information. Please try refreshing.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              Refresh Page
+            </button>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+  }
+  
+  // Ensure title exists (required for rendering)
+  if (!listing.title || typeof listing.title !== 'string') {
+    listing.title = 'Untitled Listing';
+  }
+  
+  // Ensure seller exists (required for rendering)
+  if (!listing.seller || !listing.seller.id) {
+    const sellerId = (listing as any)?.sellerId || listing.seller?.id || 'unknown';
+    listing.seller = {
+      id: sellerId,
+      email: listing.seller?.email || 'Unknown',
+      username: listing.seller?.username || null,
+    };
+  }
+  
+  // Ensure arrays exist
+  if (!Array.isArray(listing.images)) {
+    listing.images = [];
+  }
+  if (!Array.isArray(listing.digitalFiles)) {
+    listing.digitalFiles = [];
+  }
+  
+  // Ensure numeric fields
+  if (typeof listing.priceCents !== 'number' || isNaN(listing.priceCents)) {
+    listing.priceCents = 0;
+  }
+  if (!listing.currency || typeof listing.currency !== 'string') {
+    listing.currency = 'usd';
   }
 
   return (

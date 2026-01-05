@@ -179,35 +179,48 @@ export async function GET(req: NextRequest, context: Ctx) {
 
     console.log("[API LISTINGS ID] Listing found:", listing.id, "isActive:", listing.isActive, "sellerId:", listing.sellerId);
     
-    // Ensure seller data is present
+    // Ensure seller data is present - don't fail if missing, create fallback instead
     if (!listing.seller || !listing.seller.id) {
-      console.error("[API LISTINGS ID] Listing missing seller data:", listing.id, "seller:", listing.seller);
+      console.warn("[API LISTINGS ID] Listing missing seller data:", listing.id, "seller:", listing.seller);
       
       // Try to fetch seller separately if missing
-      try {
-        const seller = await prisma.user.findUnique({
-          where: { id: listing.sellerId },
-          select: {
-            id: true,
-            email: true,
-            username: true,
-          },
-        });
-        
-        if (seller) {
-          listing.seller = seller;
-        } else {
-          return NextResponse.json(
-            { error: "Listing seller not found" },
-            { status: 404 }
-          );
+      if (listing.sellerId) {
+        try {
+          const seller = await prisma.user.findUnique({
+            where: { id: listing.sellerId },
+            select: {
+              id: true,
+              email: true,
+              username: true,
+            },
+          });
+          
+          if (seller) {
+            listing.seller = seller;
+          } else {
+            // Seller not found but don't fail - create fallback
+            listing.seller = {
+              id: listing.sellerId,
+              email: 'Unknown',
+              username: null,
+            };
+          }
+        } catch (sellerError: any) {
+          console.error("[API LISTINGS ID] Error fetching seller:", sellerError);
+          // Don't fail - create fallback seller instead
+          listing.seller = {
+            id: listing.sellerId || 'unknown',
+            email: 'Unknown',
+            username: null,
+          };
         }
-      } catch (sellerError: any) {
-        console.error("[API LISTINGS ID] Error fetching seller:", sellerError);
-        return NextResponse.json(
-          { error: "Failed to load listing seller information" },
-          { status: 500 }
-        );
+      } else {
+        // No sellerId either - create minimal seller
+        listing.seller = {
+          id: 'unknown',
+          email: 'Unknown',
+          username: null,
+        };
       }
     }
     
@@ -226,30 +239,84 @@ export async function GET(req: NextRequest, context: Ctx) {
           : []),
     };
     
-    // Ensure seller data is complete
+    // Ensure seller data is ALWAYS present and complete
     if (!responseData.seller || !responseData.seller.id) {
       console.warn("[API LISTINGS ID] Seller data incomplete, ensuring it exists");
-      if (responseData.sellerId) {
+      const sellerId = responseData.sellerId || listing.sellerId;
+      if (sellerId) {
+        // Try to fetch seller if missing
+        try {
+          const seller = await prisma.user.findUnique({
+            where: { id: sellerId },
+            select: {
+              id: true,
+              email: true,
+              username: true,
+            },
+          });
+          if (seller) {
+            responseData.seller = seller;
+          } else {
+            responseData.seller = {
+              id: sellerId,
+              email: 'Unknown',
+              username: null,
+            };
+          }
+        } catch (sellerError) {
+          console.error("[API LISTINGS ID] Error fetching seller:", sellerError);
+          responseData.seller = {
+            id: sellerId,
+            email: 'Unknown',
+            username: null,
+          };
+        }
+      } else {
+        // No sellerId either - create minimal seller
         responseData.seller = {
-          id: responseData.sellerId,
-          email: responseData.seller?.email || 'Unknown',
-          username: responseData.seller?.username || null,
+          id: 'unknown',
+          email: 'Unknown',
+          username: null,
         };
       }
     }
     
-    // Ensure all required fields exist
-    if (!responseData.title) {
+    // Ensure seller object has all required fields
+    if (!responseData.seller.id) {
+      responseData.seller.id = responseData.sellerId || 'unknown';
+    }
+    if (!responseData.seller.email) {
+      responseData.seller.email = 'Unknown';
+    }
+    
+    // Ensure all required fields exist with safe defaults
+    if (!responseData.id) {
+      responseData.id = id; // Use the route ID as fallback
+    }
+    if (!responseData.title || typeof responseData.title !== 'string') {
       responseData.title = 'Untitled Listing';
     }
-    if (!responseData.description) {
+    if (!responseData.description || typeof responseData.description !== 'string') {
       responseData.description = '';
     }
-    if (typeof responseData.priceCents !== 'number') {
+    if (typeof responseData.priceCents !== 'number' || isNaN(responseData.priceCents)) {
       responseData.priceCents = 0;
     }
-    if (!responseData.currency) {
+    if (!responseData.currency || typeof responseData.currency !== 'string') {
       responseData.currency = 'usd';
+    }
+    if (!responseData.slug || typeof responseData.slug !== 'string') {
+      responseData.slug = responseData.id;
+    }
+    if (typeof responseData.isActive !== 'boolean') {
+      responseData.isActive = false;
+    }
+    if (!responseData.createdAt || typeof responseData.createdAt !== 'string') {
+      responseData.createdAt = new Date().toISOString();
+    }
+    // Ensure sellerId is always set
+    if (!responseData.sellerId) {
+      responseData.sellerId = responseData.seller?.id || 'unknown';
     }
     
     console.log("[API LISTINGS ID] Returning listing data:", {
