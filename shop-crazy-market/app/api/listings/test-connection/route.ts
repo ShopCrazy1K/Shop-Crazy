@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
 
 export const dynamic = 'force-dynamic';
+
+// Create a fresh Prisma client for testing
+const testPrisma = new PrismaClient({
+  log: ['error'],
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+});
 
 export async function GET() {
   const results: any = {

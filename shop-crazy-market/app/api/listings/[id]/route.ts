@@ -223,6 +223,10 @@ export async function GET(req: NextRequest, context: Ctx) {
     return NextResponse.json(responseData);
   } catch (error: any) {
     console.error("[API LISTINGS ID] Error fetching listing:", error);
+    console.error("[API LISTINGS ID] Error name:", error?.name);
+    console.error("[API LISTINGS ID] Error code:", error?.code);
+    console.error("[API LISTINGS ID] Error message:", error?.message);
+    console.error("[API LISTINGS ID] Error stack:", error?.stack);
     
     // Check for specific database errors
     if (error.message?.includes("prepared statement") || error.message?.includes("42P05")) {
@@ -231,23 +235,42 @@ export async function GET(req: NextRequest, context: Ctx) {
         { 
           error: "Database connection issue. Please try again in a moment.",
           details: "The database connection pooler is experiencing issues. This usually resolves quickly.",
+          fix: "Retry the request. If it persists, check DATABASE_URL configuration.",
         },
         { status: 503 } // Service Unavailable
       );
     }
     
-    if (error.message?.includes("timeout")) {
+    if (error.message?.includes("timeout") || error.name === "TimeoutError") {
       return NextResponse.json(
         { 
           error: "Request timed out. The database may be slow to respond.",
-          details: "Please try refreshing the page.",
+          details: "The operation took too long to complete.",
+          fix: "Please try refreshing the page. If the problem persists, check database connectivity.",
         },
         { status: 504 } // Gateway Timeout
       );
     }
     
+    // Handle Prisma client errors
+    if (error.code?.startsWith('P')) {
+      return NextResponse.json(
+        { 
+          error: "Database error occurred.",
+          details: error.message || "An error occurred while querying the database.",
+          code: error.code,
+          fix: "Please check database configuration and connectivity.",
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: error.message || "Failed to fetch listing" },
+      { 
+        error: error.message || "Failed to fetch listing",
+        details: "An unexpected error occurred.",
+        fix: "Please try refreshing the page or contact support if the problem persists.",
+      },
       { status: 500 }
     );
   }
