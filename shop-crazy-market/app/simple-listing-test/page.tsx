@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function SimpleListingTestPage() {
+function SimpleListingTestContent() {
   const searchParams = useSearchParams();
   const listingId = searchParams.get("id");
   const [result, setResult] = useState<any>(null);
@@ -78,5 +78,22 @@ export default function SimpleListingTestPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SimpleListingTestPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold mb-6">Simple Listing API Test</h1>
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <p>Loading...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <SimpleListingTestContent />
+    </Suspense>
   );
 }
