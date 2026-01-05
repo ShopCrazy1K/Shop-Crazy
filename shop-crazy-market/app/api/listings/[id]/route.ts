@@ -212,18 +212,54 @@ export async function GET(req: NextRequest, context: Ctx) {
     }
     
     // Ensure arrays are properly formatted
-    const responseData = {
+    const responseData: any = {
       ...listing,
-      images: Array.isArray(listing.images) ? listing.images : (listing.images ? [listing.images] : []),
-      digitalFiles: Array.isArray(listing.digitalFiles) ? listing.digitalFiles : (listing.digitalFiles ? [listing.digitalFiles] : []),
+      images: Array.isArray(listing.images) 
+        ? listing.images.filter((img: any) => img && typeof img === 'string' && img.trim())
+        : (listing.images && typeof listing.images === 'string' && listing.images.trim() 
+          ? [listing.images] 
+          : []),
+      digitalFiles: Array.isArray(listing.digitalFiles) 
+        ? listing.digitalFiles.filter((file: any) => file && typeof file === 'string' && file.trim())
+        : (listing.digitalFiles && typeof listing.digitalFiles === 'string' && listing.digitalFiles.trim()
+          ? [listing.digitalFiles]
+          : []),
     };
+    
+    // Ensure seller data is complete
+    if (!responseData.seller || !responseData.seller.id) {
+      console.warn("[API LISTINGS ID] Seller data incomplete, ensuring it exists");
+      if (responseData.sellerId) {
+        responseData.seller = {
+          id: responseData.sellerId,
+          email: responseData.seller?.email || 'Unknown',
+          username: responseData.seller?.username || null,
+        };
+      }
+    }
+    
+    // Ensure all required fields exist
+    if (!responseData.title) {
+      responseData.title = 'Untitled Listing';
+    }
+    if (!responseData.description) {
+      responseData.description = '';
+    }
+    if (typeof responseData.priceCents !== 'number') {
+      responseData.priceCents = 0;
+    }
+    if (!responseData.currency) {
+      responseData.currency = 'usd';
+    }
     
     console.log("[API LISTINGS ID] Returning listing data:", {
       id: responseData.id,
       title: responseData.title,
       hasSeller: !!responseData.seller,
+      sellerId: responseData.seller?.id,
       imagesCount: responseData.images.length,
       digitalFilesCount: responseData.digitalFiles.length,
+      isActive: responseData.isActive,
     });
     
     return NextResponse.json(responseData);
