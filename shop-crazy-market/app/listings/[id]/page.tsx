@@ -344,38 +344,99 @@ function ListingPageContent() {
           return;
         }
         
-        // Validate required fields
-        if (!data.seller || !data.seller.id) {
-          console.error("[LISTING PAGE] Missing seller data:", data);
-          throw new Error("Invalid listing data: missing seller information");
-        }
-        
-        // Ensure arrays are arrays
+        // Ensure arrays are arrays first (before validating seller)
         if (data.images && !Array.isArray(data.images)) {
           console.warn("[LISTING PAGE] Images is not an array, converting:", data.images);
           data.images = typeof data.images === 'string' ? [data.images] : [];
+        }
+        if (!data.images) {
+          data.images = [];
         }
         if (data.digitalFiles && !Array.isArray(data.digitalFiles)) {
           console.warn("[LISTING PAGE] DigitalFiles is not an array, converting:", data.digitalFiles);
           data.digitalFiles = typeof data.digitalFiles === 'string' ? [data.digitalFiles] : [];
         }
+        if (!data.digitalFiles) {
+          data.digitalFiles = [];
+        }
+        
+        // Validate and fix seller data - make it more resilient
+        if (!data.seller || !data.seller.id) {
+          console.warn("[LISTING PAGE] Missing seller data, trying to fetch separately");
+          // If seller is missing but sellerId exists, try to get seller info
+          if (data.sellerId) {
+            try {
+              const sellerRes = await fetch(`/api/users/${data.sellerId}`);
+              if (sellerRes.ok) {
+                const sellerData = await sellerRes.json();
+                data.seller = {
+                  id: sellerData.id || data.sellerId,
+                  email: sellerData.email || 'Unknown',
+                  username: sellerData.username || null,
+                };
+                console.log("[LISTING PAGE] Seller data fetched separately:", data.seller);
+              } else {
+                // Create fallback seller
+                data.seller = {
+                  id: data.sellerId,
+                  email: 'Unknown',
+                  username: null,
+                };
+                console.warn("[LISTING PAGE] Using fallback seller data");
+              }
+            } catch (sellerErr) {
+              console.error("[LISTING PAGE] Error fetching seller:", sellerErr);
+              // Create fallback seller
+              data.seller = {
+                id: data.sellerId || 'unknown',
+                email: 'Unknown',
+                username: null,
+              };
+            }
+          } else {
+            console.error("[LISTING PAGE] Missing seller data and sellerId:", data);
+            // Don't throw - use fallback instead
+            data.seller = {
+              id: 'unknown',
+              email: 'Unknown',
+              username: null,
+            };
+          }
+        }
+        
+        // Ensure seller has required fields
+        if (!data.seller.email) {
+          data.seller.email = 'Unknown';
+        }
+        if (!data.seller.username && !data.seller.email) {
+          data.seller.username = null;
+        }
         
         // Update state - use functional update to ensure it works
         if (isMounted) {
-          console.log("[LISTING PAGE] Setting listing state and stopping loading");
+          console.log("[LISTING PAGE] ===== UPDATING STATE =====");
+          console.log("[LISTING PAGE] Setting listing state...");
           try {
-            setListing((prev) => {
-              console.log("[LISTING PAGE] setListing called, prev:", prev);
-              return data;
-            });
-            setLoading((prev) => {
-              console.log("[LISTING PAGE] setLoading(false) called, prev:", prev);
-              return false;
-            });
-            console.log("[LISTING PAGE] State updates called");
+            setListing(data);
+            console.log("[LISTING PAGE] Listing state set to:", data.id);
+            
+            setLoading(false);
+            console.log("[LISTING PAGE] Loading set to false");
+            
+            setError("");
+            console.log("[LISTING PAGE] Error cleared");
+            
+            console.log("[LISTING PAGE] ===== STATE UPDATED SUCCESSFULLY =====");
           } catch (stateError: any) {
+            console.error("[LISTING PAGE] ===== STATE UPDATE ERROR =====");
             console.error("[LISTING PAGE] Error setting state:", stateError);
-            throw new Error(`Failed to update component state: ${stateError.message}`);
+            console.error("[LISTING PAGE] Error message:", stateError.message);
+            console.error("[LISTING PAGE] Error stack:", stateError.stack);
+            if (isMounted) {
+              setError(`Failed to update component state: ${stateError.message}`);
+              setLoading(false);
+            }
+            return;
           }
         } else {
           console.log("[LISTING PAGE] Component unmounted, not updating state");
@@ -785,17 +846,27 @@ function ListingPageContent() {
           <p className="text-gray-400 text-xs mb-4">Check browser console (F12) for logs</p>
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-left">
-              <p className="text-red-600 text-sm font-semibold mb-2">Error:</p>
-              <p className="text-red-500 text-sm break-words">{error}</p>
-              <button
-                onClick={() => {
-                  // Test the API endpoint directly
-                  window.open(`/api/listings/${listingId}`, '_blank');
-                }}
-                className="mt-2 text-xs text-red-600 underline"
-              >
-                Test API endpoint
-              </button>
+              <p className="text-red-600 text-sm font-semibold mb-2">⚠️ Error Loading:</p>
+              <p className="text-red-500 text-sm break-words mb-2">{error}</p>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => {
+                    // Test the API endpoint directly
+                    window.open(`/api/listings/${listingId}`, '_blank');
+                  }}
+                  className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200"
+                >
+                  Test API in New Tab
+                </button>
+                <button
+                  onClick={() => {
+                    window.open(`/api/db-diagnose`, '_blank');
+                  }}
+                  className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200"
+                >
+                  Test Database
+                </button>
+              </div>
             </div>
           )}
           <div className="flex gap-3 justify-center">
