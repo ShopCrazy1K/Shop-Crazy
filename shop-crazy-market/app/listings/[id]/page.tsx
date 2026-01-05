@@ -36,7 +36,9 @@ function ListingPageContent() {
   const router = useRouter();
   
   // Safely get context values with error handling
-  let user, addItem;
+  let user: any = null;
+  let addItem: (item: any) => void = () => {};
+  
   try {
     const authContext = useAuth();
     user = authContext?.user || null;
