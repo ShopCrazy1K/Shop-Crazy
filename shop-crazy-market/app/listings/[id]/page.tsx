@@ -62,6 +62,29 @@ function ListingPageContent() {
   const [error, setError] = useState("");
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [mainImageIndex, setMainImageIndex] = useState<number>(0);
+
+  // Keyboard navigation for image modal
+  useEffect(() => {
+    if (selectedImageIndex === null) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedImageIndex === null || allImages.length === 0) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setSelectedImageIndex(selectedImageIndex > 0 ? selectedImageIndex - 1 : allImages.length - 1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setSelectedImageIndex(selectedImageIndex < allImages.length - 1 ? selectedImageIndex + 1 : 0);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedImageIndex(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedImageIndex, allImages.length]);
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [deals, setDeals] = useState<any[]>([]);
@@ -525,7 +548,7 @@ function ListingPageContent() {
                   <div className="relative aspect-square bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                     <div 
                       className="w-full h-full cursor-zoom-in"
-                      onClick={() => allImages.length > 0 && setSelectedImageIndex(safeMainIndex)}
+                      onClick={() => allImages.length > 0 && setSelectedImageIndex(mainImageIndex)}
                     >
                       {isSeller || hasPaidOrder ? (
                         <img
