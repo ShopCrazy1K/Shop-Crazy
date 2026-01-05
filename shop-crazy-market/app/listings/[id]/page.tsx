@@ -593,7 +593,8 @@ function ListingPageContent() {
     if (!user || !listing) return;
 
     // Check if user is the seller
-    if (listing?.seller?.id && listing.seller.id === user.id) {
+    const sellerId = listing?.seller?.id || listing?.sellerId;
+    if (sellerId && sellerId === user.id) {
       setIsSeller(true);
       setHasPaidOrder(true); // Sellers can always access their own files
       return;
@@ -690,9 +691,11 @@ function ListingPageContent() {
   }
 
   async function fetchReviews() {
-    if (!listing?.seller?.id) return;
+    if (!listing) return;
+    const sellerId = listing?.seller?.id || listing?.sellerId;
+    if (!sellerId) return;
     try {
-      const response = await fetch(`/api/users/${listing.seller.id}/reviews`);
+      const response = await fetch(`/api/users/${sellerId}/reviews`);
       if (response.ok) {
         const reviewsData = await response.json();
         setReviews(reviewsData);
@@ -736,9 +739,16 @@ function ListingPageContent() {
 
     setFollowLoading(true);
     try {
+      const sellerId = listing?.seller?.id || listing?.sellerId;
+      if (!sellerId) {
+        console.error("[LISTING PAGE] Cannot follow: no seller ID");
+        setFollowLoading(false);
+        return;
+      }
+      
       if (isFollowing) {
         // Unfollow
-        const response = await fetch(`/api/users/${listing.seller.id}/follow`, {
+        const response = await fetch(`/api/users/${sellerId}/follow`, {
           method: "DELETE",
           headers: {
             "x-user-id": user.id,
@@ -752,7 +762,7 @@ function ListingPageContent() {
         }
       } else {
         // Follow
-        const response = await fetch(`/api/users/${listing.seller.id}/follow`, {
+        const response = await fetch(`/api/users/${sellerId}/follow`, {
           method: "POST",
           headers: {
             "x-user-id": user.id,
