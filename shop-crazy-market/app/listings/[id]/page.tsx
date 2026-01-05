@@ -24,7 +24,7 @@ interface Listing {
   feeSubscriptionStatus: string | null;
   createdAt: string;
   sellerId?: string; // Optional: may exist in API response
-  seller: {
+  seller?: {
     id: string;
     email: string;
     username: string | null;
