@@ -31,32 +31,60 @@ interface Listing {
 }
 
 function ListingPageContent() {
+  // Wrap everything in try-catch to prevent crashes
+  let params: any = {};
+  let searchParams: any = null;
+  let router: any = null;
+  let listingId = '';
+  
   try {
-    const params = useParams();
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    
-    // Safely get context values with error handling
-    let user: any = null;
-    let addItem: (item: any) => void = () => {};
-    
-    try {
-      const authContext = useAuth();
-      user = authContext?.user || null;
-    } catch (authError: any) {
-      console.error("[LISTING PAGE] Error accessing AuthContext:", authError);
-      user = null;
-    }
-    
-    try {
-      const cartContext = useCart();
-      addItem = cartContext?.addItem || (() => {});
-    } catch (cartError: any) {
-      console.error("[LISTING PAGE] Error accessing CartContext:", cartError);
-      addItem = () => {};
-    }
-    
-    const listingId = params?.id as string || '';
+    params = useParams();
+  } catch (e: any) {
+    console.error("[LISTING PAGE] Error with useParams:", e);
+  }
+  
+  try {
+    searchParams = useSearchParams();
+  } catch (e: any) {
+    console.error("[LISTING PAGE] Error with useSearchParams:", e);
+    // Create a mock searchParams object
+    searchParams = {
+      get: () => null,
+    };
+  }
+  
+  try {
+    router = useRouter();
+  } catch (e: any) {
+    console.error("[LISTING PAGE] Error with useRouter:", e);
+    router = {
+      push: () => {},
+      replace: () => {},
+      back: () => {},
+    };
+  }
+  
+  listingId = (params?.id as string) || '';
+  
+  // Safely get context values with error handling
+  let user: any = null;
+  let addItem: (item: any) => void = () => {};
+  
+  try {
+    const authContext = useAuth();
+    user = authContext?.user || null;
+  } catch (authError: any) {
+    console.error("[LISTING PAGE] Error accessing AuthContext:", authError);
+    user = null;
+  }
+  
+  try {
+    const cartContext = useCart();
+    addItem = cartContext?.addItem || (() => {});
+  } catch (cartError: any) {
+    console.error("[LISTING PAGE] Error accessing CartContext:", cartError);
+    addItem = () => {};
+  }
   
   // All state hooks must be declared before any conditional returns
   const [listing, setListing] = useState<Listing | null>(null);
@@ -101,10 +129,10 @@ function ListingPageContent() {
         </div>
       </div>
     );
-  }
-  
-  // Validate listingId format (should be at least 10 characters for CUID)
-  if (listingId.length < 10 && !listingId.startsWith('cm')) {
+    }
+    
+    // Validate listingId format (should be at least 10 characters for CUID)
+    if (listingId && listingId.length > 0 && listingId.length < 10 && !listingId.startsWith('cm')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -657,7 +685,11 @@ function ListingPageContent() {
   // Toggle favorite
   async function toggleFavorite() {
     if (!user) {
-      router.push("/login");
+      if (router?.push) {
+        router.push("/login");
+      } else {
+        window.location.href = "/login";
+      }
       return;
     }
 
@@ -2028,7 +2060,7 @@ function ListingPageWrapper() {
           </div>
         </div>
       }>
-        <ListingPageContent />
+        <ListingPageContentWrapper />
       </Suspense>
     </ErrorBoundary>
   );
