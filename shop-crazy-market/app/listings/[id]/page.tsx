@@ -579,35 +579,28 @@ function ListingPageContent() {
                     )}
                   </div>
 
-                  {/* Thumbnails */}
+                  {/* Thumbnails - Scrollable */}
                   {allImages.length > 1 && (
-                    <div className="grid grid-cols-5 gap-3">
-                      {allImages.slice(0, 5).map((image, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setMainImageIndex(index)}
-                          className={`aspect-square rounded-lg overflow-hidden border-2 transition-all hover:shadow-md ${
-                            safeMainIndex === index
-                              ? 'border-purple-600 ring-2 ring-purple-200 shadow-md'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          {isSeller || hasPaidOrder ? (
-                            <img src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
-                          ) : (
-                            <ProtectedImage src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
-                          )}
-                        </button>
-                      ))}
-                      {allImages.length > 5 && (
-                        <button
-                          onClick={() => setSelectedImageIndex(0)}
-                          className="aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-purple-400 flex flex-col items-center justify-center text-gray-500 hover:text-purple-600 transition-all"
-                        >
-                          <span className="text-sm font-medium">+{allImages.length - 5}</span>
-                          <span className="text-xs">more</span>
-                        </button>
-                      )}
+                    <div className="relative">
+                      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" style={{ scrollbarWidth: 'thin' }}>
+                        {allImages.map((image, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setMainImageIndex(index)}
+                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all hover:shadow-md ${
+                              safeMainIndex === index
+                                ? 'border-purple-600 ring-2 ring-purple-200 shadow-md'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            {isSeller || hasPaidOrder ? (
+                              <img src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
+                            ) : (
+                              <ProtectedImage src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -730,7 +723,7 @@ function ListingPageContent() {
                     Buy it now
                   </Link>
                 </div>
-              )}
+                )}
 
                 {/* Seller Info Card */}
                 <div className="mb-8 p-5 bg-gray-50 rounded-xl border border-gray-200">
