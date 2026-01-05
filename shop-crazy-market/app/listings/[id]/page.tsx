@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useMemo } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -517,6 +517,29 @@ function ListingPageContent() {
   });
   const allImages = Array.from(new Set([...normalizedImages, ...imageDigitalFiles]));
   const safeMainIndex = Math.max(0, Math.min(mainImageIndex, allImages.length - 1));
+
+  // Keyboard navigation for image modal
+  useEffect(() => {
+    if (selectedImageIndex === null) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedImageIndex === null || allImages.length === 0) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setSelectedImageIndex(selectedImageIndex > 0 ? selectedImageIndex - 1 : allImages.length - 1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setSelectedImageIndex(selectedImageIndex < allImages.length - 1 ? selectedImageIndex + 1 : 0);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedImageIndex(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedImageIndex, allImages.length]);
 
   return (
     <div className="min-h-screen bg-gray-50">
