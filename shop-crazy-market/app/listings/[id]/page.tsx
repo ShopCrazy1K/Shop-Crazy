@@ -980,50 +980,23 @@ function ListingPageContent() {
   }
 
   // Ensure listing exists and has required data before rendering
+  if (!listing && !loading && error) {
+    // Error state already handled above, but if we get here, show generic error
+    return null;
+  }
+
   if (!listing) {
-    if (loading) {
-      // Loading state already handled above - return null to show loading
-      return null;
-    }
-    // If not loading but no listing, show error
-    if (error) {
-      // Error state handled below - return null here
-      return null;
-    }
-    // Fallback if listing is null but no error and not loading
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md mx-auto p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Listing Not Found</h1>
-          <p className="text-gray-600 mb-4">Unable to load listing data. Please try again.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    );
+    // Still loading or no listing - handled by loading state above
+    return null;
   }
 
   // Ensure listing has required fields before rendering
   if (!listing.id || !listing.title) {
     console.error("[LISTING PAGE] Listing missing required fields:", listing);
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md mx-auto p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Invalid Listing Data</h1>
-          <p className="text-gray-600 mb-4">The listing data is incomplete. Please try refreshing.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    );
+    if (!error) {
+      setError("Listing data is incomplete. Missing required fields.");
+    }
+    return null;
   }
 
   return (
