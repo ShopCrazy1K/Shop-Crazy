@@ -1766,7 +1766,7 @@ function ListingPageContent() {
                         href={`/shop/${listing.seller?.id || (listing as any)?.sellerId || ''}`}
                         className="text-lg font-semibold text-gray-900 hover:text-purple-600 transition-colors"
                       >
-                        {listing.seller.username || listing.seller.email || 'Unknown Seller'}
+                        {listing.seller?.username || listing.seller?.email || 'Unknown Seller'}
                       </Link>
                     ) : (
                       <span className="text-lg font-semibold text-gray-900">
