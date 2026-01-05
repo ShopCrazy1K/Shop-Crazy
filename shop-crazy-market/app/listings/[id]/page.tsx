@@ -62,7 +62,18 @@ function ListingPageContent() {
   const [error, setError] = useState("");
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [mainImageIndex, setMainImageIndex] = useState<number>(0);
-
+  
+  // Compute allImages using useMemo so it's available for hooks
+  const allImages = useMemo(() => {
+    if (!listing) return [];
+    const normalizedImages = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
+    const imageDigitalFiles = listing.digitalFiles.filter((url: string) => {
+      const ext = url.split('.').pop()?.toLowerCase();
+      return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
+    });
+    return Array.from(new Set([...normalizedImages, ...imageDigitalFiles]));
+  }, [listing?.images, listing?.digitalFiles]);
+  
   // Keyboard navigation for image modal
   useEffect(() => {
     if (selectedImageIndex === null) return;
