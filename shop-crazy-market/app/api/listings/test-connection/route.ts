@@ -30,7 +30,7 @@ export async function GET() {
   // Check 2: Test database connection
   try {
     const startTime = Date.now();
-    await prisma.$queryRaw`SELECT 1 as test`;
+    await testPrisma.$queryRaw`SELECT 1 as test`;
     const queryTime = Date.now() - startTime;
     
     results.checks.databaseConnection = {
@@ -45,12 +45,18 @@ export async function GET() {
       code: error.code,
       name: error.name,
     };
+  } finally {
+    await testPrisma.$disconnect().catch(() => {});
   }
 
   // Check 3: Test listing query
+  const testPrisma2 = new PrismaClient({
+    datasources: { db: { url: process.env.DATABASE_URL } },
+  });
+  
   try {
     const startTime = Date.now();
-    const count = await prisma.listing.count();
+    const count = await testPrisma2.listing.count();
     const queryTime = Date.now() - startTime;
     
     results.checks.listingsQuery = {
@@ -65,6 +71,8 @@ export async function GET() {
       error: error.message || 'Unknown error',
       code: error.code,
     };
+  } finally {
+    await testPrisma2.$disconnect().catch(() => {});
   }
 
   // Overall status
