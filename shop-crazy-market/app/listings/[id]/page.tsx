@@ -1960,20 +1960,6 @@ function ListingPageContent() {
 }
 
 function ListingPageWrapper() {
-  // Log any render errors
-  if (typeof window !== 'undefined') {
-    window.addEventListener('error', (event) => {
-      console.error('[LISTING PAGE] Global error caught:', event.error);
-      console.error('[LISTING PAGE] Error message:', event.message);
-      console.error('[LISTING PAGE] Error filename:', event.filename);
-      console.error('[LISTING PAGE] Error lineno:', event.lineno);
-    });
-    
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('[LISTING PAGE] Unhandled promise rejection:', event.reason);
-    });
-  }
-
   return (
     <ErrorBoundary fallback={
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
