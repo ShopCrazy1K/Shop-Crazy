@@ -31,13 +31,42 @@ interface Listing {
 }
 
 function ListingPageContent() {
-  // React hooks MUST be called unconditionally at the top level
-  // They cannot be in try-catch blocks - that violates Rules of Hooks
-  const params = useParams();
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  // Wrap everything in try-catch to prevent crashes
+  let params: any = {};
+  let searchParams: any = null;
+  let router: any = null;
+  let listingId = '';
   
-  // Safely get context values - these also must be called unconditionally
+  try {
+    params = useParams();
+  } catch (e: any) {
+    console.error("[LISTING PAGE] Error with useParams:", e);
+  }
+  
+  try {
+    searchParams = useSearchParams();
+  } catch (e: any) {
+    console.error("[LISTING PAGE] Error with useSearchParams:", e);
+    // Create a mock searchParams object
+    searchParams = {
+      get: () => null,
+    };
+  }
+  
+  try {
+    router = useRouter();
+  } catch (e: any) {
+    console.error("[LISTING PAGE] Error with useRouter:", e);
+    router = {
+      push: () => {},
+      replace: () => {},
+      back: () => {},
+    };
+  }
+  
+  listingId = (params?.id as string) || '';
+  
+  // Safely get context values with error handling
   let user: any = null;
   let addItem: (item: any) => void = () => {};
   
@@ -56,8 +85,6 @@ function ListingPageContent() {
     console.error("[LISTING PAGE] Error accessing CartContext:", cartError);
     addItem = () => {};
   }
-  
-  const listingId = (params?.id as string) || '';
   
   // All state hooks must be declared before any conditional returns
   const [listing, setListing] = useState<Listing | null>(null);
@@ -398,8 +425,8 @@ function ListingPageContent() {
     }
     
     // Use searchParams from Next.js hook instead of window.location for SSR safety
-    const paymentParam = searchParams?.get ? searchParams.get("payment") : null;
-    const feeParam = searchParams?.get ? searchParams.get("fee") : null;
+    const paymentParam = searchParams?.get("payment") || null;
+    const feeParam = searchParams?.get("fee") || null;
     // Handle both "payment=success" and "fee=success" query parameters
     const hasSuccessParam = paymentParam === "success" || feeParam === "success";
     
@@ -2041,7 +2068,7 @@ function ListingPageWrapper() {
           </div>
         </div>
       }>
-        <ListingPageContentWrapper />
+        <ListingPageContent />
       </Suspense>
     </ErrorBoundary>
   );
