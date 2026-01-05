@@ -185,25 +185,27 @@ function ListingPageContent() {
     
     async function fetchListing() {
       if (!listingId) {
+        console.error("[LISTING PAGE] No listing ID provided");
         setError("No listing ID provided");
         setLoading(false);
         return;
       }
 
-      console.log("[LISTING PAGE] Fetching listing:", listingId);
+      console.log("[LISTING PAGE] ===== FETCHING LISTING =====");
+      console.log("[LISTING PAGE] Listing ID:", listingId);
       console.log("[LISTING PAGE] Component mounted:", isMounted);
       
       try {
         // Add AbortController for timeout
         const controller = new AbortController();
         fetchTimeout = setTimeout(() => {
-          console.error("[LISTING PAGE] Fetch timeout after 8 seconds");
+          console.error("[LISTING PAGE] Fetch timeout after 15 seconds");
           controller.abort();
           if (isMounted) {
-            setError("Request timed out after 8 seconds. The server may be experiencing issues. Please try refreshing the page.");
+            setError("Request timed out after 15 seconds. The server may be experiencing issues. Please try refreshing the page.");
             setLoading(false);
           }
-        }, 8000); // 8 second timeout for fetch
+        }, 15000); // 15 second timeout for fetch
         
         console.log("[LISTING PAGE] Starting fetch to:", `/api/listings/${listingId}`);
         const startTime = Date.now();
@@ -211,6 +213,7 @@ function ListingPageContent() {
         // Use absolute URL to avoid any routing issues
         const apiUrl = `/api/listings/${listingId}`;
         console.log("[LISTING PAGE] Fetch URL:", apiUrl);
+        console.log("[LISTING PAGE] Full URL would be:", typeof window !== 'undefined' ? `${window.location.origin}${apiUrl}` : apiUrl);
         
         const response = await fetch(apiUrl, {
           signal: controller.signal,
@@ -222,11 +225,29 @@ function ListingPageContent() {
           },
         }).catch((fetchError: any) => {
           console.error("[LISTING PAGE] Fetch failed completely:", fetchError);
-          throw new Error(`Network error: ${fetchError.message || 'Failed to fetch listing'}`);
+          console.error("[LISTING PAGE] Fetch error name:", fetchError?.name);
+          console.error("[LISTING PAGE] Fetch error message:", fetchError?.message);
+          if (isMounted) {
+            setError(`Network error: ${fetchError.message || 'Failed to fetch listing. Check your connection and try again.'}`);
+            setLoading(false);
+          }
+          return null;
         });
         
+        if (!response) {
+          console.error("[LISTING PAGE] No response received from fetch");
+          if (isMounted) {
+            setError("No response from server. Please check your connection.");
+            setLoading(false);
+          }
+          return;
+        }
+        
         const fetchTime = Date.now() - startTime;
-        console.log("[LISTING PAGE] Fetch completed in", fetchTime, "ms, status:", response.status, "ok:", response.ok);
+        console.log("[LISTING PAGE] Fetch completed in", fetchTime, "ms");
+        console.log("[LISTING PAGE] Response status:", response.status);
+        console.log("[LISTING PAGE] Response ok:", response.ok);
+        console.log("[LISTING PAGE] Response headers:", Object.fromEntries(response.headers.entries()));
         
         clearTimeout(fetchTimeout);
         
@@ -283,18 +304,44 @@ function ListingPageContent() {
         
         let data: any;
         try {
-          data = await response.json();
+          const text = await response.text();
+          console.log("[LISTING PAGE] Response text length:", text.length);
+          console.log("[LISTING PAGE] Response text preview:", text.substring(0, 200));
+          
+          if (!text || text.trim().length === 0) {
+            throw new Error("Empty response from server");
+          }
+          
+          data = JSON.parse(text);
+          console.log("[LISTING PAGE] JSON parsed successfully");
         } catch (jsonError: any) {
           console.error("[LISTING PAGE] JSON parse error:", jsonError);
-          throw new Error("Failed to parse listing data. The server may have returned invalid JSON.");
+          console.error("[LISTING PAGE] JSON error message:", jsonError.message);
+          if (isMounted) {
+            setError(`Failed to parse listing data: ${jsonError.message}. The server may have returned invalid JSON.`);
+            setLoading(false);
+          }
+          return;
         }
         
-        console.log("[LISTING PAGE] Listing fetched:", data?.id, "isActive:", data?.isActive);
+        console.log("[LISTING PAGE] ===== LISTING DATA RECEIVED =====");
+        console.log("[LISTING PAGE] Listing ID:", data?.id);
+        console.log("[LISTING PAGE] Listing title:", data?.title);
+        console.log("[LISTING PAGE] Is active:", data?.isActive);
+        console.log("[LISTING PAGE] Has seller:", !!data?.seller);
+        console.log("[LISTING PAGE] Seller ID:", data?.seller?.id);
+        console.log("[LISTING PAGE] Images count:", Array.isArray(data?.images) ? data.images.length : 'N/A');
         console.log("[LISTING PAGE] Full data structure:", JSON.stringify(data, null, 2));
         
         if (!data || !data.id) {
-          console.error("[LISTING PAGE] Invalid listing data:", data);
-          throw new Error("Invalid listing data received: missing ID");
+          console.error("[LISTING PAGE] ===== INVALID DATA =====");
+          console.error("[LISTING PAGE] Data received:", data);
+          console.error("[LISTING PAGE] Data type:", typeof data);
+          if (isMounted) {
+            setError("Invalid listing data received: missing ID. The listing might not exist or the server returned an error.");
+            setLoading(false);
+          }
+          return;
         }
         
         // Validate required fields
