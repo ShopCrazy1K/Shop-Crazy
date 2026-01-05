@@ -412,32 +412,30 @@ function ListingPageContent() {
           data.seller.username = null;
         }
         
-        // Update state - use functional update to ensure it works
+        // Update state - ensure we set all state synchronously
         if (isMounted) {
           console.log("[LISTING PAGE] ===== UPDATING STATE =====");
           console.log("[LISTING PAGE] Setting listing state...");
-          try {
-            setListing(data);
-            console.log("[LISTING PAGE] Listing state set to:", data.id);
-            
-            setLoading(false);
-            console.log("[LISTING PAGE] Loading set to false");
-            
-            setError("");
-            console.log("[LISTING PAGE] Error cleared");
-            
-            console.log("[LISTING PAGE] ===== STATE UPDATED SUCCESSFULLY =====");
-          } catch (stateError: any) {
-            console.error("[LISTING PAGE] ===== STATE UPDATE ERROR =====");
-            console.error("[LISTING PAGE] Error setting state:", stateError);
-            console.error("[LISTING PAGE] Error message:", stateError.message);
-            console.error("[LISTING PAGE] Error stack:", stateError.stack);
+          
+          // Use setTimeout to ensure state updates happen in next tick (avoids race conditions)
+          setTimeout(() => {
             if (isMounted) {
-              setError(`Failed to update component state: ${stateError.message}`);
-              setLoading(false);
+              try {
+                console.log("[LISTING PAGE] Setting listing data:", data.id);
+                setListing(data);
+                setLoading(false);
+                setError("");
+                console.log("[LISTING PAGE] ===== STATE UPDATED SUCCESSFULLY =====");
+              } catch (stateError: any) {
+                console.error("[LISTING PAGE] ===== STATE UPDATE ERROR =====");
+                console.error("[LISTING PAGE] Error setting state:", stateError);
+                if (isMounted) {
+                  setError(`Failed to update state: ${stateError.message}`);
+                  setLoading(false);
+                }
+              }
             }
-            return;
-          }
+          }, 0);
         } else {
           console.log("[LISTING PAGE] Component unmounted, not updating state");
         }
@@ -710,9 +708,11 @@ function ListingPageContent() {
   }
 
   async function checkFollowStatus() {
-    if (!user || !listing?.seller?.id || user.id === listing.seller.id) return;
+    if (!user || !listing) return;
+    const sellerId = listing?.seller?.id || listing?.sellerId;
+    if (!sellerId || user.id === sellerId) return;
     try {
-      const response = await fetch(`/api/users/${listing.seller.id}/follow?followerId=${user.id}`);
+      const response = await fetch(`/api/users/${sellerId}/follow?followerId=${user.id}`);
       if (response.ok) {
         const data = await response.json();
         setIsFollowing(data.isFollowing || false);
@@ -902,7 +902,8 @@ function ListingPageContent() {
     );
   }
 
-  if (error || !listing) {
+  // Only show error if we have an error AND we're not still loading
+  if (!loading && (error || !listing)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center max-w-md mx-auto p-6">
@@ -957,6 +958,53 @@ function ListingPageContent() {
               Refresh Page
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure listing exists and has required data before rendering
+  if (!listing) {
+    if (loading) {
+      // Loading state already handled above - return null to show loading
+      return null;
+    }
+    // If not loading but no listing, show error
+    if (error) {
+      // Error state handled below - return null here
+      return null;
+    }
+    // Fallback if listing is null but no error and not loading
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Listing Not Found</h1>
+          <p className="text-gray-600 mb-4">Unable to load listing data. Please try again.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure listing has required fields before rendering
+  if (!listing.id || !listing.title) {
+    console.error("[LISTING PAGE] Listing missing required fields:", listing);
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Invalid Listing Data</h1>
+          <p className="text-gray-600 mb-4">The listing data is incomplete. Please try refreshing.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            Refresh Page
+          </button>
         </div>
       </div>
     );
@@ -1697,12 +1745,18 @@ function ListingPageContent() {
               <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <Link
-                      href={`/shop/${listing.seller.id}`}
-                      className="text-lg font-semibold text-gray-900 hover:text-purple-600 transition-colors"
-                    >
-                      {listing.seller.username || listing.seller.email}
-                    </Link>
+                    {listing.seller && listing.seller.id ? (
+                      <Link
+                        href={`/shop/${listing.seller.id}`}
+                        className="text-lg font-semibold text-gray-900 hover:text-purple-600 transition-colors"
+                      >
+                        {listing.seller.username || listing.seller.email || 'Unknown Seller'}
+                      </Link>
+                    ) : (
+                      <span className="text-lg font-semibold text-gray-900">
+                        Unknown Seller
+                      </span>
+                    )}
                     {sellerStats && (
                       <div className="mt-2 space-y-1">
                         {/* Rating */}
@@ -1732,7 +1786,7 @@ function ListingPageContent() {
                     )}
                   </div>
                   {/* Follow Button */}
-                  {user && listing?.seller?.id && user.id !== listing.seller.id && (
+                  {user && listing?.seller?.id && user.id !== listing?.seller?.id && (
                     <button
                       onClick={toggleFollow}
                       disabled={followLoading}
@@ -1747,7 +1801,7 @@ function ListingPageContent() {
                   )}
                 </div>
                 {/* Message Seller Button */}
-                {user && listing?.seller?.id && user.id !== listing.seller.id && (
+                {user && listing?.seller?.id && user.id !== listing?.seller?.id && (
                   <Link
                     href={`/messages/${listing.seller.id}`}
                     className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
@@ -1757,7 +1811,7 @@ function ListingPageContent() {
                 )}
                 
                 {/* Report Button - Show for all users except the seller */}
-                {user && listing?.seller?.id && user.id !== listing.seller.id && (
+                {user && listing?.seller?.id && user.id !== listing?.seller?.id && (
                   <div className="mt-2">
                     <ReportButton listingId={listingId} />
                   </div>
