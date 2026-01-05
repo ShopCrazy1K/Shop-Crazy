@@ -1763,7 +1763,7 @@ function ListingPageContent() {
                   <div className="flex-1">
                     {listing.seller && listing.seller.id ? (
                       <Link
-                        href={`/shop/${listing.seller.id}`}
+                        href={`/shop/${listing.seller?.id || (listing as any)?.sellerId || ''}`}
                         className="text-lg font-semibold text-gray-900 hover:text-purple-600 transition-colors"
                       >
                         {listing.seller.username || listing.seller.email || 'Unknown Seller'}
@@ -1923,7 +1923,7 @@ function ListingPageContent() {
                         price: listing.priceCents,
                         quantity: 1,
                         image: imageUrl || undefined,
-                        sellerId: listing.seller.id,
+                        sellerId: listing?.seller?.id || (listing as any)?.sellerId || '',
                       });
                       alert("✅ Added to cart!");
                     }}
@@ -1953,7 +1953,7 @@ function ListingPageContent() {
                         price: listing.priceCents,
                         quantity: 1,
                         image: imageUrl || undefined,
-                        sellerId: listing.seller.id,
+                        sellerId: listing?.seller?.id || (listing as any)?.sellerId || '',
                       });
                     }}
                   >
