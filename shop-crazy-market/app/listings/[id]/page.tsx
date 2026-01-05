@@ -110,7 +110,7 @@ function ListingPageContent() {
   const [selectedThumbnailIndices, setSelectedThumbnailIndices] = useState<number[]>([]);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const feeStatus = searchParams.get("fee");
+  const feeStatus = searchParams?.get("fee") || null;
 
   // Handle "new" route - redirect to create page
   useEffect(() => {
@@ -480,6 +480,7 @@ function ListingPageContent() {
         clearTimeout(fetchTimeout);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listingId, feeStatus]);
 
   // Keyboard navigation for image modal
