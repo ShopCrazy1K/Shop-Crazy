@@ -32,42 +32,15 @@ interface Listing {
 }
 
 function ListingPageContent() {
-  // Wrap everything in try-catch to prevent crashes
-  let params: any = {};
-  let searchParams: any = null;
-  let router: any = null;
-  let listingId = '';
+  // All hooks MUST be called unconditionally at the top level - React Rules of Hooks
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   
-  try {
-    params = useParams();
-  } catch (e: any) {
-    console.error("[LISTING PAGE] Error with useParams:", e);
-  }
+  // Get listing ID from params
+  const listingId = (params?.id as string) || '';
   
-  try {
-    searchParams = useSearchParams();
-  } catch (e: any) {
-    console.error("[LISTING PAGE] Error with useSearchParams:", e);
-    // Create a mock searchParams object
-    searchParams = {
-      get: () => null,
-    };
-  }
-  
-  try {
-    router = useRouter();
-  } catch (e: any) {
-    console.error("[LISTING PAGE] Error with useRouter:", e);
-    router = {
-      push: () => {},
-      replace: () => {},
-      back: () => {},
-    };
-  }
-  
-  listingId = (params?.id as string) || '';
-  
-  // Safely get context values with error handling
+  // Safely get context values - these hooks must also be called unconditionally
   let user: any = null;
   let addItem: (item: any) => void = () => {};
   
