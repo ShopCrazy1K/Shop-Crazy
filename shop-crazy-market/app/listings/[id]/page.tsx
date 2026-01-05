@@ -2008,7 +2008,7 @@ function ListingPageContent() {
             {reviews.length > 10 && (
               <div className="mt-6 text-center">
                 <Link
-                  href={`/shop/${listing.seller.id}#reviews`}
+                        href={`/shop/${listing.seller?.id || listing.sellerId || ''}#reviews`}
                   className="text-purple-600 hover:text-purple-700 font-semibold"
                 >
                   View All Reviews →
