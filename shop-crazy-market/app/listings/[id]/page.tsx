@@ -681,7 +681,9 @@ function ListingPageContent() {
   async function fetchSellerStats() {
     if (!listing?.seller?.id) return;
     try {
-      const response = await fetch(`/api/users/${listing.seller.id}/stats`);
+      const sellerId = listing?.seller?.id || (listing as any)?.sellerId;
+      if (!sellerId) return;
+      const response = await fetch(`/api/users/${sellerId}/stats`);
       if (response.ok) {
         const stats = await response.json();
         setSellerStats(stats);
