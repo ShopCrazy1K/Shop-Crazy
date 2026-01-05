@@ -297,11 +297,16 @@ function ListingPageContent() {
           errorMessage = "Database connection issue. Please try refreshing the page.";
         } else if (err.message?.includes("DATABASE_URL") || err.message?.includes("Database configuration")) {
           errorMessage = "Database configuration error. The server needs to be reconfigured. Please contact support.";
+        } else if (err.message?.includes("Failed to fetch") || err.message?.includes("NetworkError")) {
+          errorMessage = "Network error. The server may be unreachable or the database connection failed. Please check your connection and try again.";
         } else if (err.message) {
           errorMessage = err.message;
         } else if (err.toString) {
           errorMessage = err.toString();
         }
+        
+        // Add diagnostic info
+        errorMessage += ` (Error: ${err.name || 'Unknown'})`;
         
         setError(errorMessage);
         setLoading(false);
@@ -1941,6 +1946,15 @@ function ListingPageWrapper() {
           <p className="text-gray-600 mb-4">
             There was an error loading the listing page. This might be a database connection issue.
           </p>
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-left text-sm">
+            <p className="font-semibold text-yellow-800 mb-1">Quick Diagnostic:</p>
+            <ol className="list-decimal list-inside text-yellow-700 space-y-1 text-xs">
+              <li>Check browser console (F12) for detailed errors</li>
+              <li>Visit <code className="bg-yellow-100 px-1 rounded">/api/listings/test-connection</code> to test database</li>
+              <li>Verify DATABASE_URL is set in Vercel environment variables</li>
+              <li>Redeploy after adding environment variables</li>
+            </ol>
+          </div>
           <div className="mb-6 space-y-2">
             <button
               onClick={() => window.location.reload()}
@@ -1954,13 +1968,20 @@ function ListingPageWrapper() {
             >
               Back to Marketplace
             </Link>
-            <Link
-              href="/api/test-all"
+            <a
+              href="/api/listings/test-connection"
               target="_blank"
               className="block w-full px-6 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold hover:bg-blue-200 transition-colors text-sm"
             >
-              Test API Status
-            </Link>
+              Test Database Connection
+            </a>
+            <a
+              href="/api/test-all"
+              target="_blank"
+              className="block w-full px-6 py-2 bg-green-100 text-green-700 rounded-lg font-semibold hover:bg-green-200 transition-colors text-sm"
+            >
+              Test All APIs
+            </a>
           </div>
         </div>
       </div>
