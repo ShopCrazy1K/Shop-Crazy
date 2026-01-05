@@ -1819,7 +1819,7 @@ function ListingPageContent() {
                 {/* Message Seller Button */}
                 {user && listing?.seller?.id && user.id !== listing?.seller?.id && (
                   <Link
-                    href={`/messages/${listing.seller.id}`}
+                    href={`/messages/${listing?.seller?.id || (listing as any)?.sellerId || ''}`}
                     className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
                   >
                     💬 Message Seller
