@@ -612,21 +612,29 @@ function ListingPageContent() {
                   {/* Thumbnails - Scrollable */}
                   {allImages.length > 1 && (
                     <div className="relative">
-                      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" style={{ scrollbarWidth: 'thin' }}>
+                      <div 
+                        className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 -mx-1 px-1"
+                        style={{ 
+                          scrollbarWidth: 'thin',
+                          WebkitOverflowScrolling: 'touch',
+                          touchAction: 'pan-x',
+                          overscrollBehaviorX: 'contain'
+                        }}
+                      >
                         {allImages.map((image, index) => (
                           <button
                             key={index}
                             onClick={() => setMainImageIndex(index)}
-                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all hover:shadow-md ${
+                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all hover:shadow-md touch-none ${
                               safeMainIndex === index
                                 ? 'border-purple-600 ring-2 ring-purple-200 shadow-md'
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
                             {isSeller || hasPaidOrder ? (
-                              <img src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
+                              <img src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover pointer-events-none" />
                             ) : (
-                              <ProtectedImage src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
+                              <ProtectedImage src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover pointer-events-none" />
                             )}
                           </button>
                         ))}
