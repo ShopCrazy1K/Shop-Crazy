@@ -303,19 +303,32 @@ function ListingPageContent() {
         console.log("[LISTING PAGE] Listing title:", data?.title);
         console.log("[LISTING PAGE] Is active:", data?.isActive);
         console.log("[LISTING PAGE] Has seller:", !!data?.seller);
-        console.log("[LISTING PAGE] Seller ID:", data?.seller?.id);
+        console.log("[LISTING PAGE] Seller ID:", data?.seller?.id || data?.sellerId);
         console.log("[LISTING PAGE] Images count:", Array.isArray(data?.images) ? data.images.length : 'N/A');
-        console.log("[LISTING PAGE] Full data structure:", JSON.stringify(data, null, 2));
         
-        if (!data || !data.id) {
-          console.error("[LISTING PAGE] ===== INVALID DATA =====");
-          console.error("[LISTING PAGE] Data received:", data);
-          console.error("[LISTING PAGE] Data type:", typeof data);
+        // Ensure data object exists and has minimum required fields
+        if (!data) {
+          console.error("[LISTING PAGE] ===== NO DATA RECEIVED =====");
           if (isMounted) {
-            setError("Invalid listing data received: missing ID. The listing might not exist or the server returned an error.");
+            setError("No data received from server. Please try refreshing the page.");
             setLoading(false);
           }
           return;
+        }
+        
+        // If no ID, try to use listingId from URL
+        if (!data.id) {
+          console.warn("[LISTING PAGE] Data missing ID, using listingId from URL:", listingId);
+          if (listingId) {
+            data.id = listingId;
+          } else {
+            console.error("[LISTING PAGE] ===== INVALID DATA: NO ID =====");
+            if (isMounted) {
+              setError("Invalid listing data: missing ID. The listing might not exist.");
+              setLoading(false);
+            }
+            return;
+          }
         }
         
         // Ensure arrays are arrays first (before validating seller)
