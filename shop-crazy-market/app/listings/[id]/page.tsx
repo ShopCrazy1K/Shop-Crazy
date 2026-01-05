@@ -993,10 +993,21 @@ function ListingPageContent() {
   // Ensure listing has required fields before rendering
   if (!listing.id || !listing.title) {
     console.error("[LISTING PAGE] Listing missing required fields:", listing);
-    if (!error) {
-      setError("Listing data is incomplete. Missing required fields.");
-    }
-    return null;
+    // Don't set state in render - let error state handle it
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Invalid Listing Data</h1>
+          <p className="text-gray-600 mb-4">The listing data is incomplete. Please try refreshing.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
