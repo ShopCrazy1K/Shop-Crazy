@@ -613,28 +613,55 @@ function ListingPageContent() {
                   {allImages.length > 1 && (
                     <div className="relative">
                       <div 
-                        className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 -mx-1 px-1"
+                        className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
                         style={{ 
                           scrollbarWidth: 'thin',
                           WebkitOverflowScrolling: 'touch',
-                          touchAction: 'pan-x',
-                          overscrollBehaviorX: 'contain'
+                          touchAction: 'pan-x pinch-zoom',
+                          overscrollBehaviorX: 'contain',
+                          msOverflowStyle: '-ms-autohiding-scrollbar'
                         }}
                       >
                         {allImages.map((image, index) => (
                           <button
                             key={index}
                             onClick={() => setMainImageIndex(index)}
-                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all hover:shadow-md touch-none ${
+                            onTouchStart={(e) => {
+                              // Allow scrolling but still enable tap
+                              const touch = e.touches[0];
+                              const button = e.currentTarget;
+                              const startX = touch.clientX;
+                              const startY = touch.clientY;
+                              
+                              const handleTouchMove = (moveEvent: TouchEvent) => {
+                                const moveTouch = moveEvent.touches[0];
+                                const deltaX = Math.abs(moveTouch.clientX - startX);
+                                const deltaY = Math.abs(moveTouch.clientY - startY);
+                                
+                                // If horizontal movement is greater, allow scrolling
+                                if (deltaX > deltaY && deltaX > 5) {
+                                  moveEvent.preventDefault();
+                                }
+                              };
+                              
+                              const handleTouchEnd = () => {
+                                document.removeEventListener('touchmove', handleTouchMove);
+                                document.removeEventListener('touchend', handleTouchEnd);
+                              };
+                              
+                              document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                              document.addEventListener('touchend', handleTouchEnd, { once: true });
+                            }}
+                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all hover:shadow-md ${
                               safeMainIndex === index
                                 ? 'border-purple-600 ring-2 ring-purple-200 shadow-md'
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
                             {isSeller || hasPaidOrder ? (
-                              <img src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover pointer-events-none" />
+                              <img src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
                             ) : (
-                              <ProtectedImage src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover pointer-events-none" />
+                              <ProtectedImage src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
                             )}
                           </button>
                         ))}
