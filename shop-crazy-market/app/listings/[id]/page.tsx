@@ -496,161 +496,186 @@ function ListingPageContent() {
   const safeMainIndex = Math.max(0, Math.min(mainImageIndex, allImages.length - 1));
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Success Messages */}
-        {feeStatus === "success" && listing && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-green-700">
-              ✅ Payment successful! {listing.isActive ? "Your listing is now active." : "Processing activation..."}
-            </p>
-          </div>
-        )}
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* Success Messages */}
+          {feeStatus === "success" && listing && (
+            <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-green-700 text-sm">
+                ✅ Payment successful! {listing.isActive ? "Your listing is now active." : "Processing activation..."}
+              </p>
+            </div>
+          )}
 
-        {/* Main Content - Etsy Style Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Left: Image Gallery */}
-          <div className="order-2 lg:order-1">
-            {allImages.length > 0 ? (
-              <div className="space-y-4">
-                {/* Main Image */}
-                <div className="relative aspect-square bg-gray-50 rounded-lg overflow-hidden">
-                  <div 
-                    className="w-full h-full cursor-pointer"
-                    onClick={() => allImages.length > 0 && setSelectedImageIndex(safeMainIndex)}
-                  >
-                    {isSeller || hasPaidOrder ? (
-                      <img
-                        src={allImages[safeMainIndex]}
-                        alt={listing.title}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <ProtectedImage
-                        src={allImages[safeMainIndex]}
-                        alt={listing.title}
-                        className="w-full h-full object-contain"
-                      />
+          {/* Breadcrumb */}
+          <nav className="mb-6 text-sm text-gray-500">
+            <Link href="/marketplace" className="hover:text-purple-600">Marketplace</Link>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900">{listing.title}</span>
+          </nav>
+
+          {/* Main Content - Modern Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
+            {/* Left: Image Gallery - Takes 3 columns on large screens */}
+            <div className="lg:col-span-3">
+              {allImages.length > 0 ? (
+                <div className="space-y-4">
+                  {/* Main Image */}
+                  <div className="relative aspect-square bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                    <div 
+                      className="w-full h-full cursor-zoom-in"
+                      onClick={() => allImages.length > 0 && setSelectedImageIndex(safeMainIndex)}
+                    >
+                      {isSeller || hasPaidOrder ? (
+                        <img
+                          src={allImages[safeMainIndex]}
+                          alt={listing.title}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <ProtectedImage
+                          src={allImages[safeMainIndex]}
+                          alt={listing.title}
+                          className="w-full h-full object-contain"
+                        />
+                      )}
+                    </div>
+                    
+                    {/* Navigation Arrows */}
+                    {allImages.length > 1 && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMainImageIndex((prev) => (prev > 0 ? prev - 1 : allImages.length - 1));
+                          }}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/95 hover:bg-white rounded-full p-3 shadow-lg border border-gray-200 transition-all hover:scale-110"
+                          aria-label="Previous image"
+                        >
+                          <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMainImageIndex((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
+                          }}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/95 hover:bg-white rounded-full p-3 shadow-lg border border-gray-200 transition-all hover:scale-110"
+                          aria-label="Next image"
+                        >
+                          <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                    
+                    {allImages.length > 1 && (
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-sm px-3 py-1.5 rounded-full backdrop-blur-sm">
+                        {safeMainIndex + 1} of {allImages.length}
+                      </div>
                     )}
                   </div>
-                  
-                  {/* Navigation Arrows */}
+
+                  {/* Thumbnails */}
                   {allImages.length > 1 && (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMainImageIndex((prev) => (prev > 0 ? prev - 1 : allImages.length - 1));
-                        }}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-2 shadow-lg"
-                        aria-label="Previous image"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMainImageIndex((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
-                        }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-2 shadow-lg"
-                        aria-label="Next image"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </>
-                  )}
-                  
-                  {allImages.length > 1 && (
-                    <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                      {safeMainIndex + 1} / {allImages.length}
+                    <div className="grid grid-cols-5 gap-3">
+                      {allImages.slice(0, 5).map((image, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setMainImageIndex(index)}
+                          className={`aspect-square rounded-lg overflow-hidden border-2 transition-all hover:shadow-md ${
+                            safeMainIndex === index
+                              ? 'border-purple-600 ring-2 ring-purple-200 shadow-md'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {isSeller || hasPaidOrder ? (
+                            <img src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
+                          ) : (
+                            <ProtectedImage src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
+                          )}
+                        </button>
+                      ))}
+                      {allImages.length > 5 && (
+                        <button
+                          onClick={() => setSelectedImageIndex(0)}
+                          className="aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-purple-400 flex flex-col items-center justify-center text-gray-500 hover:text-purple-600 transition-all"
+                        >
+                          <span className="text-sm font-medium">+{allImages.length - 5}</span>
+                          <span className="text-xs">more</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
-
-                {/* Thumbnails */}
-                {allImages.length > 1 && (
-                  <div className="grid grid-cols-4 gap-2">
-                    {allImages.slice(0, 4).map((image, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setMainImageIndex(index)}
-                        className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                          safeMainIndex === index
-                            ? 'border-purple-600 ring-2 ring-purple-200'
-                            : 'border-transparent hover:border-gray-300'
-                        }`}
-                      >
-                        {isSeller || hasPaidOrder ? (
-                          <img src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
-                        ) : (
-                          <ProtectedImage src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-                <span className="text-gray-400">No image available</span>
-              </div>
-            )}
-          </div>
-
-          {/* Right: Product Details */}
-          <div className="order-1 lg:order-2">
-            <div className="sticky top-8">
-              {/* Title and Favorite */}
-              <div className="flex items-start justify-between mb-4">
-                <h1 className="text-3xl font-bold text-gray-900 pr-4 flex-1">{listing.title}</h1>
-                {user && (
-                  <button
-                    onClick={toggleFavorite}
-                    disabled={favoriteLoading}
-                    className={`p-2 rounded-full transition-colors ${
-                      isFavorited ? "text-red-600" : "text-gray-400 hover:text-red-500"
-                    }`}
-                  >
-                    <svg className="w-6 h-6" fill={isFavorited ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-
-              {/* Deal Badge */}
-              {activeDeal && (
-                <div className="mb-4">
-                  <DealBadge deal={activeDeal} priceCents={listing.priceCents || 0} />
+              ) : (
+                <div className="aspect-square bg-gray-100 rounded-xl flex items-center justify-center border border-gray-200">
+                  <span className="text-gray-400">No image available</span>
                 </div>
               )}
+            </div>
 
-              {/* Price */}
-              <div className="mb-6">
-                {activeDeal && listing ? (
-                  <div>
-                    <div className="flex items-baseline gap-3 mb-1">
-                      <span className="text-4xl font-bold text-red-600">
-                        ${((listing.priceCents - (activeDeal.discountType === "PERCENTAGE" 
-                          ? Math.round((listing.priceCents * activeDeal.discountValue) / 100)
-                          : activeDeal.discountValue)) / 100).toFixed(2)}
-                      </span>
-                      <span className="text-2xl text-gray-400 line-through">
-                        ${((listing.priceCents || 0) / 100).toFixed(2)}
-                      </span>
-                    </div>
+            {/* Right: Product Details - Takes 2 columns on large screens */}
+            <div className="lg:col-span-2">
+              <div className="sticky top-6">
+                {/* Title and Favorite */}
+                <div className="flex items-start justify-between mb-4 gap-4">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex-1 leading-tight">{listing.title}</h1>
+                  {user && (
+                    <button
+                      onClick={toggleFavorite}
+                      disabled={favoriteLoading}
+                      className={`flex-shrink-0 p-2 rounded-full transition-all ${
+                        isFavorited 
+                          ? "text-red-600 bg-red-50 hover:bg-red-100" 
+                          : "text-gray-400 hover:text-red-500 hover:bg-gray-100"
+                      }`}
+                      aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                    >
+                      <svg className="w-6 h-6" fill={isFavorited ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                {/* Deal Badge */}
+                {activeDeal && (
+                  <div className="mb-4">
+                    <DealBadge deal={activeDeal} priceCents={listing.priceCents || 0} />
                   </div>
-                ) : (
-                  <span className="text-4xl font-bold text-gray-900">
-                    ${((listing.priceCents || 0) / 100).toFixed(2)}
-                  </span>
                 )}
-                <p className="text-sm text-gray-500 mt-1">{(listing.currency || "USD").toUpperCase()}</p>
-              </div>
+
+                {/* Price */}
+                <div className="mb-6 pb-6 border-b border-gray-200">
+                  {activeDeal && listing ? (
+                    <div>
+                      <div className="flex items-baseline gap-3 mb-2">
+                        <span className="text-3xl sm:text-4xl font-bold text-red-600">
+                          ${((listing.priceCents - (activeDeal.discountType === "PERCENTAGE" 
+                            ? Math.round((listing.priceCents * activeDeal.discountValue) / 100)
+                            : activeDeal.discountValue)) / 100).toFixed(2)}
+                        </span>
+                        <span className="text-xl sm:text-2xl text-gray-400 line-through">
+                          ${((listing.priceCents || 0) / 100).toFixed(2)}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-green-600">
+                        You save ${((activeDeal.discountType === "PERCENTAGE" 
+                          ? Math.round((listing.priceCents * activeDeal.discountValue) / 100)
+                          : activeDeal.discountValue) / 100).toFixed(2)}!
+                      </p>
+                    </div>
+                  ) : (
+                    <span className="text-3xl sm:text-4xl font-bold text-gray-900">
+                      ${((listing.priceCents || 0) / 100).toFixed(2)}
+                    </span>
+                  )}
+                  <p className="text-sm text-gray-500 mt-1">{(listing.currency || "USD").toUpperCase()}</p>
+                </div>
 
               {/* Add to Cart / Buy Now - Etsy Style */}
               {listing.isActive && (
@@ -707,65 +732,65 @@ function ListingPageContent() {
                 </div>
               )}
 
-              {/* Seller Info - Etsy Style */}
-              <div className="mb-8 pb-8 border-b">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    {listing.seller && listing.seller.id ? (
-                      <Link
-                        href={`/shop/${listing.seller.id}`}
-                        className="text-lg font-semibold text-gray-900 hover:text-purple-600 transition-colors"
-                      >
-                        {listing.seller.username || listing.seller.email || 'Unknown Seller'}
-                      </Link>
-                    ) : (
-                      <span className="text-lg font-semibold text-gray-900">Unknown Seller</span>
-                    )}
-                    {sellerStats && (
-                      <div className="mt-2 space-y-1">
-                        {averageRating > 0 && (
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center">
-                              {[...Array(5)].map((_, i) => (
-                                <span key={i} className={i < Math.round(averageRating) ? "text-yellow-400" : "text-gray-300"}>
-                                  ★
-                                </span>
-                              ))}
+                {/* Seller Info Card */}
+                <div className="mb-8 p-5 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      {listing.seller && listing.seller.id ? (
+                        <Link
+                          href={`/shop/${listing.seller.id}`}
+                          className="text-base font-semibold text-gray-900 hover:text-purple-600 transition-colors block mb-2"
+                        >
+                          {listing.seller.username || listing.seller.email || 'Unknown Seller'}
+                        </Link>
+                      ) : (
+                        <span className="text-base font-semibold text-gray-900 block mb-2">Unknown Seller</span>
+                      )}
+                      {sellerStats && (
+                        <div className="space-y-1.5">
+                          {averageRating > 0 && (
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center">
+                                {[...Array(5)].map((_, i) => (
+                                  <span key={i} className={i < Math.round(averageRating) ? "text-yellow-400" : "text-gray-300"} style={{ fontSize: '14px' }}>
+                                    ★
+                                  </span>
+                                ))}
+                              </div>
+                              <span className="text-sm text-gray-600">
+                                {averageRating.toFixed(1)} ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                              </span>
                             </div>
-                            <span className="text-sm text-gray-600">
-                              {averageRating.toFixed(1)} ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
-                            </span>
-                          </div>
-                        )}
-                        <p className="text-sm text-gray-600">
-                          {sellerStats.salesCount || 0} {sellerStats.salesCount === 1 ? 'sale' : 'sales'}
-                        </p>
-                      </div>
+                          )}
+                          <p className="text-sm text-gray-600">
+                            {sellerStats.salesCount || 0} {sellerStats.salesCount === 1 ? 'sale' : 'sales'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {user && listing?.seller?.id && user.id !== listing.seller.id && (
+                      <button
+                        onClick={toggleFollow}
+                        disabled={followLoading}
+                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                          isFollowing
+                            ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            : "bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50"
+                        }`}
+                      >
+                        {followLoading ? "..." : isFollowing ? "Following" : "Follow"}
+                      </button>
                     )}
                   </div>
                   {user && listing?.seller?.id && user.id !== listing.seller.id && (
-                    <button
-                      onClick={toggleFollow}
-                      disabled={followLoading}
-                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                        isFollowing
-                          ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                          : "bg-purple-600 text-white hover:bg-purple-700"
-                      }`}
+                    <Link
+                      href={`/messages/${listing.seller.id}`}
+                      className="block w-full text-center px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:border-gray-400 transition-colors text-sm"
                     >
-                      {followLoading ? "..." : isFollowing ? "Following" : "Follow"}
-                    </button>
+                      Message seller
+                    </Link>
                   )}
                 </div>
-                {user && listing?.seller?.id && user.id !== listing.seller.id && (
-                  <Link
-                    href={`/messages/${listing.seller.id}`}
-                    className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
-                  >
-                    Message seller
-                  </Link>
-                )}
-              </div>
 
               {/* Description */}
               <div className="mb-8">
