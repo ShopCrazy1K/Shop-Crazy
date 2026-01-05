@@ -613,8 +613,39 @@ function ListingPageContent() {
                   {/* Thumbnails - Scrollable */}
                   {allImages.length > 1 && (
                     <div className="relative">
+                      {/* Left scroll arrow - mobile only */}
+                      <button
+                        onClick={() => {
+                          if (thumbnailScrollRef.current) {
+                            thumbnailScrollRef.current.scrollBy({ left: -100, behavior: 'smooth' });
+                          }
+                        }}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-2 shadow-lg border border-gray-200 transition-all active:scale-95 md:hidden"
+                        aria-label="Scroll thumbnails left"
+                      >
+                        <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      
+                      {/* Right scroll arrow - mobile only */}
+                      <button
+                        onClick={() => {
+                          if (thumbnailScrollRef.current) {
+                            thumbnailScrollRef.current.scrollBy({ left: 100, behavior: 'smooth' });
+                          }
+                        }}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-2 shadow-lg border border-gray-200 transition-all active:scale-95 md:hidden"
+                        aria-label="Scroll thumbnails right"
+                      >
+                        <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      
                       <div 
-                        className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+                        ref={thumbnailScrollRef}
+                        className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 px-8 md:px-0"
                         style={{ 
                           scrollbarWidth: 'thin',
                           WebkitOverflowScrolling: 'touch',
