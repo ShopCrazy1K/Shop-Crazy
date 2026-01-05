@@ -389,27 +389,11 @@ function ListingPageContent() {
         // Update state - ensure we set all state synchronously
         if (isMounted) {
           console.log("[LISTING PAGE] ===== UPDATING STATE =====");
-          console.log("[LISTING PAGE] Setting listing state...");
-          
-          // Use setTimeout to ensure state updates happen in next tick (avoids race conditions)
-          setTimeout(() => {
-            if (isMounted) {
-              try {
-                console.log("[LISTING PAGE] Setting listing data:", data.id);
-                setListing(data);
-                setLoading(false);
-                setError("");
-                console.log("[LISTING PAGE] ===== STATE UPDATED SUCCESSFULLY =====");
-              } catch (stateError: any) {
-                console.error("[LISTING PAGE] ===== STATE UPDATE ERROR =====");
-                console.error("[LISTING PAGE] Error setting state:", stateError);
-                if (isMounted) {
-                  setError(`Failed to update state: ${stateError.message}`);
-                  setLoading(false);
-                }
-              }
-            }
-          }, 0);
+          console.log("[LISTING PAGE] Setting listing data:", data.id);
+          setListing(data);
+          setLoading(false);
+          setError("");
+          console.log("[LISTING PAGE] ===== STATE UPDATED SUCCESSFULLY =====");
         } else {
           console.log("[LISTING PAGE] Component unmounted, not updating state");
         }
