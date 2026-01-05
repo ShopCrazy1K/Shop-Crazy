@@ -62,6 +62,41 @@ function ListingPageContent() {
   const [error, setError] = useState("");
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [mainImageIndex, setMainImageIndex] = useState<number>(0);
+  
+  // Compute allImages using useMemo so it's available for hooks
+  const allImagesMemo = useMemo(() => {
+    if (!listing) return [];
+    const normalizedImages = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
+    const imageDigitalFiles = listing.digitalFiles.filter((url: string) => {
+      const ext = url.split('.').pop()?.toLowerCase();
+      return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
+    });
+    return Array.from(new Set([...normalizedImages, ...imageDigitalFiles]));
+  }, [listing?.images, listing?.digitalFiles]);
+  
+  // Keyboard navigation for image modal
+  useEffect(() => {
+    if (selectedImageIndex === null || allImagesMemo.length === 0) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedImageIndex === null || allImagesMemo.length === 0) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setSelectedImageIndex((prev) => prev !== null && prev > 0 ? prev - 1 : allImagesMemo.length - 1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setSelectedImageIndex((prev) => prev !== null && prev < allImagesMemo.length - 1 ? (prev + 1) : 0);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedImageIndex(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedImageIndex, allImagesMemo.length]);
+  
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [deals, setDeals] = useState<any[]>([]);
