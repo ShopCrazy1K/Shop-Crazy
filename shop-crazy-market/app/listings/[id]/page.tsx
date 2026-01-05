@@ -486,37 +486,9 @@ function ListingPageContent() {
   if (typeof listing.priceCents !== 'number' || isNaN(listing.priceCents)) listing.priceCents = 0;
   if (!listing.currency || typeof listing.currency !== 'string') listing.currency = 'usd';
 
-  // Prepare images
-  const normalizedImages = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
-  const imageDigitalFiles = listing.digitalFiles.filter((url: string) => {
-    const ext = url.split('.').pop()?.toLowerCase();
-    return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
-  });
-  const allImages = Array.from(new Set([...normalizedImages, ...imageDigitalFiles]));
+  // Prepare images - use the memoized value
+  const allImages = allImagesMemo;
   const safeMainIndex = Math.max(0, Math.min(mainImageIndex, allImages.length - 1));
-
-  // Keyboard navigation for image modal
-  useEffect(() => {
-    if (selectedImageIndex === null || allImages.length === 0) return;
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (selectedImageIndex === null || allImages.length === 0) return;
-      
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        setSelectedImageIndex((prev) => prev !== null && prev > 0 ? prev - 1 : allImages.length - 1);
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        setSelectedImageIndex((prev) => prev !== null && prev < allImages.length - 1 ? (prev + 1) : 0);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setSelectedImageIndex(null);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedImageIndex, allImages.length]);
 
   return (
     <div className="min-h-screen bg-gray-50">
