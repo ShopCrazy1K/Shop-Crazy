@@ -68,10 +68,67 @@ if (process.env.DATABASE_URL) {
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: ["error"],
-  });
+// Create Prisma client with better error handling
+let prismaInstance: PrismaClient;
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+try {
+  // Get cleaned DATABASE_URL
+  const dbUrl = process.env.DATABASE_URL;
+  
+  if (!dbUrl) {
+    throw new Error("DATABASE_URL environment variable is not set. Please configure it in Vercel.");
+  }
+  
+  // Clean the URL if needed (already done in next.config.js, but ensure it's clean here too)
+  let cleanedUrl = dbUrl.trim();
+  
+  // Ensure it starts with postgresql://
+  if (cleanedUrl.startsWith('postgres://')) {
+    cleanedUrl = cleanedUrl.replace('postgres://', 'postgresql://');
+  }
+  
+  // Add pgbouncer=true if using pooler and not already present
+  if (cleanedUrl.includes('pooler.supabase.com') && !cleanedUrl.includes('pgbouncer=true')) {
+    const separator = cleanedUrl.includes('?') ? '&' : '?';
+    cleanedUrl = `${cleanedUrl}${separator}pgbouncer=true`;
+  }
+  
+  prismaInstance =
+    globalForPrisma.prisma ??
+    new PrismaClient({
+      log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+      datasources: {
+        db: {
+          url: cleanedUrl,
+        },
+      },
+    });
+
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = prismaInstance;
+  }
+  
+  console.log("[PRISMA] Prisma Client initialized successfully");
+  console.log("[PRISMA] DATABASE_URL configured:", !!dbUrl);
+  console.log("[PRISMA] Using pooler:", cleanedUrl.includes('pooler'));
+  console.log("[PRISMA] Using pgbouncer:", cleanedUrl.includes('pgbouncer=true'));
+} catch (error: any) {
+  console.error("[PRISMA] Failed to initialize Prisma Client:", error);
+  console.error("[PRISMA] Error name:", error.name);
+  console.error("[PRISMA] Error message:", error.message);
+  console.error("[PRISMA] DATABASE_URL configured:", !!process.env.DATABASE_URL);
+  console.error("[PRISMA] DATABASE_URL length:", process.env.DATABASE_URL?.length || 0);
+  
+  // Don't throw - instead create a client that will show errors when used
+  // This prevents the app from crashing at startup
+  prismaInstance = new PrismaClient({
+    log: ["error"],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL || "postgresql://",
+      },
+    },
+  }) as any;
+}
+
+export const prisma = prismaInstance;
