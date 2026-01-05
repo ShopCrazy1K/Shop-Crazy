@@ -23,6 +23,7 @@ interface Listing {
   isActive: boolean;
   feeSubscriptionStatus: string | null;
   createdAt: string;
+  sellerId?: string; // Optional: may exist in API response
   seller: {
     id: string;
     email: string;
