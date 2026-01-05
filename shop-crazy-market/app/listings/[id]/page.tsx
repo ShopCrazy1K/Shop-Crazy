@@ -31,31 +31,32 @@ interface Listing {
 }
 
 function ListingPageContent() {
-  const params = useParams();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  
-  // Safely get context values with error handling
-  let user: any = null;
-  let addItem: (item: any) => void = () => {};
-  
   try {
-    const authContext = useAuth();
-    user = authContext?.user || null;
-  } catch (authError: any) {
-    console.error("[LISTING PAGE] Error accessing AuthContext:", authError);
-    user = null;
-  }
-  
-  try {
-    const cartContext = useCart();
-    addItem = cartContext?.addItem || (() => {});
-  } catch (cartError: any) {
-    console.error("[LISTING PAGE] Error accessing CartContext:", cartError);
-    addItem = () => {};
-  }
-  
-  const listingId = params.id as string;
+    const params = useParams();
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    
+    // Safely get context values with error handling
+    let user: any = null;
+    let addItem: (item: any) => void = () => {};
+    
+    try {
+      const authContext = useAuth();
+      user = authContext?.user || null;
+    } catch (authError: any) {
+      console.error("[LISTING PAGE] Error accessing AuthContext:", authError);
+      user = null;
+    }
+    
+    try {
+      const cartContext = useCart();
+      addItem = cartContext?.addItem || (() => {});
+    } catch (cartError: any) {
+      console.error("[LISTING PAGE] Error accessing CartContext:", cartError);
+      addItem = () => {};
+    }
+    
+    const listingId = params?.id as string || '';
   
   // All state hooks must be declared before any conditional returns
   const [listing, setListing] = useState<Listing | null>(null);
