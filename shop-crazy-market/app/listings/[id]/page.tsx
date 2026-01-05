@@ -693,7 +693,7 @@ function ListingPageContent() {
 
   async function fetchReviews() {
     if (!listing) return;
-    const sellerId = listing?.seller?.id || listing?.sellerId;
+    const sellerId = listing?.seller?.id || (listing as any)?.sellerId;
     if (!sellerId) return;
     try {
       const response = await fetch(`/api/users/${sellerId}/reviews`);
@@ -713,7 +713,7 @@ function ListingPageContent() {
 
   async function checkFollowStatus() {
     if (!user || !listing) return;
-    const sellerId = listing?.seller?.id || listing?.sellerId;
+    const sellerId = listing?.seller?.id || (listing as any)?.sellerId;
     if (!sellerId || user.id === sellerId) return;
     try {
       const response = await fetch(`/api/users/${sellerId}/follow?followerId=${user.id}`);
@@ -736,7 +736,7 @@ function ListingPageContent() {
       return;
     }
 
-    const sellerId = listing?.seller?.id || listing?.sellerId;
+    const sellerId = listing?.seller?.id || (listing as any)?.sellerId;
     if (!sellerId || user.id === sellerId) {
       setFollowLoading(false);
       return;
