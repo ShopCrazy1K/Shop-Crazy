@@ -34,8 +34,25 @@ function ListingPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user } = useAuth();
-  const { addItem } = useCart();
+  
+  // Safely get context values with error handling
+  let user, addItem;
+  try {
+    const authContext = useAuth();
+    user = authContext?.user || null;
+  } catch (authError: any) {
+    console.error("[LISTING PAGE] Error accessing AuthContext:", authError);
+    user = null;
+  }
+  
+  try {
+    const cartContext = useCart();
+    addItem = cartContext?.addItem || (() => {});
+  } catch (cartError: any) {
+    console.error("[LISTING PAGE] Error accessing CartContext:", cartError);
+    addItem = () => {};
+  }
+  
   const listingId = params.id as string;
   
   // All state hooks must be declared before any conditional returns
@@ -170,7 +187,11 @@ function ListingPageContent() {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
+            'Content-Type': 'application/json',
           },
+        }).catch((fetchError: any) => {
+          console.error("[LISTING PAGE] Fetch failed completely:", fetchError);
+          throw new Error(`Network error: ${fetchError.message || 'Failed to fetch listing'}`);
         });
         
         const fetchTime = Date.now() - startTime;
@@ -1937,6 +1958,20 @@ function ListingPageContent() {
 }
 
 function ListingPageWrapper() {
+  // Log any render errors
+  if (typeof window !== 'undefined') {
+    window.addEventListener('error', (event) => {
+      console.error('[LISTING PAGE] Global error caught:', event.error);
+      console.error('[LISTING PAGE] Error message:', event.message);
+      console.error('[LISTING PAGE] Error filename:', event.filename);
+      console.error('[LISTING PAGE] Error lineno:', event.lineno);
+    });
+    
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('[LISTING PAGE] Unhandled promise rejection:', event.reason);
+    });
+  }
+
   return (
     <ErrorBoundary fallback={
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -1946,6 +1981,11 @@ function ListingPageWrapper() {
           <p className="text-gray-600 mb-4">
             There was an error loading the listing page. This might be a database connection issue.
           </p>
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-left text-sm">
+            <p className="font-semibold text-red-800 mb-2">⚠️ IMPORTANT: Check Browser Console!</p>
+            <p className="text-red-700 text-xs mb-2">Press F12 → Console tab → Look for RED errors</p>
+            <p className="text-red-700 text-xs">The actual error details are in the console, not on this page.</p>
+          </div>
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-left text-sm">
             <p className="font-semibold text-yellow-800 mb-1">Quick Diagnostic:</p>
             <ol className="list-decimal list-inside text-yellow-700 space-y-1 text-xs">
@@ -1957,7 +1997,10 @@ function ListingPageWrapper() {
           </div>
           <div className="mb-6 space-y-2">
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                console.log('[LISTING PAGE] Manual refresh triggered');
+                window.location.reload();
+              }}
               className="w-full px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
             >
               Refresh Page
@@ -1972,6 +2015,7 @@ function ListingPageWrapper() {
               href="/api/listings/test-connection"
               target="_blank"
               className="block w-full px-6 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold hover:bg-blue-200 transition-colors text-sm"
+              onClick={() => console.log('[LISTING PAGE] Testing database connection...')}
             >
               Test Database Connection
             </a>
@@ -1979,6 +2023,7 @@ function ListingPageWrapper() {
               href="/api/test-all"
               target="_blank"
               className="block w-full px-6 py-2 bg-green-100 text-green-700 rounded-lg font-semibold hover:bg-green-200 transition-colors text-sm"
+              onClick={() => console.log('[LISTING PAGE] Testing all APIs...')}
             >
               Test All APIs
             </a>
