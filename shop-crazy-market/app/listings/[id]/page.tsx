@@ -62,7 +62,7 @@ function ListingPageContent() {
   const [error, setError] = useState("");
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [mainImageIndex, setMainImageIndex] = useState<number>(0);
-  const thumbnailScrollRef = React.useRef<HTMLDivElement>(null);
+  const thumbnailScrollRef = useRef<HTMLDivElement>(null);
   
   // Compute allImages using useMemo so it's available for hooks
   const allImagesMemo = useMemo(() => {
