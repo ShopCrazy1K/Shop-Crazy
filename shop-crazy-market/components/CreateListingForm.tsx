@@ -120,21 +120,22 @@ export default function CreateListingForm() {
       return;
     }
 
-    // Always send digitalFiles array (empty if none, to ensure type is set correctly)
-    const finalDigitalFiles = digitalFileUrls.length > 0 ? digitalFileUrls : [];
-
     try {
-      const payload = {
+      const payload: any = {
         title,
         description,
         priceCents: priceInCents,
         category: category || undefined,
         images: imageUrls.length > 0 ? imageUrls : [],
-        digitalFiles: finalDigitalFiles, // Always include, even if empty
         sellerId: user.id,
       };
       
-      console.log("[CREATE LISTING FORM] Payload digitalFiles:", finalDigitalFiles.length, "files");
+      // Only include digitalFiles if there are files (validation requires min 1 if provided)
+      if (digitalFileUrls.length > 0) {
+        payload.digitalFiles = digitalFileUrls;
+      }
+      
+      console.log("[CREATE LISTING FORM] Payload digitalFiles:", digitalFileUrls.length, "files");
 
       console.log("[CREATE LISTING FORM] Submitting payload:", payload);
       
