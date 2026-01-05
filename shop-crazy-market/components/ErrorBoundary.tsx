@@ -6,6 +6,7 @@ import Link from "next/link";
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  errorInfo?: React.ErrorInfo;
 }
 
 interface ErrorBoundaryProps {
@@ -28,6 +29,13 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     console.error("Error stack:", error.stack);
     console.error("Component stack:", errorInfo.componentStack);
     
+    // Store detailed error info in state so it can be displayed
+    this.setState({
+      hasError: true,
+      error: error,
+      errorInfo: errorInfo,
+    });
+    
     // Log to console for debugging
     if (typeof window !== 'undefined') {
       console.error("Full error details:", {
@@ -36,6 +44,20 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         stack: error.stack,
         componentStack: errorInfo.componentStack,
       });
+      
+      // Also try to send to an error tracking service or API
+      try {
+        fetch('/api/log-error', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            error: error.message,
+            stack: error.stack,
+            componentStack: errorInfo.componentStack,
+            url: window.location.href,
+          }),
+        }).catch(() => {}); // Silently fail if error logging fails
+      } catch (e) {}
     }
   }
 
@@ -52,23 +74,56 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Oops! Something went wrong</h1>
             {this.state.error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-left">
-                <p className="text-sm font-semibold text-red-800 mb-1">Error:</p>
-                <p className="text-xs text-red-700 font-mono break-words">{this.state.error.message || "Unknown error occurred"}</p>
-                {this.state.error.message?.includes("DATABASE_URL") && (
-                  <p className="text-xs text-yellow-700 mt-2">
-                    ⚠️ Database configuration issue. Please check server settings.
-                  </p>
-                )}
-                {this.state.error.message?.includes("timeout") && (
-                  <p className="text-xs text-yellow-700 mt-2">
-                    ⚠️ Request timed out. The server may be slow to respond.
-                  </p>
-                )}
+                <p className="text-sm font-semibold text-red-800 mb-1">Error Details:</p>
+                <p className="text-xs text-red-700 font-mono break-words mb-2">
+                  <strong>Message:</strong> {this.state.error.message || "Unknown error occurred"}
+                </p>
+                <p className="text-xs text-red-700 font-mono break-words mb-2">
+                  <strong>Type:</strong> {this.state.error.name || "Error"}
+                </p>
+                
+                {this.state.error.message?.includes("DATABASE_URL") || this.state.error.message?.includes("database") || this.state.error.message?.includes("Database") ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">
+                    <p className="text-xs text-yellow-800 font-semibold mb-1">🔍 Database Issue Detected</p>
+                    <p className="text-xs text-yellow-700">
+                      This is likely a database connection problem. Check:
+                    </p>
+                    <ul className="text-xs text-yellow-700 list-disc list-inside mt-1">
+                      <li>DATABASE_URL is set in Vercel environment variables</li>
+                      <li>Redeployed after adding environment variables</li>
+                      <li>Database is accessible from Vercel</li>
+                    </ul>
+                  </div>
+                ) : this.state.error.message?.includes("timeout") || this.state.error.message?.includes("fetch") ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">
+                    <p className="text-xs text-yellow-800 font-semibold mb-1">⚠️ Network/Timeout Issue</p>
+                    <p className="text-xs text-yellow-700">
+                      The server took too long to respond or there's a network issue.
+                    </p>
+                  </div>
+                ) : this.state.error.message?.includes("useAuth") || this.state.error.message?.includes("useCart") || this.state.error.message?.includes("Context") ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">
+                    <p className="text-xs text-yellow-800 font-semibold mb-1">⚠️ Context Issue</p>
+                    <p className="text-xs text-yellow-700">
+                      There's an issue with React context providers. This might be a code issue.
+                    </p>
+                  </div>
+                ) : null}
+                
                 {process.env.NODE_ENV === "development" && this.state.error.stack && (
                   <details className="mt-2">
-                    <summary className="text-xs text-red-600 cursor-pointer">View stack trace</summary>
-                    <pre className="mt-2 text-xs text-red-700 overflow-auto max-h-40">
+                    <summary className="text-xs text-red-600 cursor-pointer">View stack trace (Dev Mode)</summary>
+                    <pre className="mt-2 text-xs text-red-700 overflow-auto max-h-40 bg-white p-2 rounded">
                       {this.state.error.stack}
+                    </pre>
+                  </details>
+                )}
+                
+                {this.state.errorInfo?.componentStack && process.env.NODE_ENV === "development" && (
+                  <details className="mt-2">
+                    <summary className="text-xs text-red-600 cursor-pointer">View component stack (Dev Mode)</summary>
+                    <pre className="mt-2 text-xs text-red-700 overflow-auto max-h-40 bg-white p-2 rounded">
+                      {this.state.errorInfo.componentStack}
                     </pre>
                   </details>
                 )}

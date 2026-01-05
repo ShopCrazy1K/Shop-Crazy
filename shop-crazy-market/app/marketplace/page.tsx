@@ -99,6 +99,7 @@ function MarketplaceContent() {
   async function fetchListings() {
     try {
       setLoading(true);
+      setError(null);
       let url = "/api/listings?";
       if (selectedCategory !== "all") {
         url += `category=${encodeURIComponent(selectedCategory)}&`;
@@ -113,8 +114,19 @@ function MarketplaceContent() {
         url += `excludeUserId=${encodeURIComponent(user.id)}&`;
       }
 
-      const response = await fetch(url);
       console.log("[MARKETPLACE] Fetch URL:", url);
+      
+      // Add timeout for fetch
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      
+      const response = await fetch(url, {
+        signal: controller.signal,
+        cache: 'no-store',
+      });
+      
+      clearTimeout(timeoutId);
+      
       console.log("[MARKETPLACE] Response status:", response.status);
       
       if (response.ok) {
@@ -128,6 +140,7 @@ function MarketplaceContent() {
         
         if (!Array.isArray(listings)) {
           console.error("[MARKETPLACE] Invalid response format - not an array:", listings);
+          setError("Invalid response from server. Please try again.");
           setProducts([]);
           setLoading(false);
           return;
@@ -440,13 +453,46 @@ function MarketplaceContent() {
               )}
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <span className="text-red-500 text-xl">⚠️</span>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <h3 className="text-sm font-semibold text-red-800 mb-1">Error Loading Listings</h3>
+                    <p className="text-sm text-red-700 mb-3">{error}</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={fetchListings}
+                        className="text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        Retry
+                      </button>
+                      <Link
+                        href="/api/test-all"
+                        target="_blank"
+                        className="text-sm bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors"
+                      >
+                        Check API Status
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Products Grid - Etsy Style */}
             {loading ? (
               <div className="text-center text-gray-500 py-20">
                 <div className="animate-spin text-4xl mb-4">⏳</div>
                 <p>Loading products...</p>
+                {error && (
+                  <p className="text-sm text-red-500 mt-2">{error}</p>
+                )}
               </div>
-            ) : products.length === 0 ? (
+            ) : products.length === 0 && !error ? (
               <div className="text-center py-20 bg-white rounded-lg border border-gray-200">
                 <p className="text-xl font-semibold text-gray-700 mb-2">No products found</p>
                 <p className="text-gray-500 mb-4">

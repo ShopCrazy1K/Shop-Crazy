@@ -1,163 +1,70 @@
-# Add DATABASE_URL to Vercel - Step by Step
+# 🔧 Add DATABASE_URL to Vercel
 
-## ✅ Correct Value (You Have This!)
-
-```
-postgresql://postgres:Icemanbaby1991%23@db.hbufjpxdzmygjnbfsniu.supabase.co:5432/postgres
-```
-
-This is **correct** - the password is properly encoded (`%23` instead of `#`).
-
----
-
-## 📋 Step-by-Step Instructions
-
-### Step 1: Go to Vercel Environment Variables
-
-1. **Go to:** https://vercel.com/dashboard
-2. **Click on your project** (or go directly to: https://vercel.com/[your-project]/settings/environment-variables)
-3. **Click:** "Settings" tab
-4. **Click:** "Environment Variables" in the left sidebar
-
-### Step 2: Add or Update DATABASE_URL
-
-**If DATABASE_URL doesn't exist:**
-1. Click **"Add New"** button
-2. **Key:** `DATABASE_URL`
-3. **Value:** Paste the string above
-4. **Environment:** Select all three:
-   - ✅ Production
-   - ✅ Preview
-   - ✅ Development
-5. Click **"Save"**
-
-**If DATABASE_URL already exists:**
-1. Find `DATABASE_URL` in the list
-2. Click **"Edit"** (or the pencil icon)
-3. **Replace the value** with the string above
-4. **Verify environments** are selected (Production, Preview, Development)
-5. Click **"Save"**
-
-### Step 3: Verify the Value
-
-After saving, verify:
-- ✅ Key is exactly: `DATABASE_URL`
-- ✅ Value contains: `%23` (not `#`)
-- ✅ Value starts with: `postgresql://postgres:`
-- ✅ Value ends with: `:5432/postgres`
-- ✅ No extra spaces before/after
-
-### Step 4: Redeploy
-
-1. **Go to:** Deployments tab
-2. **Click:** "..." (three dots) on the latest deployment
-3. **Click:** "Redeploy"
-4. **Wait:** 2-3 minutes for deployment to complete
-
----
-
-## 🔍 Visual Guide
-
-### What You Should See in Vercel:
+## Your DATABASE_URL
 
 ```
-Environment Variables
-
-┌─────────────────────────────────────────┐
-│ Key              │ Value                 │
-├─────────────────────────────────────────┤
-│ DATABASE_URL     │ postgresql://postg... │
-│                  │ (click to view full)  │
-└─────────────────────────────────────────┘
+postgresql://postgres.hbufjpxdzmygjnbfsniu:Puggyboy11281991@aws-1-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require
 ```
 
-### When You Click to View:
+## Step-by-Step: Add to Vercel
 
-```
-postgresql://postgres:Icemanbaby1991%23@db.hbufjpxdzmygjnbfsniu.supabase.co:5432/postgres
-```
+1. **Go to Vercel Dashboard:**
+   - https://vercel.com/dashboard
+   - Select your project
 
-**Key things to check:**
-- ✅ `%23` is present (not `#`)
-- ✅ No spaces
-- ✅ Complete URL
+2. **Open Settings:**
+   - Click "Settings" (left sidebar)
+   - Click "Environment Variables"
 
----
+3. **Add DATABASE_URL:**
+   - Click "Add New"
+   - **Key:** `DATABASE_URL`
+   - **Value:** Paste the URL above (the entire string)
+   - **Environment:** Select ALL:
+     - ✅ Production
+     - ✅ Preview
+     - ✅ Development
+   - Click "Save"
 
-## ✅ Verification Checklist
+4. **Verify It's Added:**
+   - Should see `DATABASE_URL` in the list
+   - Should show "Production, Preview, Development" under it
 
-After adding/updating:
+5. **Redeploy:**
+   - Go to "Deployments" tab
+   - Click "..." on latest deployment
+   - Click "Redeploy"
+   - Wait for completion
 
-- [ ] DATABASE_URL exists in Vercel
-- [ ] Value contains `%23` (not `#`)
-- [ ] All environments selected (Production, Preview, Development)
-- [ ] Saved successfully
-- [ ] Redeployed application
-- [ ] Build completed successfully
-- [ ] Can sign up without errors
+## Verify It Works
 
----
+After redeploying, test:
 
-## 🧪 Test After Deployment
+1. Visit: `/api/health-check`
+   - Should show: `"database": { "configured": true, "connected": true }`
 
-1. **Wait for deployment to complete** (check Vercel dashboard)
-2. **Visit your site:** `https://[your-project].vercel.app`
-3. **Try to sign up:**
-   - Go to sign up page
-   - Fill in form
-   - Submit
-   - Should work without DATABASE_URL errors ✅
+2. Visit: `/debug-runtime`
+   - Should show all APIs working (green ✅)
 
----
+3. Test listing click:
+   - Go to marketplace
+   - Click a listing
+   - Should load correctly
 
-## 🆘 Troubleshooting
+4. Test notification bell:
+   - Click the bell icon
+   - Should open dropdown
 
-### "Still getting errors after updating"
+## Important Notes
 
-1. **Double-check the value:**
-   - Copy the exact string from this guide
-   - Make sure `%23` is there (not `#`)
-   - No extra characters or spaces
+- ✅ URL format is correct (postgresql://, port 6543, pgbouncer=true)
+- ✅ Password doesn't need encoding (no special chars)
+- ⚠️ Make sure to add to ALL environments (Production, Preview, Development)
+- ⚠️ After adding, you MUST redeploy for it to take effect
 
-2. **Verify it's saved:**
-   - Go back to Environment Variables
-   - Click on DATABASE_URL
-   - Verify the value is correct
+## If Still Not Working
 
-3. **Check deployment:**
-   - Make sure you redeployed after updating
-   - Check build logs for any errors
-   - Wait for deployment to fully complete
-
-4. **Clear cache (if needed):**
-   - Sometimes Vercel caches environment variables
-   - Try redeploying again
-   - Or wait a few minutes and try again
-
----
-
-## 📞 Quick Reference
-
-**Correct DATABASE_URL:**
-```
-postgresql://postgres:Icemanbaby1991%23@db.hbufjpxdzmygjnbfsniu.supabase.co:5432/postgres
-```
-
-**Where to add:**
-- Vercel → Settings → Environment Variables
-
-**After adding:**
-- Save
-- Redeploy
-- Test sign up
-
----
-
-## 🎉 Success!
-
-Once you've added this correctly:
-- ✅ Database connection will work
-- ✅ Sign up will work
-- ✅ All database operations will work
-- ✅ No more "invalid port number" errors
-
+1. Check health check: `/api/health-check`
+2. If `connected: false`, verify DATABASE_URL is correct
+3. Check Vercel Runtime Logs for errors
+4. Verify database allows connections from Vercel IPs

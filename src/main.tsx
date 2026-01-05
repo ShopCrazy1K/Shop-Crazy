@@ -1,5 +1,5 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
@@ -9,15 +9,15 @@ const rootElement = document.getElementById('root');
 console.log('Root element:', rootElement);
 
 if (rootElement) {
-  console.log('Rendering with ReactDOM.render');
+  console.log('Rendering with createRoot');
   
-  ReactDOM.render(
+  const root = createRoot(rootElement);
+  root.render(
     <React.StrictMode>
       <App />
-    </React.StrictMode>,
-    rootElement
+    </React.StrictMode>
   );
-  console.log('App rendered with ReactDOM.render');
+  console.log('App rendered with createRoot');
 } else {
   console.error('Root element not found!');
 }

@@ -14,7 +14,8 @@
     "test:security-headers": "bash scripts/test-security-headers.sh",
     "test:security": "npm run test:checkout && npm run test:security-headers",
     "setup:postgres": "bash scripts/setup-postgres.sh",
-    "update-favicon": "bash scripts/update-favicon.sh"
+    "update-favicon": "bash scripts/update-favicon.sh",
+    "deploy": "bash trigger-deployment-simple.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -3,8 +3,6 @@
 import { useState, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
-export const dynamic = 'force-dynamic';
-
 function DiagnoseListingContent() {
   const searchParams = useSearchParams();
   const [listingId, setListingId] = useState("");

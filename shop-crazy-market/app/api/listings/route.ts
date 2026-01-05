@@ -258,9 +258,42 @@ export async function GET(request: Request) {
     console.log("[API LISTINGS] Returning", listings.length, "listings");
     return NextResponse.json(listings);
   } catch (error: any) {
-    console.error("Error fetching listings:", error);
+    console.error("[API LISTINGS GET] Error fetching listings:", error);
+    console.error("[API LISTINGS GET] Error name:", error?.name);
+    console.error("[API LISTINGS GET] Error code:", error?.code);
+    console.error("[API LISTINGS GET] Error message:", error?.message);
+    
+    // Handle Prisma client errors
+    if (error.code?.startsWith('P')) {
+      return NextResponse.json(
+        { 
+          error: "Database error occurred.",
+          details: error.message || "An error occurred while querying the database.",
+          code: error.code,
+          fix: "Please check database configuration and connectivity.",
+        },
+        { status: 500 }
+      );
+    }
+    
+    // Handle prepared statement errors (PgBouncer)
+    if (error.message?.includes("prepared statement") || error.message?.includes("42P05")) {
+      return NextResponse.json(
+        { 
+          error: "Database connection issue. Please try again in a moment.",
+          details: "The database connection pooler is experiencing issues.",
+          fix: "Retry the request. If it persists, check DATABASE_URL configuration.",
+        },
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: "Failed to fetch listings" },
+      { 
+        error: error.message || "Failed to fetch listings",
+        details: "An unexpected error occurred while fetching listings.",
+        fix: "Please try again or contact support if the problem persists.",
+      },
       { status: 500 }
     );
   }
