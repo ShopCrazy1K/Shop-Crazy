@@ -735,11 +735,14 @@ function ListingPageContent() {
       return;
     }
 
-    if (!listing?.seller?.id || user.id === listing.seller.id) return;
+    const sellerId = listing?.seller?.id || listing?.sellerId;
+    if (!sellerId || user.id === sellerId) {
+      setFollowLoading(false);
+      return;
+    }
 
     setFollowLoading(true);
     try {
-      const sellerId = listing?.seller?.id || listing?.sellerId;
       if (!sellerId) {
         console.error("[LISTING PAGE] Cannot follow: no seller ID");
         setFollowLoading(false);
