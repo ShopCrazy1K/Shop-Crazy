@@ -617,54 +617,56 @@ function ListingPageContent() {
                         style={{ 
                           scrollbarWidth: 'thin',
                           WebkitOverflowScrolling: 'touch',
-                          touchAction: 'pan-x pinch-zoom',
+                          touchAction: 'pan-x',
                           overscrollBehaviorX: 'contain',
                           msOverflowStyle: '-ms-autohiding-scrollbar'
-                        }}
+                        } as React.CSSProperties}
                       >
-                        {allImages.map((image, index) => (
-                          <button
-                            key={index}
-                            onClick={() => setMainImageIndex(index)}
-                            onTouchStart={(e) => {
-                              // Allow scrolling but still enable tap
-                              const touch = e.touches[0];
-                              const button = e.currentTarget;
-                              const startX = touch.clientX;
-                              const startY = touch.clientY;
-                              
-                              const handleTouchMove = (moveEvent: TouchEvent) => {
-                                const moveTouch = moveEvent.touches[0];
-                                const deltaX = Math.abs(moveTouch.clientX - startX);
-                                const deltaY = Math.abs(moveTouch.clientY - startY);
+                        {allImages.map((image, index) => {
+                          let touchStartX = 0;
+                          let touchStartY = 0;
+                          let isScrolling = false;
+                          
+                          return (
+                            <button
+                              key={index}
+                              onTouchStart={(e) => {
+                                const touch = e.touches[0];
+                                touchStartX = touch.clientX;
+                                touchStartY = touch.clientY;
+                                isScrolling = false;
+                              }}
+                              onTouchMove={(e) => {
+                                if (!e.touches[0]) return;
+                                const touch = e.touches[0];
+                                const deltaX = Math.abs(touch.clientX - touchStartX);
+                                const deltaY = Math.abs(touch.clientY - touchStartY);
                                 
-                                // If horizontal movement is greater, allow scrolling
-                                if (deltaX > deltaY && deltaX > 5) {
-                                  moveEvent.preventDefault();
+                                // If horizontal movement is greater than vertical, it's a scroll
+                                if (deltaX > deltaY && deltaX > 10) {
+                                  isScrolling = true;
                                 }
-                              };
-                              
-                              const handleTouchEnd = () => {
-                                document.removeEventListener('touchmove', handleTouchMove);
-                                document.removeEventListener('touchend', handleTouchEnd);
-                              };
-                              
-                              document.addEventListener('touchmove', handleTouchMove, { passive: false });
-                              document.addEventListener('touchend', handleTouchEnd, { once: true });
-                            }}
-                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all hover:shadow-md ${
-                              safeMainIndex === index
-                                ? 'border-purple-600 ring-2 ring-purple-200 shadow-md'
-                                : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                          >
-                            {isSeller || hasPaidOrder ? (
-                              <img src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
-                            ) : (
-                              <ProtectedImage src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover" />
-                            )}
-                          </button>
-                        ))}
+                              }}
+                              onClick={(e) => {
+                                // Only handle click if it wasn't a scroll
+                                if (!isScrolling) {
+                                  setMainImageIndex(index);
+                                }
+                              }}
+                              className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all hover:shadow-md active:scale-95 ${
+                                safeMainIndex === index
+                                  ? 'border-purple-600 ring-2 ring-purple-200 shadow-md'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              {isSeller || hasPaidOrder ? (
+                                <img src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover select-none" draggable={false} />
+                              ) : (
+                                <ProtectedImage src={image} alt={`${listing.title} ${index + 1}`} className="w-full h-full object-cover select-none" />
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
