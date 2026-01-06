@@ -89,10 +89,24 @@ export async function GET(request: NextRequest) {
       count: view._count.id,
     }));
 
+    // Calculate online users (unique IPs + unique user IDs in last 15 minutes)
+    // We count unique IPs and unique logged-in users separately, then combine
+    const uniqueOnlineIps = new Set(onlineUsersByIp.map(u => u.ipAddress).filter(Boolean));
+    const uniqueOnlineUserIds = new Set(onlineLoggedInUsers.map(u => u.userId).filter(Boolean));
+    // For logged-in users, we prefer counting by userId over IP to avoid double-counting
+    // But we also count unique IPs for anonymous users
+    // To get a more accurate count, we'll count:
+    // - All unique logged-in users (by userId)
+    // - Plus anonymous users (IPs that don't match any logged-in user's recent activity)
+    // For simplicity, we'll use the higher of the two counts (IPs or userIds) plus some overlap estimate
+    // Actually, let's just count unique IPs as that's more straightforward for "online users"
+    const onlineUsersCount = uniqueOnlineIps.size;
+
     return NextResponse.json({
       ok: true,
       todayViews,
       todayUniqueVisitors: todayUniqueVisitors.length,
+      onlineUsers: onlineUsersCount, // Users active in last 15 minutes
       totalViews,
       dailyViews: dailyViewsFormatted,
       topPages: topPages.map((page) => ({
