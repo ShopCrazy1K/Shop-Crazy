@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Tracks page views by sending requests to the API
@@ -10,12 +9,23 @@ import { useAuth } from "@/contexts/AuthContext";
  */
 export default function PageViewTracker() {
   const pathname = usePathname();
-  const { user } = useAuth();
 
   useEffect(() => {
     // Don't track admin pages to avoid inflating numbers
     if (pathname?.startsWith('/admin')) {
       return;
+    }
+
+    // Get user ID from localStorage if available (optional)
+    let userId: string | null = null;
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        userId = user?.id || null;
+      }
+    } catch (e) {
+      // Ignore localStorage errors
     }
 
     // Track page view
@@ -28,7 +38,7 @@ export default function PageViewTracker() {
           },
           body: JSON.stringify({
             path: pathname || '/',
-            userId: user?.id || null,
+            userId: userId,
           }),
         });
       } catch (error) {
@@ -41,7 +51,7 @@ export default function PageViewTracker() {
     const timer = setTimeout(trackView, 500);
     
     return () => clearTimeout(timer);
-  }, [pathname, user?.id]);
+  }, [pathname]);
 
   return null; // This component doesn't render anything
 }
