@@ -63,6 +63,39 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Get online users (users with views in the last 15 minutes)
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    const onlineUsersByIp = await prisma.pageView.groupBy({
+      by: ['ipAddress'],
+      where: {
+        createdAt: {
+          gte: fifteenMinutesAgo,
+        },
+        ipAddress: {
+          not: null,
+        },
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    // Get online logged-in users (by userId) active in last 15 minutes
+    const onlineLoggedInUsers = await prisma.pageView.groupBy({
+      by: ['userId'],
+      where: {
+        createdAt: {
+          gte: fifteenMinutesAgo,
+        },
+        userId: {
+          not: null,
+        },
+      },
+      _count: {
+        id: true,
+      },
+    });
+
     // Get most viewed pages
     const topPages = await prisma.pageView.groupBy({
       by: ['path'],
