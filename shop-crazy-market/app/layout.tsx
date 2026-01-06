@@ -15,12 +15,6 @@ import MobileMetaTags from "@/components/MobileMetaTags";
 export const metadata = {
   title: "Shop Crazy Market",
   description: "Where the deals get crazy - Your one-stop shop for unique items, digital products, and more",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-  },
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -78,6 +72,13 @@ export const metadata = {
       "max-snippet": -1,
     },
   },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
