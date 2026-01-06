@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 // import WinterDecorations from "@/components/WinterDecorations";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import MobileMetaTags from "@/components/MobileMetaTags";
+import PageViewTracker from "@/components/PageViewTracker";
 
 export const metadata = {
   title: "Shop Crazy Market",
@@ -145,6 +146,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </ErrorBoundary>
           </ThemeProvider>
         </ErrorBoundary>
+        <PageViewTracker />
       </body>
     </html>
   );

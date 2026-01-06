@@ -556,3 +556,22 @@ model CreditLedger {
   @@index([userId])
   @@index([sellerId])
 }
+
+//////////////////////////////////////
+// PAGE VIEW TRACKING
+//////////////////////////////////////
+
+model PageView {
+  id        String   @id @default(cuid())
+  date      DateTime @default(now()) @db.Date // Date of the view (date only, no time)
+  path      String   // Page path (e.g., "/", "/listings/123", "/marketplace")
+  userAgent String?  // User agent string
+  ipAddress String?  // IP address (for analytics, may be anonymized)
+  userId    String?  // Optional: logged-in user ID
+  createdAt DateTime @default(now()) // Timestamp of when the view was recorded
+
+  @@index([date])
+  @@index([path])
+  @@index([userId])
+  @@index([date, path])
+}

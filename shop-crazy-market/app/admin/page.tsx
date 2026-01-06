@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import ViewCount from "@/components/admin/ViewCount";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -68,6 +69,11 @@ export default async function AdminDashboard() {
             <p className="text-3xl font-bold text-gray-900">{s.value}</p>
           </Link>
         ))}
+      </div>
+
+      {/* View Statistics Section */}
+      <div className="mb-8">
+        <ViewCount />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
