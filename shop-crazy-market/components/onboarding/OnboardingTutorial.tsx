@@ -97,6 +97,22 @@ export default function OnboardingTutorial({ isOpen, onComplete, onSkip, userId 
   }, [isOpen]);
 
   async function handleComplete() {
+    // Mark as completed in localStorage immediately
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`tutorial_completed_${userId}`, "true");
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          userData.tutorialCompleted = true;
+          localStorage.setItem("user", JSON.stringify(userData));
+        }
+      } catch (error) {
+        console.error("Error updating localStorage:", error);
+      }
+    }
+
+    // Update in database
     try {
       const response = await fetch(`/api/users/${userId}/tutorial`, {
         method: "PUT",
@@ -109,10 +125,13 @@ export default function OnboardingTutorial({ isOpen, onComplete, onSkip, userId 
 
       if (response.ok) {
         onComplete();
+      } else {
+        // Still complete even if API fails - localStorage is the source of truth
+        onComplete();
       }
     } catch (error) {
       console.error("Error completing tutorial:", error);
-      onComplete(); // Still close tutorial even if API call fails
+      onComplete(); // Still close tutorial even if API call fails - localStorage is updated
     }
   }
 
