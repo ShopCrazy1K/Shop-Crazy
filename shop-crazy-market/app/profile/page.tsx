@@ -621,7 +621,7 @@ export default function ProfilePage() {
       </section>
 
       {/* Tabs Navigation */}
-      <section className="bg-white border-b sticky top-[140px] sm:top-[180px] z-20">
+      <section className="bg-white border-b z-20">
         <div className="max-w-4xl mx-auto">
           <div className="flex overflow-x-auto">
             <TabButton
