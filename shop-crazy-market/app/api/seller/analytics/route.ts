@@ -57,6 +57,8 @@ export async function GET(req: NextRequest) {
         feesTotalCents: true,
         createdAt: true,
         listingId: true,
+        userId: true,
+        buyerEmail: true,
         listing: { select: { id: true, title: true, category: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -164,13 +166,13 @@ export async function GET(req: NextRequest) {
       : 0;
 
     // Recent customers (last 10)
-    const recentCustomers = Array.from(uniqueCustomers).slice(0, 10).map(customerId => {
+    const recentCustomers = Array.from(uniqueCustomers).slice(0, 10).map((customerId: string) => {
       const customerOrders = orders.filter(
-        o => (o.userId === customerId) || (o.buyerEmail === customerId)
+        (o: OrderWithCustomer) => (o.userId === customerId) || (o.buyerEmail === customerId)
       );
-      const totalSpent = customerOrders.reduce((sum, o) => sum + o.orderTotalCents, 0);
+      const totalSpent = customerOrders.reduce((sum, o: OrderWithCustomer) => sum + o.orderTotalCents, 0);
       return {
-        userId: customerId as string,
+        userId: customerId,
         orders: customerOrders.length,
         totalSpent,
         lastOrderDate: customerOrders[0]?.createdAt || new Date(),
