@@ -13,29 +13,36 @@ function parseImages(images: string | string[] | null | undefined): string[] {
   if (!images) return [];
   if (Array.isArray(images)) return images;
   if (typeof images === 'string') {
-    // Check if it's a JSON string
     if (images.trim().startsWith('[') || images.trim().startsWith('{')) {
       try {
         return JSON.parse(images);
       } catch {
-        // If parsing fails, treat as single image path
         return [images];
       }
     }
-    // If it's a plain string path, return as array
     return [images];
   }
   return [];
 }
 
+type Tab = "overview" | "listings" | "settings" | "activity";
+
 export default function ProfilePage() {
   const { user, logout, loading } = useAuth();
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [stats, setStats] = useState({
     orders: 0,
     favorites: 0,
     listings: 0,
     messages: 0,
+  });
+  const [socialStats, setSocialStats] = useState({
+    followers: 0,
+    following: 0,
+    reviews: 0,
+    averageRating: 0,
+    sales: 0,
   });
   const [myListings, setMyListings] = useState<any[]>([]);
   const [myProducts, setMyProducts] = useState<any[]>([]);
@@ -59,6 +66,11 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [profileCompletion, setProfileCompletion] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -68,13 +80,180 @@ export default function ProfilePage() {
 
     if (user) {
       fetchStats();
+      fetchSocialStats();
       fetchMyListings();
       fetchAbout();
       fetchShopPolicies();
       fetchStoreCredit();
       fetchReferralCount();
+      fetchAvatar();
+      fetchCoverPhoto();
+      calculateProfileCompletion();
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (user) {
+      calculateProfileCompletion();
+    }
+  }, [user, about, avatar, shopPolicies, myListings]);
+
+  async function fetchAvatar() {
+    if (!user?.id) return;
+    try {
+      const response = await fetch(`/api/users/${user.id}/avatar`);
+      if (response.ok) {
+        const data = await response.json();
+        setAvatar(data.avatar || null);
+      }
+    } catch (error) {
+      console.error("Error fetching avatar:", error);
+    }
+  }
+
+  async function fetchCoverPhoto() {
+    if (!user?.id) return;
+    try {
+      const response = await fetch(`/api/users/${user.id}/cover-photo`);
+      if (response.ok) {
+        const data = await response.json();
+        setCoverPhoto(data.coverPhoto || null);
+      }
+    } catch (error) {
+      console.error("Error fetching cover photo:", error);
+    }
+  }
+
+  async function fetchSocialStats() {
+    if (!user?.id) return;
+    try {
+      const response = await fetch(`/api/users/${user.id}/stats`);
+      if (response.ok) {
+        const data = await response.json();
+        setSocialStats({
+          followers: data.followersCount || 0,
+          following: data.followingCount || 0,
+          reviews: data.reviewsCount || 0,
+          averageRating: data.averageRating || 0,
+          sales: data.salesCount || 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching social stats:", error);
+    }
+  }
+
+  function calculateProfileCompletion() {
+    if (!user) return;
+    let completed = 0;
+    let total = 7;
+
+    if (user.username) completed++;
+    if (avatar) completed++;
+    if (about && about.trim().length > 0) completed++;
+    if (coverPhoto) completed++;
+    if (shopPolicies && (shopPolicies.shopAbout || shopPolicies.shippingPolicy)) completed++;
+    if (myListings.length > 0 || myProducts.length > 0) completed++;
+    if (referralCount > 0) completed++;
+
+    setProfileCompletion(Math.round((completed / total) * 100));
+  }
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload avatar");
+      }
+
+      const uploadData = await uploadResponse.json();
+      const avatarUrl = uploadData.url || uploadData.path;
+
+      const saveResponse = await fetch(`/api/users/${user.id}/avatar`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+        },
+        body: JSON.stringify({ avatar: avatarUrl }),
+      });
+
+      if (saveResponse.ok) {
+        setAvatar(avatarUrl);
+        // Update local user state
+        const updatedUser = { ...user, avatar: avatarUrl };
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        }
+        alert("Avatar updated successfully!");
+      } else {
+        throw new Error("Failed to save avatar");
+      }
+    } catch (error: any) {
+      console.error("Error uploading avatar:", error);
+      alert(error.message || "Failed to upload avatar");
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleCoverPhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    setUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload cover photo");
+      }
+
+      const uploadData = await uploadResponse.json();
+      const coverUrl = uploadData.url || uploadData.path;
+
+      const saveResponse = await fetch(`/api/users/${user.id}/cover-photo`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+        },
+        body: JSON.stringify({ coverPhoto: coverUrl }),
+      });
+
+      if (saveResponse.ok) {
+        setCoverPhoto(coverUrl);
+        alert("Cover photo updated successfully!");
+      } else {
+        throw new Error("Failed to save cover photo");
+      }
+    } catch (error: any) {
+      console.error("Error uploading cover photo:", error);
+      alert(error.message || "Failed to upload cover photo");
+    } finally {
+      setUploadingCover(false);
+      e.target.value = "";
+    }
+  }
 
   async function fetchAbout() {
     if (!user?.id) return;
@@ -187,21 +366,18 @@ export default function ProfilePage() {
 
   async function fetchStats() {
     try {
-      // Fetch orders count
       const ordersRes = await fetch(`/api/orders?userId=${user?.id}`);
       if (ordersRes.ok) {
         const orders = await ordersRes.json();
         setStats((prev) => ({ ...prev, orders: orders.length }));
       }
 
-      // Fetch favorites count
       const favsRes = await fetch(`/api/favorites?userId=${user?.id}`);
       if (favsRes.ok) {
         const favorites = await favsRes.json();
         setStats((prev) => ({ ...prev, favorites: favorites.length }));
       }
 
-      // Fetch listings count (both Listing and Product models)
       const [listingsRes, productsRes] = await Promise.all([
         fetch(`/api/listings/my-listings?userId=${user?.id}`),
         fetch(`/api/products/my-listings?userId=${user?.id}`),
@@ -226,7 +402,6 @@ export default function ProfilePage() {
     if (!user) return;
     setLoadingListings(true);
     try {
-      // Fetch both Listing and Product records
       const [listingsRes, productsRes] = await Promise.all([
         fetch(`/api/listings/my-listings?userId=${user?.id}`),
         fetch(`/api/products/my-listings?userId=${user?.id}`),
@@ -266,18 +441,15 @@ export default function ProfilePage() {
       const data = await response.json();
 
       if (response.ok) {
-        // If listing was deactivated (not deleted), update it in the list
         if (data.deactivated) {
           setMyListings((prev) => 
             prev.map((l) => 
               l.id === listingId ? { ...l, isActive: false } : l
             )
           );
-          alert(data.message || "Listing has been deactivated. It cannot be permanently deleted because it has associated orders, deals, or reports.");
+          alert(data.message || "Listing has been deactivated.");
         } else {
-          // Listing was actually deleted, remove it from the list
           setMyListings((prev) => prev.filter((l) => l.id !== listingId));
-          // Update the listings count
           setStats((prev) => ({ ...prev, listings: prev.listings - 1 }));
           alert("Listing deleted successfully!");
         }
@@ -306,9 +478,7 @@ export default function ProfilePage() {
       });
 
       if (response.ok) {
-        // Remove the product from the list
         setMyProducts((prev) => prev.filter((p) => p.id !== productId));
-        // Update the listings count
         setStats((prev) => ({ ...prev, listings: prev.listings - 1 }));
         alert("Product deleted successfully!");
       } else {
@@ -334,335 +504,331 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="p-3 sm:p-4 space-y-4 sm:space-y-6 md:space-y-8 pb-24">
-      {/* Logo Section */}
-      <section className="flex justify-center mb-2 sm:mb-4">
-        <Logo className="w-full max-w-2xl sm:max-w-3xl" />
-      </section>
-
-      {/* Search Bar */}
-      <section className="max-w-2xl mx-auto px-2 sm:px-0">
-        <SearchBar />
-      </section>
-
-      {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3">
-        <StatCard number={stats.orders} label="Orders" emoji="📦" href="/orders" />
-        <StatCard number={stats.favorites} label="Favorites" emoji="❤️" href="/favorites" />
-        <StatCard number={stats.listings} label="Listings" emoji="📝" href="#my-listings" />
-        <StatCard number={stats.messages} label="Messages" emoji="💬" href="/messages" />
-        <StatCard number={referralCount} label="Referrals" emoji="💰" href="/referrals" />
-      </div>
-
-      {/* User Info Card */}
-      <section className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0">
-        <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-center">Account Information</h2>
-        <div className="space-y-3 sm:space-y-4">
-          <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg sm:rounded-xl">
-            <div className="flex-1 min-w-0 pr-2">
-              <p className="text-gray-500 text-xs sm:text-sm">Email</p>
-              <p className="font-semibold text-sm sm:text-lg truncate">{user.email}</p>
-            </div>
-            <span className="text-xl sm:text-2xl flex-shrink-0">📧</span>
+    <main className="min-h-screen bg-gray-50 pb-24">
+      {/* Header with Logo and Search */}
+      <section className="bg-white border-b sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex justify-center mb-3">
+            <Logo className="w-full max-w-2xl sm:max-w-3xl" />
           </div>
-
-          {/* Username Section */}
-          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg sm:rounded-xl p-3 sm:p-4">
-            {!editingUsername ? (
-              <div className="flex justify-between items-center">
-                <div className="flex-1 min-w-0 pr-2">
-                  <p className="text-gray-500 text-xs sm:text-sm">Username</p>
-                  <p className="font-semibold text-sm sm:text-lg truncate">
-                    {user.username || "Not set"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl sm:text-2xl flex-shrink-0">👤</span>
-                  <button
-                    onClick={() => {
-                      setNewUsername(user.username || "");
-                      setEditingUsername(true);
-                      setUsernameError("");
-                    }}
-                    className="text-purple-600 hover:text-purple-700 text-xs sm:text-sm font-semibold px-2 py-1"
-                  >
-                    Edit
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700">Username</label>
-                <input
-                  type="text"
-                  value={newUsername}
-                  onChange={(e) => {
-                    setNewUsername(e.target.value);
-                    setUsernameError("");
-                  }}
-                  placeholder="Enter username"
-                  className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
-                  maxLength={20}
-                />
-                {usernameError && (
-                  <p className="text-xs text-red-600">{usernameError}</p>
-                )}
-                <p className="text-xs text-gray-500">
-                  3-20 characters, letters, numbers, underscores, or hyphens
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={async () => {
-                      if (!newUsername.trim()) {
-                        setUsernameError("Username cannot be empty");
-                        return;
-                      }
-
-                      const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
-                      if (!usernameRegex.test(newUsername.trim())) {
-                        setUsernameError("Username must be 3-20 characters and contain only letters, numbers, underscores, or hyphens");
-                        return;
-                      }
-
-                      setSavingUsername(true);
-                      setUsernameError("");
-                      try {
-                        const response = await fetch(`/api/users/${user.id}`, {
-                          method: "PUT",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ username: newUsername.trim() }),
-                        });
-
-                        const data = await response.json();
-                        if (response.ok) {
-                          // Update local user state
-                          const updatedUser = { ...user, username: newUsername.trim() };
-                          // Update in localStorage if it exists
-                          const storedUser = localStorage.getItem("user");
-                          if (storedUser) {
-                            localStorage.setItem("user", JSON.stringify(updatedUser));
-                          }
-                          // Force page reload to update auth context
-                          window.location.reload();
-                        } else {
-                          setUsernameError(data.error || "Failed to update username");
-                        }
-                      } catch (error) {
-                        console.error("Error updating username:", error);
-                        setUsernameError("An error occurred while updating username");
-                      } finally {
-                        setSavingUsername(false);
-                      }
-                    }}
-                    disabled={savingUsername}
-                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 text-sm sm:text-base"
-                  >
-                    {savingUsername ? "Saving..." : "Save"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingUsername(false);
-                      setNewUsername("");
-                      setUsernameError("");
-                    }}
-                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-sm sm:text-base"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg sm:rounded-xl">
-            <div className="flex-1 min-w-0 pr-2">
-              <p className="text-gray-500 text-xs sm:text-sm">Account Type</p>
-              <p className="font-semibold text-sm sm:text-lg capitalize">{user.role.toLowerCase()}</p>
-            </div>
-            <span className="text-xl sm:text-2xl flex-shrink-0">
-              {user.role === "ADMIN" ? "👑" : "⭐"}
-            </span>
-          </div>
-
-          {/* Password Change Section */}
-          <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg sm:rounded-xl p-3 sm:p-4">
-            {!changingPassword ? (
-              <div className="flex justify-between items-center">
-                <div className="flex-1 min-w-0 pr-2">
-                  <p className="text-gray-500 text-xs sm:text-sm">Password</p>
-                  <p className="font-semibold text-sm sm:text-lg">••••••••</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl sm:text-2xl flex-shrink-0">🔒</span>
-                  <button
-                    onClick={() => {
-                      setChangingPassword(true);
-                      setCurrentPassword("");
-                      setNewPassword("");
-                      setConfirmPassword("");
-                      setPasswordError("");
-                      setPasswordSuccess(false);
-                    }}
-                    className="text-purple-600 hover:text-purple-700 text-xs sm:text-sm font-semibold px-2 py-1"
-                  >
-                    Change
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700">Change Password</label>
-                  <button
-                    onClick={() => {
-                      setChangingPassword(false);
-                      setCurrentPassword("");
-                      setNewPassword("");
-                      setConfirmPassword("");
-                      setPasswordError("");
-                      setPasswordSuccess(false);
-                    }}
-                    className="text-gray-500 hover:text-gray-700 text-xs"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                
-                {passwordSuccess && (
-                  <div className="bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded-lg text-xs sm:text-sm">
-                    Password changed successfully!
-                  </div>
-                )}
-                
-                {passwordError && (
-                  <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded-lg text-xs sm:text-sm">
-                    {passwordError}
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Current Password</label>
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => {
-                      setCurrentPassword(e.target.value);
-                      setPasswordError("");
-                    }}
-                    placeholder="Enter current password"
-                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">New Password</label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => {
-                      setNewPassword(e.target.value);
-                      setPasswordError("");
-                    }}
-                    placeholder="Enter new password"
-                    minLength={8}
-                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Must be at least 8 characters
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Confirm New Password</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      setPasswordError("");
-                    }}
-                    placeholder="Confirm new password"
-                    minLength={8}
-                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
-                  />
-                </div>
-
-                <button
-                  onClick={async () => {
-                    if (!currentPassword) {
-                      setPasswordError("Please enter your current password");
-                      return;
-                    }
-                    if (!newPassword || newPassword.length < 8) {
-                      setPasswordError("New password must be at least 8 characters");
-                      return;
-                    }
-                    if (newPassword !== confirmPassword) {
-                      setPasswordError("Passwords do not match");
-                      return;
-                    }
-
-                    setPasswordError("");
-                    try {
-                      const response = await fetch(`/api/users/${user.id}/change-password`, {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                          "x-user-id": user.id,
-                        },
-                        body: JSON.stringify({
-                          currentPassword,
-                          newPassword,
-                        }),
-                      });
-
-                      const data = await response.json();
-                      if (response.ok) {
-                        setPasswordSuccess(true);
-                        setCurrentPassword("");
-                        setNewPassword("");
-                        setConfirmPassword("");
-                        setTimeout(() => {
-                          setChangingPassword(false);
-                          setPasswordSuccess(false);
-                        }, 2000);
-                      } else {
-                        setPasswordError(data.error || "Failed to change password");
-                      }
-                    } catch (error) {
-                      console.error("Error changing password:", error);
-                      setPasswordError("An error occurred while changing password");
-                    }
-                  }}
-                  className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors text-sm sm:text-base"
-                >
-                  Change Password
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Store Credit */}
-          <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg sm:rounded-xl border-2 border-yellow-200">
-            <div className="flex-1 min-w-0 pr-2">
-              <p className="text-gray-500 text-xs sm:text-sm">Store Credit</p>
-              {loadingStoreCredit ? (
-                <p className="font-semibold text-sm sm:text-lg">Loading...</p>
-              ) : (
-                <p className="font-semibold text-sm sm:text-lg text-green-600">
-                  ${((storeCredit || 0) / 100).toFixed(2)}
-                </p>
-              )}
-            </div>
-            <span className="text-xl sm:text-2xl flex-shrink-0">💳</span>
+          <div className="max-w-2xl mx-auto">
+            <SearchBar />
           </div>
         </div>
       </section>
 
+      {/* Profile Header with Cover Photo and Avatar */}
+      <section className="relative">
+        {/* Cover Photo */}
+        <div className="relative h-48 sm:h-64 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
+          {coverPhoto ? (
+            <img
+              src={coverPhoto}
+              alt="Cover"
+              className="w-full h-full object-cover"
+            />
+          ) : null}
+          <div className="absolute inset-0 bg-black/20"></div>
+          
+          {/* Cover Photo Upload Button */}
+          <div className="absolute top-4 right-4">
+            <label className="bg-white/90 hover:bg-white text-gray-700 px-3 py-2 rounded-lg text-sm font-semibold cursor-pointer transition-colors flex items-center gap-2">
+              {uploadingCover ? "Uploading..." : "📷 Cover"}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleCoverPhotoUpload}
+                disabled={uploadingCover}
+                className="hidden"
+              />
+            </label>
+          </div>
+
+          {/* Avatar */}
+          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
+            <div className="relative">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
+                {avatar ? (
+                  <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400 text-white text-3xl sm:text-4xl font-bold">
+                    {user.username?.[0]?.toUpperCase() || user.email[0]?.toUpperCase() || "?"}
+                  </div>
+                )}
+              </div>
+              <label className="absolute bottom-0 right-0 bg-purple-600 text-white p-2 rounded-full cursor-pointer hover:bg-purple-700 transition-colors shadow-lg">
+                {uploadingAvatar ? (
+                  <span className="text-xs">⏳</span>
+                ) : (
+                  <span className="text-sm">📷</span>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  disabled={uploadingAvatar}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Profile Info Section */}
+        <div className="pt-16 sm:pt-20 pb-4 bg-white">
+          <div className="max-w-4xl mx-auto px-4 text-center">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+              {user.username || "User"}
+            </h1>
+            <p className="text-gray-600 mb-4">{user.email}</p>
+            
+            {/* Profile Completion Indicator */}
+            <div className="max-w-md mx-auto mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold text-gray-700">Profile Completion</span>
+                <span className="text-sm font-bold text-purple-600">{profileCompletion}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500"
+                  style={{ width: `${profileCompletion}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* View Public Profile Button */}
+            <Link
+              href={`/shop/${user.id}`}
+              className="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors text-sm mb-4"
+            >
+              👁️ View Public Profile
+            </Link>
+
+            {/* Social Stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mt-6 max-w-2xl mx-auto">
+              <StatCard number={socialStats.followers} label="Followers" emoji="👥" />
+              <StatCard number={socialStats.following} label="Following" emoji="➕" />
+              <StatCard number={socialStats.reviews} label="Reviews" emoji="⭐" />
+              <StatCard 
+                number={socialStats.averageRating > 0 ? socialStats.averageRating.toFixed(1) : "0.0"} 
+                label="Rating" 
+                emoji="⭐" 
+              />
+              <StatCard number={socialStats.sales} label="Sales" emoji="💰" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Tabs Navigation */}
+      <section className="bg-white border-b sticky top-[140px] sm:top-[180px] z-20">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex overflow-x-auto">
+            <TabButton
+              active={activeTab === "overview"}
+              onClick={() => setActiveTab("overview")}
+              label="Overview"
+              emoji="📊"
+            />
+            <TabButton
+              active={activeTab === "listings"}
+              onClick={() => setActiveTab("listings")}
+              label="My Listings"
+              emoji="📦"
+            />
+            <TabButton
+              active={activeTab === "settings"}
+              onClick={() => setActiveTab("settings")}
+              label="Settings"
+              emoji="⚙️"
+            />
+            <TabButton
+              active={activeTab === "activity"}
+              onClick={() => setActiveTab("activity")}
+              label="Activity"
+              emoji="📈"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Tab Content */}
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6">
+        {activeTab === "overview" && (
+          <OverviewTab
+            stats={stats}
+            referralCount={referralCount}
+            storeCredit={storeCredit}
+            loadingStoreCredit={loadingStoreCredit}
+            user={user}
+            about={about}
+            editingAbout={editingAbout}
+            setEditingAbout={setEditingAbout}
+            setAbout={setAbout}
+            saveAbout={saveAbout}
+            savingAbout={savingAbout}
+            shopPolicies={shopPolicies}
+            editingPolicies={editingPolicies}
+            setEditingPolicies={setEditingPolicies}
+            setShopPolicies={setShopPolicies}
+            saveShopPolicies={saveShopPolicies}
+            savingPolicies={savingPolicies}
+            socialStats={socialStats}
+          />
+        )}
+
+        {activeTab === "listings" && (
+          <ListingsTab
+            myListings={myListings}
+            myProducts={myProducts}
+            loadingListings={loadingListings}
+            handleDeleteListing={handleDeleteListing}
+            handleDeleteProduct={handleDeleteProduct}
+            parseImages={parseImages}
+            user={user}
+          />
+        )}
+
+        {activeTab === "settings" && (
+          <SettingsTab
+            user={user}
+            editingUsername={editingUsername}
+            setEditingUsername={setEditingUsername}
+            newUsername={newUsername}
+            setNewUsername={setNewUsername}
+            savingUsername={savingUsername}
+            setSavingUsername={setSavingUsername}
+            usernameError={usernameError}
+            setUsernameError={setUsernameError}
+            changingPassword={changingPassword}
+            setChangingPassword={setChangingPassword}
+            currentPassword={currentPassword}
+            setCurrentPassword={setCurrentPassword}
+            newPassword={newPassword}
+            setNewPassword={setNewPassword}
+            confirmPassword={confirmPassword}
+            setConfirmPassword={setConfirmPassword}
+            passwordError={passwordError}
+            setPasswordError={setPasswordError}
+            passwordSuccess={passwordSuccess}
+            setPasswordSuccess={setPasswordSuccess}
+            logout={logout}
+            router={router}
+          />
+        )}
+
+        {activeTab === "activity" && (
+          <ActivityTab
+            user={user}
+            stats={stats}
+            socialStats={socialStats}
+            referralCount={referralCount}
+            myListings={myListings}
+          />
+        )}
+      </div>
+    </main>
+  );
+}
+
+function TabButton({ active, onClick, label, emoji }: { active: boolean; onClick: () => void; label: string; emoji: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-4 sm:px-6 py-3 font-semibold border-b-2 transition-colors whitespace-nowrap ${
+        active
+          ? "border-purple-600 text-purple-600 bg-purple-50"
+          : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
+      }`}
+    >
+      <span>{emoji}</span>
+      <span className="text-sm sm:text-base">{label}</span>
+    </button>
+  );
+}
+
+function StatCard({ number, label, emoji }: { number: number | string; label: string; emoji: string }) {
+  return (
+    <div className="bg-white rounded-lg p-3 sm:p-4 text-center shadow-md hover:shadow-lg transition-shadow">
+      <div className="text-2xl sm:text-3xl mb-1">{emoji}</div>
+      <div className="text-xl sm:text-2xl font-bold text-purple-600">{number}</div>
+      <div className="text-xs text-gray-600 font-semibold">{label}</div>
+    </div>
+  );
+}
+
+function OverviewTab({ 
+  stats, 
+  referralCount, 
+  storeCredit, 
+  loadingStoreCredit, 
+  user,
+  about,
+  editingAbout,
+  setEditingAbout,
+  setAbout,
+  saveAbout,
+  savingAbout,
+  shopPolicies,
+  editingPolicies,
+  setEditingPolicies,
+  setShopPolicies,
+  saveShopPolicies,
+  savingPolicies,
+  socialStats,
+}: any) {
+  return (
+    <div className="space-y-6">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+        <Link href="/orders" className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow text-center">
+          <div className="text-2xl sm:text-3xl mb-1">📦</div>
+          <div className="text-xl sm:text-2xl font-bold text-purple-600">{stats.orders}</div>
+          <div className="text-xs text-gray-600 font-semibold">Orders</div>
+        </Link>
+        <Link href="/favorites" className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow text-center">
+          <div className="text-2xl sm:text-3xl mb-1">❤️</div>
+          <div className="text-xl sm:text-2xl font-bold text-purple-600">{stats.favorites}</div>
+          <div className="text-xs text-gray-600 font-semibold">Favorites</div>
+        </Link>
+        <Link href="#listings" className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow text-center">
+          <div className="text-2xl sm:text-3xl mb-1">📝</div>
+          <div className="text-xl sm:text-2xl font-bold text-purple-600">{stats.listings}</div>
+          <div className="text-xs text-gray-600 font-semibold">Listings</div>
+        </Link>
+        <Link href="/messages" className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow text-center">
+          <div className="text-2xl sm:text-3xl mb-1">💬</div>
+          <div className="text-xl sm:text-2xl font-bold text-purple-600">{stats.messages}</div>
+          <div className="text-xs text-gray-600 font-semibold">Messages</div>
+        </Link>
+        <Link href="/referrals" className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow text-center">
+          <div className="text-2xl sm:text-3xl mb-1">💰</div>
+          <div className="text-xl sm:text-2xl font-bold text-purple-600">{referralCount}</div>
+          <div className="text-xs text-gray-600 font-semibold">Referrals</div>
+        </Link>
+      </div>
+
+      {/* Store Credit Card */}
+      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-6 shadow-md">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-600 mb-1">Store Credit</p>
+            {loadingStoreCredit ? (
+              <p className="text-2xl font-bold text-gray-900">Loading...</p>
+            ) : (
+              <p className="text-3xl font-bold text-green-600">
+                ${((storeCredit || 0) / 100).toFixed(2)}
+              </p>
+            )}
+          </div>
+          <span className="text-4xl">💳</span>
+        </div>
+      </div>
+
       {/* About Section */}
-      <section className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0 mb-4">
-        <div className="flex items-center justify-between mb-3 sm:mb-4">
-          <h2 className="text-xl sm:text-2xl font-bold">About</h2>
+      <div className="bg-white rounded-xl p-6 shadow-md">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">About</h2>
           {!editingAbout && (
             <button
               onClick={() => setEditingAbout(true)}
@@ -690,10 +856,7 @@ export default function ProfilePage() {
                 {savingAbout ? "Saving..." : "Save"}
               </button>
               <button
-                onClick={() => {
-                  setEditingAbout(false);
-                  fetchAbout(); // Reset to original
-                }}
+                onClick={() => setEditingAbout(false)}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
               >
                 Cancel
@@ -717,12 +880,12 @@ export default function ProfilePage() {
             )}
           </div>
         )}
-      </section>
+      </div>
 
       {/* Shop Policies Section */}
-      <section className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0 mb-4">
-        <div className="flex justify-between items-center mb-3 sm:mb-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-center flex-1">Shop Policies</h2>
+      <div className="bg-white rounded-xl p-6 shadow-md">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Shop Policies</h2>
           {user?.id && (
             <button
               onClick={() => {
@@ -742,271 +905,168 @@ export default function ProfilePage() {
               }}
               className="text-purple-600 hover:text-purple-700 text-sm font-semibold flex items-center gap-1"
             >
-              {editingPolicies ? (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                  Cancel
-                </>
-              ) : (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>
-                  Edit
-                </>
-              )}
+              {editingPolicies ? "Cancel" : "Edit"}
             </button>
           )}
         </div>
         {editingPolicies ? (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Shop Announcements</label>
-              <textarea
-                value={shopPolicies?.shopAnnouncement || ""}
-                onChange={(e) => setShopPolicies({ ...shopPolicies, shopAnnouncement: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
-                placeholder="Share important announcements with your customers..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">About Your Shop</label>
-              <textarea
-                value={shopPolicies?.shopAbout || ""}
-                onChange={(e) => setShopPolicies({ ...shopPolicies, shopAbout: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
-                placeholder="Tell customers about your shop..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Shipping Policy</label>
-              <textarea
-                value={shopPolicies?.shippingPolicy || ""}
-                onChange={(e) => setShopPolicies({ ...shopPolicies, shippingPolicy: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
-                placeholder="Describe your shipping policy..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Returns and Exchanges</label>
-              <textarea
-                value={shopPolicies?.returnsPolicy || ""}
-                onChange={(e) => setShopPolicies({ ...shopPolicies, returnsPolicy: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
-                placeholder="Describe your returns and exchanges policy..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Cancellations</label>
-              <textarea
-                value={shopPolicies?.cancellationsPolicy || ""}
-                onChange={(e) => setShopPolicies({ ...shopPolicies, cancellationsPolicy: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
-                placeholder="Describe your cancellation policy..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Digital Downloads</label>
-              <textarea
-                value={shopPolicies?.digitalDownloadsPolicy || ""}
-                onChange={(e) => setShopPolicies({ ...shopPolicies, digitalDownloadsPolicy: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
-                placeholder="Describe your digital downloads policy..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Payment Methods</label>
-              <textarea
-                value={shopPolicies?.paymentMethods || ""}
-                onChange={(e) => setShopPolicies({ ...shopPolicies, paymentMethods: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
-                placeholder="List accepted payment methods..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">FAQs</label>
-              <div className="space-y-2">
-                {(shopPolicies?.faqs || []).map((faq: any, index: number) => (
-                  <div key={index} className="border border-gray-300 rounded-lg p-3">
-                    <input
-                      type="text"
-                      value={faq.question || faq.q || ""}
-                      onChange={(e) => {
-                        const newFaqs = [...(shopPolicies?.faqs || [])];
-                        newFaqs[index] = { ...newFaqs[index], question: e.target.value, q: e.target.value };
-                        setShopPolicies({ ...shopPolicies, faqs: newFaqs });
-                      }}
-                      className="w-full mb-2 p-2 border border-gray-300 rounded-lg"
-                      placeholder="Question"
-                    />
-                    <textarea
-                      value={faq.answer || faq.a || ""}
-                      onChange={(e) => {
-                        const newFaqs = [...(shopPolicies?.faqs || [])];
-                        newFaqs[index] = { ...newFaqs[index], answer: e.target.value, a: e.target.value };
-                        setShopPolicies({ ...shopPolicies, faqs: newFaqs });
-                      }}
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                      placeholder="Answer"
-                      rows={2}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newFaqs = (shopPolicies?.faqs || []).filter((_: any, i: number) => i !== index);
-                        setShopPolicies({ ...shopPolicies, faqs: newFaqs });
-                      }}
-                      className="mt-2 text-red-600 hover:text-red-700 text-sm"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShopPolicies({
-                      ...shopPolicies,
-                      faqs: [...(shopPolicies?.faqs || []), { question: "", answer: "" }],
-                    });
-                  }}
-                  className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-500 hover:text-purple-600 transition-colors"
-                >
-                  + Add FAQ
-                </button>
-              </div>
-            </div>
-            <button
-              onClick={saveShopPolicies}
-              disabled={savingPolicies}
-              className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
-            >
-              {savingPolicies ? "Saving..." : "Save Shop Policies"}
-            </button>
-          </div>
+          <ShopPoliciesEditor
+            shopPolicies={shopPolicies}
+            setShopPolicies={setShopPolicies}
+            saveShopPolicies={saveShopPolicies}
+            savingPolicies={savingPolicies}
+          />
         ) : (
-          <div className="space-y-4">
-            {shopPolicies && (
-              <>
-                {shopPolicies.shopAnnouncement && (
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Shop Announcements</h3>
-                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.shopAnnouncement}</p>
-                  </div>
-                )}
-                {shopPolicies.shopAbout && (
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">About Your Shop</h3>
-                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.shopAbout}</p>
-                  </div>
-                )}
-                {shopPolicies.shippingPolicy && (
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Shipping</h3>
-                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.shippingPolicy}</p>
-                  </div>
-                )}
-                {shopPolicies.returnsPolicy && (
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Returns and Exchanges</h3>
-                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.returnsPolicy}</p>
-                  </div>
-                )}
-                {shopPolicies.cancellationsPolicy && (
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Cancellations</h3>
-                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.cancellationsPolicy}</p>
-                  </div>
-                )}
-                {shopPolicies.digitalDownloadsPolicy && (
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Digital Downloads</h3>
-                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.digitalDownloadsPolicy}</p>
-                  </div>
-                )}
-                {shopPolicies.paymentMethods && (
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Payment Methods</h3>
-                    <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.paymentMethods}</p>
-                  </div>
-                )}
-                {shopPolicies.faqs && shopPolicies.faqs.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">FAQs</h3>
-                    <div className="space-y-2">
-                      {shopPolicies.faqs.map((faq: any, index: number) => (
-                        <div key={index} className="border-l-2 border-purple-500 pl-3">
-                          <p className="font-semibold text-gray-900 text-sm">{faq.question || faq.q}</p>
-                          <p className="text-gray-700 text-sm">{faq.answer || faq.a}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-            {(!shopPolicies || (!shopPolicies.shopAnnouncement && !shopPolicies.shopAbout && !shopPolicies.shippingPolicy && !shopPolicies.returnsPolicy && !shopPolicies.cancellationsPolicy && !shopPolicies.faqs && !shopPolicies.digitalDownloadsPolicy && !shopPolicies.paymentMethods)) && (
-              <div className="text-gray-500 text-center py-4">
-                <p className="mb-3">No shop policies added yet.</p>
-                <button
-                  onClick={() => {
-                    setShopPolicies({
-                      shopAnnouncement: "",
-                      shopAbout: "",
-                      shippingPolicy: "",
-                      returnsPolicy: "",
-                      cancellationsPolicy: "",
-                      faqs: [],
-                      digitalDownloadsPolicy: "",
-                      paymentMethods: "",
-                    });
-                    setEditingPolicies(true);
-                  }}
-                  className="text-purple-600 hover:text-purple-700 font-semibold"
-                >
-                  Add Shop Policies →
-                </button>
-              </div>
-            )}
-          </div>
+          <ShopPoliciesViewer shopPolicies={shopPolicies} setEditingPolicies={setEditingPolicies} setShopPolicies={setShopPolicies} />
         )}
-      </section>
+      </div>
 
       {/* Quick Links */}
-      <section className="grid grid-cols-2 gap-2 sm:gap-3">
-        <QuickLinkCard 
-          title="📦 Orders" 
-          description="Track purchases"
-          href="/orders"
-          color="bg-green-500"
-        />
-        <QuickLinkCard 
-          title="❤️ Favorites" 
-          description="Saved items"
-          href="/favorites"
-          color="bg-pink-500"
-        />
-        <QuickLinkCard 
-          title="🏪 My Shop" 
-          description="Seller dashboard"
-          href="/seller/dashboard"
-          color="bg-purple-500"
-        />
-        <QuickLinkCard 
-          title="💬 Messages" 
-          description="Chat with sellers"
-          href="/messages"
-          color="bg-blue-500"
-        />
-        <QuickLinkCard 
-          title="📧 Contact Us" 
-          description="Get help & support"
-          href="/contact"
-          color="bg-orange-500"
-        />
-      </section>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <QuickLinkCard title="🏪 My Shop" description="Seller dashboard" href="/seller/dashboard" color="bg-purple-500" />
+        <QuickLinkCard title="➕ Create" description="New listing" href="/sell" color="bg-green-500" />
+        <QuickLinkCard title="🔗 Platforms" description="Connect stores" href="/seller/platforms" color="bg-blue-500" />
+        <QuickLinkCard title="📧 Contact" description="Get help" href="/contact" color="bg-orange-500" />
+      </div>
+    </div>
+  );
+}
 
-      {/* My Listings Section */}
-      <section id="my-listings" className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0">
-        <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-center">My Listings</h2>
+function ShopPoliciesEditor({ shopPolicies, setShopPolicies, saveShopPolicies, savingPolicies }: any) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Shop Announcements</label>
+        <textarea
+          value={shopPolicies?.shopAnnouncement || ""}
+          onChange={(e) => setShopPolicies({ ...shopPolicies, shopAnnouncement: e.target.value })}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
+          placeholder="Share important announcements with your customers..."
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">About Your Shop</label>
+        <textarea
+          value={shopPolicies?.shopAbout || ""}
+          onChange={(e) => setShopPolicies({ ...shopPolicies, shopAbout: e.target.value })}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
+          placeholder="Tell customers about your shop..."
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Shipping Policy</label>
+        <textarea
+          value={shopPolicies?.shippingPolicy || ""}
+          onChange={(e) => setShopPolicies({ ...shopPolicies, shippingPolicy: e.target.value })}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
+          placeholder="Describe your shipping policy..."
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Returns and Exchanges</label>
+        <textarea
+          value={shopPolicies?.returnsPolicy || ""}
+          onChange={(e) => setShopPolicies({ ...shopPolicies, returnsPolicy: e.target.value })}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
+          placeholder="Describe your returns and exchanges policy..."
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Digital Downloads</label>
+        <textarea
+          value={shopPolicies?.digitalDownloadsPolicy || ""}
+          onChange={(e) => setShopPolicies({ ...shopPolicies, digitalDownloadsPolicy: e.target.value })}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent min-h-[100px]"
+          placeholder="Describe your digital downloads policy..."
+        />
+      </div>
+      <button
+        onClick={saveShopPolicies}
+        disabled={savingPolicies}
+        className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
+      >
+        {savingPolicies ? "Saving..." : "Save Shop Policies"}
+      </button>
+    </div>
+  );
+}
+
+function ShopPoliciesViewer({ shopPolicies, setEditingPolicies, setShopPolicies }: any) {
+  if (!shopPolicies || (!shopPolicies.shopAnnouncement && !shopPolicies.shopAbout && !shopPolicies.shippingPolicy && !shopPolicies.returnsPolicy && !shopPolicies.digitalDownloadsPolicy)) {
+    return (
+      <div className="text-gray-500 text-center py-4">
+        <p className="mb-3">No shop policies added yet.</p>
+        <button
+          onClick={() => {
+            setShopPolicies({
+              shopAnnouncement: "",
+              shopAbout: "",
+              shippingPolicy: "",
+              returnsPolicy: "",
+              cancellationsPolicy: "",
+              faqs: [],
+              digitalDownloadsPolicy: "",
+              paymentMethods: "",
+            });
+            setEditingPolicies(true);
+          }}
+          className="text-purple-600 hover:text-purple-700 font-semibold"
+        >
+          Add Shop Policies →
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {shopPolicies.shopAnnouncement && (
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-1">Shop Announcements</h3>
+          <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.shopAnnouncement}</p>
+        </div>
+      )}
+      {shopPolicies.shopAbout && (
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-1">About Your Shop</h3>
+          <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.shopAbout}</p>
+        </div>
+      )}
+      {shopPolicies.shippingPolicy && (
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-1">Shipping</h3>
+          <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.shippingPolicy}</p>
+        </div>
+      )}
+      {shopPolicies.returnsPolicy && (
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-1">Returns and Exchanges</h3>
+          <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.returnsPolicy}</p>
+        </div>
+      )}
+      {shopPolicies.digitalDownloadsPolicy && (
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-1">Digital Downloads</h3>
+          <p className="text-gray-700 whitespace-pre-wrap text-sm">{shopPolicies.digitalDownloadsPolicy}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ListingsTab({ myListings, myProducts, loadingListings, handleDeleteListing, handleDeleteProduct, parseImages, user }: any) {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl p-6 shadow-md">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">My Listings</h2>
+          <Link
+            href="/sell"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors text-sm"
+          >
+            ➕ Create New Listing
+          </Link>
+        </div>
         {loadingListings ? (
           <div className="text-center py-4 text-gray-500">Loading listings...</div>
         ) : myListings.length === 0 && myProducts.length === 0 ? (
@@ -1020,271 +1080,527 @@ export default function ProfilePage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
-            {/* Display Listing records */}
-            {myListings.map((listing) => (
-              <div
-                key={listing.id}
-                className="bg-white rounded-lg shadow-md p-4 sm:p-6 hover:shadow-lg transition-shadow"
-              >
-                <div className="flex flex-col sm:flex-row gap-4">
-                  {(() => {
-                    let images: string[] = [];
-                    if (listing.images) {
-                      if (Array.isArray(listing.images)) {
-                        images = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
-                      } else if (typeof listing.images === 'string' && listing.images.trim()) {
-                        images = [listing.images];
-                      }
-                    }
-                    
-                    if (images.length > 0) {
-                      // Get thumbnail indices or default to first 4
-                      let thumbnailIndices: number[] = [];
-                      if (listing.thumbnailIndices && Array.isArray(listing.thumbnailIndices) && listing.thumbnailIndices.length > 0) {
-                        thumbnailIndices = listing.thumbnailIndices.slice(0, 4).filter((idx: number) => idx >= 0 && idx < images.length);
-                      }
-                      if (thumbnailIndices.length === 0) {
-                        thumbnailIndices = Array.from({ length: Math.min(4, images.length) }, (_, i) => i);
-                      }
-                      
-                      // Show 4-image grid if we have multiple images
-                      if (thumbnailIndices.length > 1) {
-                        return (
-                          <div className="w-full sm:w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 grid grid-cols-2">
-                            {thumbnailIndices.slice(0, 4).map((idx: number) => (
-                              <div key={idx} className="relative overflow-hidden">
-                                <img
-                                  src={images[idx]}
-                                  alt={`${listing.title} - Image ${idx + 1}`}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                  }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      } else {
-                        // Single image
-                        return (
-                          <div className="w-full sm:w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                            <img
-                              src={images[thumbnailIndices[0] || 0]}
-                              alt={listing.title}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                          </div>
-                        );
-                      }
-                    }
-                    return null;
-                  })()}
-                  <div className="flex-1">
-                    <h3 className="text-lg sm:text-xl font-semibold mb-2">{listing.title}</h3>
-                    <p className="text-gray-600 text-sm mb-2 line-clamp-2">{listing.description}</p>
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm">
-                      <span className="font-bold text-purple-600">
-                        ${(listing.priceCents / 100).toFixed(2)}
-                      </span>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        listing.isActive 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {listing.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                      <Link
-                        href={`/listings/${listing.id}`}
-                        className="text-purple-600 hover:text-purple-700 text-sm font-medium"
-                      >
-                        View →
-                      </Link>
-                    </div>
-                    <div className="flex gap-2 mt-3">
-                      <Link
-                        href={`/listings/${listing.id}/edit`}
-                        className="flex-1 bg-blue-500 text-white text-center px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-600 transition-colors"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleDeleteListing(listing.id);
-                        }}
-                        className="flex-1 bg-red-500 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-red-600 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {myListings.map((listing: any) => (
+              <ListingCard key={listing.id} listing={listing} handleDeleteListing={handleDeleteListing} />
             ))}
-            {/* Display Product records (legacy) */}
-            {myProducts.map((product) => {
+            {myProducts.map((product: any) => {
               const productImages = parseImages(product.images);
               return (
-                <div
-                  key={product.id}
-                  className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-3 border-2 border-transparent hover:border-purple-300 relative group"
-                >
-                  <Link
-                    href={`/product/${product.id}`}
-                    className="block hover:scale-105 transition-transform"
-                  >
-                    {productImages && productImages.length > 0 ? (
-                      <div className="relative w-full aspect-square mb-2 rounded-lg overflow-hidden bg-gray-100">
-                        <Image
-                          src={productImages[0]}
-                          alt={product.title}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-full aspect-square mb-2 rounded-lg bg-gray-200 flex items-center justify-center text-4xl">
-                        📦
-                      </div>
-                    )}
-                    <div className="font-bold text-xs sm:text-sm mb-1 line-clamp-2">{product.title}</div>
-                    <div className="text-purple-600 font-semibold text-xs sm:text-sm">
-                      ${(product.price / 100).toFixed(2)}
-                    </div>
-                    {product.hidden && (
-                      <div className="text-xs text-red-500 mt-1">⚠️ Hidden</div>
-                    )}
-                  </Link>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleDeleteProduct(product.id);
-                    }}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
-                    title="Delete listing"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
-                </div>
+                <ProductCard key={product.id} product={product} productImages={productImages} handleDeleteProduct={handleDeleteProduct} />
               );
             })}
           </div>
         )}
-      </section>
-
-      {/* Seller Links */}
-      {user.role === "ADMIN" || (
-        <section className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl mx-1 sm:mx-0">
-          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-center">Seller Tools</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-            <Link
-              href="/seller/dashboard"
-              className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:scale-105 transition-transform cursor-pointer border-2 border-transparent hover:border-purple-300 active:scale-95"
-            >
-              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2 text-center">📊</div>
-              <div className="font-bold text-sm sm:text-base text-center mb-1">Seller Dashboard</div>
-              <div className="text-xs text-gray-600 text-center">View sales & fees</div>
-            </Link>
-            <Link
-              href="/seller/platforms"
-              className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:scale-105 transition-transform cursor-pointer border-2 border-transparent hover:border-blue-300 active:scale-95"
-            >
-              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2 text-center">🔗</div>
-              <div className="font-bold text-sm sm:text-base text-center mb-1">Platforms</div>
-              <div className="text-xs text-gray-600 text-center">Connect stores</div>
-            </Link>
-            <Link
-              href="/seller/strikes"
-              className="bg-gradient-to-br from-red-100 to-orange-100 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:scale-105 transition-transform cursor-pointer border-2 border-transparent hover:border-red-300 active:scale-95"
-            >
-              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2 text-center">⚠️</div>
-              <div className="font-bold text-sm sm:text-base text-center mb-1">Strikes</div>
-              <div className="text-xs text-gray-600 text-center">View strikes</div>
-            </Link>
-            <Link
-              href="/sell"
-              className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:scale-105 transition-transform cursor-pointer border-2 border-transparent hover:border-green-300 active:scale-95"
-            >
-              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2 text-center">➕</div>
-              <div className="font-bold text-sm sm:text-base text-center mb-1">Create Listing</div>
-              <div className="text-xs text-gray-600 text-center">List new product</div>
-            </Link>
-          </div>
-        </section>
-      )}
-
-      {/* Logout Button */}
-      <button
-        onClick={() => {
-          logout();
-          router.push("/");
-        }}
-        className="w-full bg-red-600 text-white py-3 sm:py-4 rounded-xl font-bold hover:bg-red-700 active:bg-red-800 transition-all shadow-lg min-h-[44px] touch-manipulation"
-      >
-        🚪 Logout
-      </button>
-    </main>
-  );
-}
-
-function StatCard({ number, label, emoji, href }: { number: number; label: string; emoji: string; href?: string }) {
-  const content = (
-    <div className="bg-white/90 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-4 text-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
-      <div className="text-2xl sm:text-3xl mb-0.5 sm:mb-1">{emoji}</div>
-      <div className="text-xl sm:text-2xl font-bold text-purple-600">{number}</div>
-      <div className="text-xs text-gray-600 font-semibold">{label}</div>
+      </div>
     </div>
   );
-
-  if (href) {
-    return (
-      <Link href={href} className="block">
-        {content}
-      </Link>
-    );
-  }
-
-  return content;
 }
 
-function QuickLinkCard({ 
-  title, 
-  description, 
-  href, 
-  color 
-}: { 
-  title: string; 
-  description: string;
-  href: string; 
-  color: string;
-}) {
+function ListingCard({ listing, handleDeleteListing }: any) {
+  let images: string[] = [];
+  if (listing.images) {
+    if (Array.isArray(listing.images)) {
+      images = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
+    } else if (typeof listing.images === 'string' && listing.images.trim()) {
+      images = [listing.images];
+    }
+  }
+  
   return (
-    <Link href={href} className="min-h-[80px] sm:min-h-[100px] flex items-center">
-      <div className={`${color} rounded-lg sm:rounded-xl p-3 sm:p-4 text-white shadow-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer w-full min-h-[80px] sm:min-h-[100px] flex flex-col justify-center`}>
-        <div className="text-xl sm:text-2xl mb-0.5 sm:mb-1">{title.split(' ')[0]}</div>
-        <div className="font-bold text-xs sm:text-sm mb-0.5 sm:mb-1">{title.split(' ').slice(1).join(' ')}</div>
-        <div className="text-xs opacity-90 leading-tight">{description}</div>
+    <div className="bg-white border rounded-lg p-4 hover:shadow-lg transition-shadow">
+      {images.length > 0 && (
+        <Link href={`/listings/${listing.id}`}>
+          <img
+            src={images[0]}
+            alt={listing.title}
+            className="w-full h-48 object-cover rounded-lg mb-3"
+          />
+        </Link>
+      )}
+      <h3 className="font-semibold text-lg mb-2 line-clamp-2">{listing.title}</h3>
+      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{listing.description}</p>
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-bold text-purple-600">${(listing.priceCents / 100).toFixed(2)}</span>
+        <span className={`px-2 py-1 rounded text-xs ${
+          listing.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
+          {listing.isActive ? 'Active' : 'Inactive'}
+        </span>
       </div>
+      <div className="flex gap-2">
+        <Link
+          href={`/listings/${listing.id}/edit`}
+          className="flex-1 bg-blue-500 text-white text-center px-3 py-2 rounded text-sm font-medium hover:bg-blue-600 transition-colors"
+        >
+          Edit
+        </Link>
+        <button
+          onClick={() => handleDeleteListing(listing.id)}
+          className="flex-1 bg-red-500 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-600 transition-colors"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ProductCard({ product, productImages, handleDeleteProduct }: any) {
+  return (
+    <div className="bg-white border rounded-lg p-4 hover:shadow-lg transition-shadow">
+      {productImages && productImages.length > 0 && (
+        <Link href={`/product/${product.id}`}>
+          <img
+            src={productImages[0]}
+            alt={product.title}
+            className="w-full h-48 object-cover rounded-lg mb-3"
+          />
+        </Link>
+      )}
+      <h3 className="font-semibold text-lg mb-2">{product.title}</h3>
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-bold text-purple-600">${(product.price / 100).toFixed(2)}</span>
+        {product.hidden && <span className="text-xs text-red-500">⚠️ Hidden</span>}
+      </div>
+      <button
+        onClick={() => handleDeleteProduct(product.id)}
+        className="w-full bg-red-500 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-600 transition-colors"
+      >
+        Delete
+      </button>
+    </div>
+  );
+}
+
+function SettingsTab({
+  user,
+  editingUsername,
+  setEditingUsername,
+  newUsername,
+  setNewUsername,
+  savingUsername,
+  setSavingUsername,
+  usernameError,
+  setUsernameError,
+  changingPassword,
+  setChangingPassword,
+  currentPassword,
+  setCurrentPassword,
+  newPassword,
+  setNewPassword,
+  confirmPassword,
+  setConfirmPassword,
+  passwordError,
+  setPasswordError,
+  passwordSuccess,
+  setPasswordSuccess,
+  logout,
+  router,
+}: any) {
+  return (
+    <div className="space-y-6">
+      {/* Account Information */}
+      <div className="bg-white rounded-xl p-6 shadow-md">
+        <h2 className="text-xl font-bold mb-4">Account Information</h2>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
+            <div>
+              <p className="text-gray-500 text-sm">Email</p>
+              <p className="font-semibold">{user.email}</p>
+            </div>
+            <span className="text-2xl">📧</span>
+          </div>
+
+          {/* Username */}
+          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-4">
+            {!editingUsername ? (
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-gray-500 text-sm">Username</p>
+                  <p className="font-semibold">{user.username || "Not set"}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setNewUsername(user.username || "");
+                    setEditingUsername(true);
+                    setUsernameError("");
+                  }}
+                  className="text-purple-600 hover:text-purple-700 text-sm font-semibold"
+                >
+                  Edit
+                </button>
+              </div>
+            ) : (
+              <UsernameEditor
+                newUsername={newUsername}
+                setNewUsername={setNewUsername}
+                setEditingUsername={setEditingUsername}
+                setSavingUsername={setSavingUsername}
+                usernameError={usernameError}
+                setUsernameError={setUsernameError}
+                user={user}
+              />
+            )}
+          </div>
+
+          {/* Account Type */}
+          <div className="flex justify-between items-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+            <div>
+              <p className="text-gray-500 text-sm">Account Type</p>
+              <p className="font-semibold capitalize">{user.role.toLowerCase()}</p>
+            </div>
+            <span className="text-2xl">{user.role === "ADMIN" ? "👑" : "⭐"}</span>
+          </div>
+
+          {/* Password */}
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-4">
+            {!changingPassword ? (
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-gray-500 text-sm">Password</p>
+                  <p className="font-semibold">••••••••</p>
+                </div>
+                <button
+                  onClick={() => setChangingPassword(true)}
+                  className="text-purple-600 hover:text-purple-700 text-sm font-semibold"
+                >
+                  Change
+                </button>
+              </div>
+            ) : (
+              <PasswordChanger
+                currentPassword={currentPassword}
+                setCurrentPassword={setCurrentPassword}
+                newPassword={newPassword}
+                setNewPassword={setNewPassword}
+                confirmPassword={confirmPassword}
+                setConfirmPassword={setConfirmPassword}
+                passwordError={passwordError}
+                setPasswordError={setPasswordError}
+                passwordSuccess={passwordSuccess}
+                setPasswordSuccess={setPasswordSuccess}
+                setChangingPassword={setChangingPassword}
+                user={user}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="bg-white rounded-xl p-6 shadow-md border-2 border-red-200">
+        <h2 className="text-xl font-bold mb-4 text-red-600">Danger Zone</h2>
+        <button
+          onClick={() => {
+            logout();
+            router.push("/");
+          }}
+          className="w-full bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors"
+        >
+          🚪 Logout
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function UsernameEditor({ newUsername, setNewUsername, setEditingUsername, setSavingUsername, usernameError, setUsernameError, user }: any) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-semibold text-gray-700">Username</label>
+      <input
+        type="text"
+        value={newUsername}
+        onChange={(e) => {
+          setNewUsername(e.target.value);
+          setUsernameError("");
+        }}
+        placeholder="Enter username"
+        className="w-full px-4 py-2 border-2 border-purple-300 rounded-lg"
+        maxLength={20}
+      />
+      {usernameError && <p className="text-xs text-red-600">{usernameError}</p>}
+      <p className="text-xs text-gray-500">3-20 characters, letters, numbers, underscores, or hyphens</p>
+      <div className="flex gap-2">
+        <button
+          onClick={async () => {
+            if (!newUsername.trim()) {
+              setUsernameError("Username cannot be empty");
+              return;
+            }
+            const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+            if (!usernameRegex.test(newUsername.trim())) {
+              setUsernameError("Username must be 3-20 characters and contain only letters, numbers, underscores, or hyphens");
+              return;
+            }
+            setSavingUsername(true);
+            setUsernameError("");
+            try {
+              const response = await fetch(`/api/users/${user.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: newUsername.trim() }),
+              });
+              const data = await response.json();
+              if (response.ok) {
+                const updatedUser = { ...user, username: newUsername.trim() };
+                const storedUser = localStorage.getItem("user");
+                if (storedUser) {
+                  localStorage.setItem("user", JSON.stringify(updatedUser));
+                }
+                window.location.reload();
+              } else {
+                setUsernameError(data.error || "Failed to update username");
+              }
+            } catch (error) {
+              setUsernameError("An error occurred while updating username");
+            } finally {
+              setSavingUsername(false);
+            }
+          }}
+          className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700"
+        >
+          Save
+        </button>
+        <button
+          onClick={() => {
+            setEditingUsername(false);
+            setNewUsername("");
+            setUsernameError("");
+          }}
+          className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PasswordChanger({
+  currentPassword,
+  setCurrentPassword,
+  newPassword,
+  setNewPassword,
+  confirmPassword,
+  setConfirmPassword,
+  passwordError,
+  setPasswordError,
+  passwordSuccess,
+  setPasswordSuccess,
+  setChangingPassword,
+  user,
+}: any) {
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center mb-2">
+        <label className="block text-sm font-semibold text-gray-700">Change Password</label>
+        <button
+          onClick={() => {
+            setChangingPassword(false);
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+            setPasswordError("");
+            setPasswordSuccess(false);
+          }}
+          className="text-gray-500 hover:text-gray-700 text-xs"
+        >
+          Cancel
+        </button>
+      </div>
+      {passwordSuccess && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded-lg text-sm">
+          Password changed successfully!
+        </div>
+      )}
+      {passwordError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded-lg text-sm">
+          {passwordError}
+        </div>
+      )}
+      <input
+        type="password"
+        value={currentPassword}
+        onChange={(e) => {
+          setCurrentPassword(e.target.value);
+          setPasswordError("");
+        }}
+        placeholder="Current password"
+        className="w-full px-4 py-2 border-2 border-purple-300 rounded-lg"
+      />
+      <input
+        type="password"
+        value={newPassword}
+        onChange={(e) => {
+          setNewPassword(e.target.value);
+          setPasswordError("");
+        }}
+        placeholder="New password"
+        minLength={8}
+        className="w-full px-4 py-2 border-2 border-purple-300 rounded-lg"
+      />
+      <input
+        type="password"
+        value={confirmPassword}
+        onChange={(e) => {
+          setConfirmPassword(e.target.value);
+          setPasswordError("");
+        }}
+        placeholder="Confirm new password"
+        minLength={8}
+        className="w-full px-4 py-2 border-2 border-purple-300 rounded-lg"
+      />
+      <button
+        onClick={async () => {
+          if (!currentPassword) {
+            setPasswordError("Please enter your current password");
+            return;
+          }
+          if (!newPassword || newPassword.length < 8) {
+            setPasswordError("New password must be at least 8 characters");
+            return;
+          }
+          if (newPassword !== confirmPassword) {
+            setPasswordError("Passwords do not match");
+            return;
+          }
+          setPasswordError("");
+          try {
+            const response = await fetch(`/api/users/${user.id}/change-password`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-user-id": user.id,
+              },
+              body: JSON.stringify({
+                currentPassword,
+                newPassword,
+              }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+              setPasswordSuccess(true);
+              setCurrentPassword("");
+              setNewPassword("");
+              setConfirmPassword("");
+              setTimeout(() => {
+                setChangingPassword(false);
+                setPasswordSuccess(false);
+              }, 2000);
+            } else {
+              setPasswordError(data.error || "Failed to change password");
+            }
+          } catch (error) {
+            setPasswordError("An error occurred while changing password");
+          }
+        }}
+        className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700"
+      >
+        Change Password
+      </button>
+    </div>
+  );
+}
+
+function ActivityTab({ user, stats, socialStats, referralCount, myListings }: any) {
+  return (
+    <div className="space-y-6">
+      {/* Activity Summary */}
+      <div className="bg-white rounded-xl p-6 shadow-md">
+        <h2 className="text-xl font-bold mb-4">Activity Summary</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <div className="text-3xl mb-2">📦</div>
+            <div className="text-2xl font-bold text-purple-600">{stats.orders}</div>
+            <div className="text-sm text-gray-600">Total Orders</div>
+          </div>
+          <div className="text-center p-4 bg-blue-50 rounded-lg">
+            <div className="text-3xl mb-2">📝</div>
+            <div className="text-2xl font-bold text-blue-600">{stats.listings}</div>
+            <div className="text-sm text-gray-600">Listings Created</div>
+          </div>
+          <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-3xl mb-2">⭐</div>
+            <div className="text-2xl font-bold text-green-600">{socialStats.reviews}</div>
+            <div className="text-sm text-gray-600">Reviews Received</div>
+          </div>
+          <div className="text-center p-4 bg-yellow-50 rounded-lg">
+            <div className="text-3xl mb-2">💰</div>
+            <div className="text-2xl font-bold text-yellow-600">{socialStats.sales}</div>
+            <div className="text-sm text-gray-600">Total Sales</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Social Stats */}
+      <div className="bg-white rounded-xl p-6 shadow-md">
+        <h2 className="text-xl font-bold mb-4">Social Stats</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <Link href={`/shop/${user.id}?tab=followers`} className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+            <div className="text-2xl mb-2">👥</div>
+            <div className="text-2xl font-bold text-purple-600">{socialStats.followers}</div>
+            <div className="text-sm text-gray-600">Followers</div>
+          </Link>
+          <Link href={`/shop/${user.id}?tab=following`} className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+            <div className="text-2xl mb-2">➕</div>
+            <div className="text-2xl font-bold text-blue-600">{socialStats.following}</div>
+            <div className="text-sm text-gray-600">Following</div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Rating */}
+      {socialStats.averageRating > 0 && (
+        <div className="bg-white rounded-xl p-6 shadow-md">
+          <h2 className="text-xl font-bold mb-4">Average Rating</h2>
+          <div className="flex items-center gap-4">
+            <div className="text-5xl font-bold text-yellow-500">{socialStats.averageRating.toFixed(1)}</div>
+            <div className="flex items-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <span key={i} className="text-2xl">
+                  {i < Math.round(socialStats.averageRating) ? "⭐" : "☆"}
+                </span>
+              ))}
+            </div>
+            <div className="text-sm text-gray-600">({socialStats.reviews} reviews)</div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Stats */}
+      <div className="bg-white rounded-xl p-6 shadow-md">
+        <h2 className="text-xl font-bold mb-4">Quick Stats</h2>
+        <div className="space-y-3">
+          <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+            <span className="text-gray-700">Listings Created</span>
+            <span className="font-bold text-purple-600">{stats.listings}</span>
+          </div>
+          <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+            <span className="text-gray-700">Orders Placed</span>
+            <span className="font-bold text-purple-600">{stats.orders}</span>
+          </div>
+          <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+            <span className="text-gray-700">Favorites</span>
+            <span className="font-bold text-purple-600">{stats.favorites}</span>
+          </div>
+          <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+            <span className="text-gray-700">Referrals</span>
+            <span className="font-bold text-purple-600">{referralCount}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuickLinkCard({ title, description, href, color }: { title: string; description: string; href: string; color: string }) {
+  return (
+    <Link href={href} className={`${color} rounded-xl p-4 text-white shadow-md hover:shadow-lg transition-all hover:scale-105`}>
+      <div className="text-2xl mb-2">{title.split(' ')[0]}</div>
+      <div className="font-bold text-sm mb-1">{title.split(' ').slice(1).join(' ')}</div>
+      <div className="text-xs opacity-90">{description}</div>
     </Link>
   );
 }

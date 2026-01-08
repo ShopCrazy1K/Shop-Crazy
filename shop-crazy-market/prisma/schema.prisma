@@ -38,6 +38,7 @@ model User {
   role                   String  @default("USER") // "USER" or "ADMIN"
   adsEnabled             Boolean @default(false) // seller opt-in for ad fee
   about                  String? // About section for seller profile (like Etsy)
+  avatar                 String? // Profile picture/avatar URL
   coverPhoto             String? // Cover photo URL for profile page (like Etsy)
   // Shop Policies
   shopAnnouncement       String? // Shop announcements
