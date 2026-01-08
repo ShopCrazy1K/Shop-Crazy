@@ -165,25 +165,55 @@ export default function ProfilePage() {
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
+    if (!file || !user?.id) {
+      console.log("[AVATAR UPLOAD] No file selected or user not logged in", { file: !!file, userId: user?.id });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert("Please select an image file");
+      e.target.value = "";
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Image size must be less than 10MB");
+      e.target.value = "";
+      return;
+    }
+
+    console.log("[AVATAR UPLOAD] Starting upload...", { fileName: file.name, fileSize: file.size, fileType: file.type });
 
     setUploadingAvatar(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
 
+      console.log("[AVATAR UPLOAD] Uploading to /api/upload...");
       const uploadResponse = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
 
+      console.log("[AVATAR UPLOAD] Upload response status:", uploadResponse.status);
+
       if (!uploadResponse.ok) {
-        throw new Error("Failed to upload avatar");
+        const errorData = await uploadResponse.json().catch(() => ({ error: "Unknown error" }));
+        console.error("[AVATAR UPLOAD] Upload failed:", errorData);
+        throw new Error(errorData.error || errorData.message || "Failed to upload avatar");
       }
 
       const uploadData = await uploadResponse.json();
+      console.log("[AVATAR UPLOAD] Upload successful:", uploadData);
+      
       const avatarUrl = uploadData.url || uploadData.path;
+      if (!avatarUrl) {
+        throw new Error("No URL returned from upload");
+      }
 
+      console.log("[AVATAR UPLOAD] Saving avatar URL to user profile...", avatarUrl);
       const saveResponse = await fetch(`/api/users/${user.id}/avatar`, {
         method: "PUT",
         headers: {
@@ -193,23 +223,44 @@ export default function ProfilePage() {
         body: JSON.stringify({ avatar: avatarUrl }),
       });
 
-      if (saveResponse.ok) {
-        setAvatar(avatarUrl);
-        // Update local user state
-        const updatedUser = { ...user, avatar: avatarUrl };
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          localStorage.setItem("user", JSON.stringify(updatedUser));
-        }
-        alert("Avatar updated successfully!");
-      } else {
-        throw new Error("Failed to save avatar");
+      console.log("[AVATAR UPLOAD] Save response status:", saveResponse.status);
+
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json().catch(() => ({ error: "Unknown error" }));
+        console.error("[AVATAR UPLOAD] Save failed:", errorData);
+        throw new Error(errorData.error || errorData.message || "Failed to save avatar");
       }
+
+      const saveData = await saveResponse.json();
+      console.log("[AVATAR UPLOAD] Save successful:", saveData);
+
+      setAvatar(avatarUrl);
+      
+      // Update local user state
+      const updatedUser = { ...user, avatar: avatarUrl };
+      if (typeof window !== 'undefined') {
+        try {
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            parsedUser.avatar = avatarUrl;
+            localStorage.setItem("user", JSON.stringify(parsedUser));
+          }
+        } catch (storageError) {
+          console.error("[AVATAR UPLOAD] Error updating localStorage:", storageError);
+        }
+      }
+
+      // Refresh profile completion
+      calculateProfileCompletion();
+      
+      alert("Avatar updated successfully! 🎉");
     } catch (error: any) {
-      console.error("Error uploading avatar:", error);
-      alert(error.message || "Failed to upload avatar");
+      console.error("[AVATAR UPLOAD] Error:", error);
+      alert(error.message || "Failed to upload avatar. Please try again.");
     } finally {
       setUploadingAvatar(false);
+      // Reset input value to allow re-uploading the same file
       e.target.value = "";
     }
   }
@@ -549,7 +600,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Avatar */}
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
+          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-10">
             <div className="relative">
               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
                 {avatar ? (
@@ -560,20 +611,31 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
-              <label className="absolute bottom-0 right-0 bg-purple-600 text-white p-2 rounded-full cursor-pointer hover:bg-purple-700 transition-colors shadow-lg">
+              <label 
+                htmlFor="avatar-upload-input"
+                className="absolute bottom-0 right-0 bg-purple-600 text-white p-2 rounded-full cursor-pointer hover:bg-purple-700 transition-colors shadow-lg z-20"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (uploadingAvatar) {
+                    e.preventDefault();
+                  }
+                }}
+              >
                 {uploadingAvatar ? (
                   <span className="text-xs">⏳</span>
                 ) : (
                   <span className="text-sm">📷</span>
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  disabled={uploadingAvatar}
-                  className="hidden"
-                />
               </label>
+              <input
+                id="avatar-upload-input"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                disabled={uploadingAvatar}
+                className="hidden"
+                onClick={(e) => e.stopPropagation()}
+              />
             </div>
           </div>
         </div>
