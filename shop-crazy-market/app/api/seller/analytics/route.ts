@@ -149,9 +149,13 @@ export async function GET(req: NextRequest) {
     }));
 
     // Repeat customer rate
-    const uniqueCustomers = new Set(orders.map(o => o.userId || o.buyerEmail).filter(Boolean));
+    const uniqueCustomers = new Set(
+      orders.map(o => (o.userId || o.buyerEmail || "")).filter(id => id !== "")
+    );
     const repeatCustomers = Array.from(uniqueCustomers).filter(customerId => {
-      const customerOrders = orders.filter(o => o.userId === customerId || o.buyerEmail === customerId);
+      const customerOrders = orders.filter(
+        o => (o.userId === customerId) || (o.buyerEmail === customerId)
+      );
       return customerOrders.length > 1;
     });
 
@@ -161,13 +165,15 @@ export async function GET(req: NextRequest) {
 
     // Recent customers (last 10)
     const recentCustomers = Array.from(uniqueCustomers).slice(0, 10).map(customerId => {
-      const customerOrders = orders.filter(o => o.userId === customerId || o.buyerEmail === customerId);
+      const customerOrders = orders.filter(
+        o => (o.userId === customerId) || (o.buyerEmail === customerId)
+      );
       const totalSpent = customerOrders.reduce((sum, o) => sum + o.orderTotalCents, 0);
       return {
-        userId: customerId,
+        userId: customerId as string,
         orders: customerOrders.length,
         totalSpent,
-        lastOrderDate: customerOrders[0].createdAt,
+        lastOrderDate: customerOrders[0]?.createdAt || new Date(),
       };
     });
 
