@@ -74,6 +74,13 @@ model User {
   following       Follow[]       @relation("Following") // Users this user follows
   creditLedger    CreditLedger[] // Store credit ledger entries
   sellerCredits   CreditLedger[] @relation("SellerCredits") // Credits funded by this seller
+  savedSearches   SavedSearch[]  // Saved searches
+  recentlyViewed  RecentlyViewed[] // Recently viewed listings
+  comparisons     ProductComparison[] // Products being compared
+  listingViews    ListingView[]  // Views on listings (for analytics)
+  priceAlerts     PriceAlert[]   // Price alerts
+  listingFavorites ListingFavorite[] // Favorite listings
+  collections     Collection[]   // User collections/wishlists
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -233,6 +240,11 @@ model Listing {
   orders           Order[]
   deals            Deal[] // Promotions and discounts
   copyrightReports CopyrightReport[] // Copyright reports for this listing
+  recentlyViewed   RecentlyViewed[] // Users who viewed this
+  comparisons      ProductComparison[] // Users comparing this product
+  views            ListingView[] // View tracking for analytics
+  priceAlerts      PriceAlert[] // Users with price alerts
+  favorites        ListingFavorite[] // Users who favorited this
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -575,4 +587,109 @@ model PageView {
   @@index([path])
   @@index([userId])
   @@index([date, path])
+}
+
+//////////////////////////////////////
+// USER PREFERENCES & ACTIVITY
+//////////////////////////////////////
+
+model SavedSearch {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  name        String?  // Optional name for the search
+  searchQuery String?  // Search term
+  category    String?  // Category filter
+  minPrice    Int?     // Min price in cents
+  maxPrice    Int?     // Max price in cents
+  productType String?  // DIGITAL or PHYSICAL
+  sortBy      String?  // Sort option
+  filters     String?  // JSON string of additional filters
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model RecentlyViewed {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  viewedAt  DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId, viewedAt])
+  @@index([listingId])
+}
+
+model ProductComparison {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  addedAt   DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId])
+}
+
+model ListingView {
+  id        String   @id @default(cuid())
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  userId    String?  // Optional: logged-in user
+  user      User?    @relation(fields: [userId], references: [id])
+  viewedAt  DateTime @default(now())
+  duration  Int?     // View duration in seconds (optional)
+
+  @@index([listingId, viewedAt])
+  @@index([userId])
+  @@index([viewedAt])
+}
+
+model PriceAlert {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  targetPriceCents Int // Price to alert at
+  isActive  Boolean  @default(true)
+  notifiedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId, isActive])
+  @@index([listingId])
+}
+
+model ListingFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId])
+  @@index([listingId])
+}
+
+model Collection {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  name        String
+  description String?
+  isPublic    Boolean  @default(false)
+  listingIds  String[] // Array of listing IDs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isPublic])
 }

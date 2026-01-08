@@ -8,6 +8,7 @@ import SearchBar from "@/components/SearchBar";
 import FavoriteButton from "@/components/FavoriteButton";
 import ProtectedImage from "@/components/ProtectedImage";
 import { useAuth } from "@/contexts/AuthContext";
+import ComparisonModal from "@/components/marketplace/ComparisonModal";
 
 interface Listing {
   id: string;
@@ -70,6 +71,14 @@ function MarketplaceContent() {
   const [priceMin, setPriceMin] = useState<string>("");
   const [priceMax, setPriceMax] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [itemsPerPage, setItemsPerPage] = useState(24);
+  const [sellerRating, setSellerRating] = useState<string>("");
+  const [savedSearches, setSavedSearches] = useState<any[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
+  const [recentlyViewed, setRecentlyViewed] = useState<Product[]>([]);
+  const [trending, setTrending] = useState<Product[]>([]);
+  const [showSavedSearches, setShowSavedSearches] = useState(false);
 
   useEffect(() => {
     const urlSearch = searchParams.get("search");
@@ -83,6 +92,123 @@ function MarketplaceContent() {
   useEffect(() => {
     fetchListings();
   }, [selectedCategory, selectedType, searchQuery, user, sortBy, priceMin, priceMax]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchSavedSearches();
+      fetchRecentlyViewed();
+    }
+    fetchTrending();
+  }, [user?.id]);
+
+  async function fetchSavedSearches() {
+    if (!user?.id) return;
+    try {
+      const response = await fetch("/api/listings/saved-searches", {
+        headers: { "x-user-id": user.id },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSavedSearches(data.searches || []);
+      }
+    } catch (error) {
+      console.error("Error fetching saved searches:", error);
+    }
+  }
+
+  async function saveSearch() {
+    if (!user?.id) return;
+    try {
+      const response = await fetch("/api/listings/saved-searches", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+        },
+        body: JSON.stringify({
+          searchQuery,
+          category: selectedCategory !== "all" ? selectedCategory : null,
+          minPrice: priceMin ? parseFloat(priceMin) * 100 : null,
+          maxPrice: priceMax ? parseFloat(priceMax) * 100 : null,
+          productType: selectedType !== "all" ? selectedType : null,
+          sortBy,
+        }),
+      });
+      if (response.ok) {
+        alert("Search saved!");
+        fetchSavedSearches();
+      }
+    } catch (error) {
+      console.error("Error saving search:", error);
+    }
+  }
+
+  async function fetchRecentlyViewed() {
+    if (!user?.id) return;
+    try {
+      const response = await fetch("/api/listings/recently-viewed", {
+        headers: { "x-user-id": user.id },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setRecentlyViewed(data.listings || []);
+      }
+    } catch (error) {
+      console.error("Error fetching recently viewed:", error);
+    }
+  }
+
+  async function fetchTrending() {
+    try {
+      const response = await fetch("/api/listings/trending?limit=10");
+      if (response.ok) {
+        const data = await response.json();
+        // Transform to Product format
+        const transformed = (data.listings || []).map((listing: any) => ({
+          id: listing.id,
+          title: listing.title,
+          price: listing.priceCents,
+          images: listing.images || [],
+          category: listing.category,
+          shop: {
+            name: listing.seller?.username || listing.seller?.email || "Unknown",
+            id: listing.seller?.id,
+          },
+          sellerId: listing.seller?.id,
+          activeDeal: listing.deals?.[0],
+        }));
+        setTrending(transformed);
+      }
+    } catch (error) {
+      console.error("Error fetching trending:", error);
+    }
+  }
+
+  async function addToComparison(productId: string) {
+    if (!user?.id) {
+      alert("Please login to compare products");
+      return;
+    }
+    try {
+      const response = await fetch("/api/listings/compare", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+        },
+        body: JSON.stringify({ listingId: productId }),
+      });
+      if (response.ok) {
+        alert("Added to comparison!");
+        setShowComparison(true);
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to add to comparison");
+      }
+    } catch (error) {
+      console.error("Error adding to comparison:", error);
+    }
+  }
 
   // Add timeout to prevent infinite loading
   useEffect(() => {
@@ -297,16 +423,44 @@ function MarketplaceContent() {
                 <span>🔍</span>
                 {showFilters ? "Hide Filters" : "Show Filters"}
               </button>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg font-semibold text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              >
-                <option value="relevance">Relevance</option>
-                <option value="price_low">Price: Low to High</option>
-                <option value="price_high">Price: High to Low</option>
-                <option value="newest">Newest First</option>
-              </select>
+              <div className="flex items-center gap-2">
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-lg font-semibold text-sm"
+                >
+                  <option value="12">12 per page</option>
+                  <option value="24">24 per page</option>
+                  <option value="48">48 per page</option>
+                  <option value="96">96 per page</option>
+                </select>
+                <button
+                  onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
+                  className="px-3 py-2 border border-gray-300 rounded-lg font-semibold text-sm hover:bg-gray-100"
+                >
+                  {viewMode === "grid" ? "📋 List" : "⚏ Grid"}
+                </button>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg font-semibold text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="relevance">Relevance</option>
+                  <option value="price_low">Price: Low to High</option>
+                  <option value="price_high">Price: High to Low</option>
+                  <option value="newest">Newest First</option>
+                  <option value="rating">Rating</option>
+                  <option value="reviews">Most Reviews</option>
+                </select>
+                {user?.id && (
+                  <button
+                    onClick={() => setShowComparison(true)}
+                    className="px-3 py-2 bg-purple-600 text-white rounded-lg font-semibold text-sm hover:bg-purple-700"
+                  >
+                    Compare
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -420,6 +574,77 @@ function MarketplaceContent() {
                 </div>
               </div>
 
+              {/* Seller Rating Filter */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-sm mb-3 text-gray-700">Seller Rating</h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setSellerRating("")}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                      sellerRating === ""
+                        ? "bg-purple-100 text-purple-700 font-semibold"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    All Ratings
+                  </button>
+                  {[4, 3, 2, 1].map((rating) => (
+                    <button
+                      key={rating}
+                      onClick={() => setSellerRating(rating.toString())}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                        sellerRating === rating.toString()
+                          ? "bg-purple-100 text-purple-700 font-semibold"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {rating}+ ⭐ Stars
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Saved Searches */}
+              {user?.id && (
+                <div className="mb-6 pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-sm text-gray-700">Saved Searches</h3>
+                    <button
+                      onClick={() => setShowSavedSearches(!showSavedSearches)}
+                      className="text-purple-600 text-xs hover:underline"
+                    >
+                      {showSavedSearches ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                  {showSavedSearches && (
+                    <div className="space-y-2">
+                      {savedSearches.map((search) => (
+                        <button
+                          key={search.id}
+                          onClick={() => {
+                            setSearchQuery(search.searchQuery || "");
+                            setSelectedCategory(search.category || "all");
+                            setSelectedType(search.productType || "all");
+                            setPriceMin(search.minPrice ? (search.minPrice / 100).toString() : "");
+                            setPriceMax(search.maxPrice ? (search.maxPrice / 100).toString() : "");
+                            setSortBy(search.sortBy || "relevance");
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200 text-gray-700"
+                        >
+                          {search.name}
+                        </button>
+                      ))}
+                      <button
+                        onClick={saveSearch}
+                        className="w-full text-center px-3 py-2 rounded-lg text-sm bg-purple-100 text-purple-700 font-semibold hover:bg-purple-200"
+                      >
+                        💾 Save Current Search
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Deals Link */}
               <div className="pt-4 border-t border-gray-200">
                 <Link
@@ -434,6 +659,87 @@ function MarketplaceContent() {
 
           {/* Main Content */}
           <main className="flex-1">
+            {/* Recently Viewed Section */}
+            {recentlyViewed.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-xl font-bold mb-3">Recently Viewed</h2>
+                <div className="flex gap-4 overflow-x-auto pb-4">
+                  {recentlyViewed.slice(0, 6).map((product) => (
+                    <Link
+                      key={product.id}
+                      href={`/listings/${product.id}`}
+                      className="flex-shrink-0 w-48 bg-white rounded-lg overflow-hidden hover:shadow-lg transition-all"
+                    >
+                      <div className="relative aspect-square bg-gray-100">
+                        {product.images?.[0] ? (
+                          <ProtectedImage
+                            src={product.images[0]}
+                            alt={product.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            📦
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-semibold text-sm line-clamp-2 mb-1">
+                          {product.title}
+                        </h3>
+                        <p className="text-lg font-bold text-gray-900">
+                          ${((product.price || 0) / 100).toFixed(2)}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Trending Section */}
+            {trending.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-xl font-bold mb-3">🔥 Trending Now</h2>
+                <div className="flex gap-4 overflow-x-auto pb-4">
+                  {trending.slice(0, 6).map((product) => (
+                    <Link
+                      key={product.id}
+                      href={`/listings/${product.id}`}
+                      className="flex-shrink-0 w-48 bg-white rounded-lg overflow-hidden hover:shadow-lg transition-all"
+                    >
+                      <div className="relative aspect-square bg-gray-100">
+                        {product.images?.[0] ? (
+                          <ProtectedImage
+                            src={product.images[0]}
+                            alt={product.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            📦
+                          </div>
+                        )}
+                        {product.activeDeal && (
+                          <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded font-bold">
+                            🔥 Deal
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-semibold text-sm line-clamp-2 mb-1">
+                          {product.title}
+                        </h3>
+                        <p className="text-lg font-bold text-gray-900">
+                          ${((product.price || 0) / 100).toFixed(2)}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Results Count */}
             <div className="mb-4 flex items-center justify-between">
               <p className="text-sm text-gray-600">
@@ -527,9 +833,13 @@ function MarketplaceContent() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {products.map((product) => (
-                  <Link key={product.id} href={`/listings/${product.id}`}>
+              <div className={viewMode === "grid" 
+                ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4" 
+                : "space-y-4"
+              }>
+                {products.slice(0, itemsPerPage).map((product) => (
+                  viewMode === "grid" ? (
+                    <Link key={product.id} href={`/listings/${product.id}`}>
                     <div className="bg-white rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group">
                       {/* Images - 4 thumbnail grid */}
                       <div className="relative aspect-square bg-gray-100 overflow-hidden">
@@ -625,6 +935,20 @@ function MarketplaceContent() {
                             className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-md hover:bg-white transition-colors"
                           />
                         </div>
+                        {/* Compare Button */}
+                        {user?.id && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              addToComparison(product.id);
+                            }}
+                            className="absolute bottom-2 right-2 z-20 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-md hover:bg-white transition-colors"
+                            title="Add to comparison"
+                          >
+                            ⚖️
+                          </button>
+                        )}
                         
                         {/* Badges */}
                         <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
@@ -726,13 +1050,88 @@ function MarketplaceContent() {
                         )}
                       </div>
                     </div>
-                  </Link>
+                    </Link>
+                  ) : (
+                    <div key={product.id} className="bg-white rounded-lg overflow-hidden hover:shadow-lg transition-all flex gap-4 p-4">
+                    <Link href={`/listings/${product.id}`} className="flex-shrink-0 w-32 h-32 relative bg-gray-100 rounded-lg overflow-hidden">
+                      {product.images?.[0] ? (
+                        <ProtectedImage
+                          src={product.images[0]}
+                          alt={product.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          📦
+                        </div>
+                      )}
+                    </Link>
+                    <div className="flex-1">
+                      <Link href={`/listings/${product.id}`}>
+                        <h3 className="font-semibold text-lg mb-2 hover:text-purple-600">
+                          {product.title}
+                        </h3>
+                      </Link>
+                      {product.shop && (
+                        <Link
+                          href={`/shop/${product.shop.id}`}
+                          className="text-sm text-gray-500 hover:text-purple-600 mb-2 block"
+                        >
+                          {product.shop.name}
+                        </Link>
+                      )}
+                      <p className="text-gray-700 mb-2 line-clamp-2">
+                        {product.title} {/* You might want to add description to Product interface */}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xl font-bold text-gray-900">
+                          ${((product.price || 0) / 100).toFixed(2)}
+                        </p>
+                        <div className="flex gap-2">
+                          {user?.id && (
+                            <button
+                              onClick={() => addToComparison(product.id)}
+                              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200"
+                            >
+                              Compare
+                            </button>
+                          )}
+                          <Link
+                            href={`/listings/${product.id}`}
+                            className="px-4 py-1 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700"
+                          >
+                            View
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                    </div>
+                  )
                 ))}
+              </div>
+            )}
+            {products.length > itemsPerPage && (
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => setItemsPerPage(itemsPerPage + 24)}
+                  className="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                >
+                  Load More ({products.length - itemsPerPage} remaining)
+                </button>
               </div>
             )}
           </main>
         </div>
       </div>
+
+      {/* Comparison Modal */}
+      {user?.id && (
+        <ComparisonModal
+          isOpen={showComparison}
+          onClose={() => setShowComparison(false)}
+          userId={user.id}
+        />
+      )}
     </div>
   );
 }

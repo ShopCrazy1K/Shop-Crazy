@@ -4,6 +4,9 @@ import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import SalesAnalytics from "@/components/seller/SalesAnalytics";
+import InventoryManagement from "@/components/seller/InventoryManagement";
+import RecentOrders from "@/components/seller/RecentOrders";
 
 interface FeeSummary {
   totalListingFees: number;
@@ -38,6 +41,7 @@ function SellerDashboard() {
   const [stripeConnectStatus, setStripeConnectStatus] = useState<any>(null);
   const [checkingConnect, setCheckingConnect] = useState(false);
   const [refundCount, setRefundCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<"overview" | "analytics" | "inventory" | "orders">("overview");
 
   useEffect(() => {
     if (!user) {
@@ -297,17 +301,140 @@ function SellerDashboard() {
     );
   }
 
+  async function handleExport(type: "financial" | "orders", period = 365) {
+    if (!shopId || !user?.id) return;
+    try {
+      const response = await fetch(
+        `/api/seller/export?type=${type}&format=csv&period=${period}&shopId=${shopId}`,
+        {
+          headers: { "x-user-id": user.id },
+        }
+      );
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${type}-export-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        alert("Failed to export data");
+      }
+    } catch (error) {
+      console.error("Error exporting:", error);
+      alert("Error exporting data");
+    }
+  }
+
   return (
-    <main className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
+    <main className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex justify-between items-center flex-wrap gap-4">
         <h1 className="font-accent text-4xl">Seller Dashboard</h1>
-        <Link
-          href="/seller/platforms"
-          className="bg-purple-600 text-white px-6 py-2 rounded-xl font-bold"
-        >
-          Platform Integrations
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/listings/new"
+            className="bg-green-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-green-700 transition-colors"
+          >
+            + Create Listing
+          </Link>
+          <Link
+            href="/seller/platforms"
+            className="bg-purple-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-purple-700 transition-colors"
+          >
+            Platform Integrations
+          </Link>
+        </div>
       </div>
+
+      {/* Quick Actions Widget */}
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-lg p-6 text-white">
+        <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link
+            href="/listings/new"
+            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-4 text-center transition-colors"
+          >
+            <div className="text-3xl mb-2">➕</div>
+            <div className="font-semibold text-sm">Create Listing</div>
+          </Link>
+          <Link
+            href={`/shop/${user?.id}`}
+            target="_blank"
+            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-4 text-center transition-colors"
+          >
+            <div className="text-3xl mb-2">👁️</div>
+            <div className="font-semibold text-sm">View Shop</div>
+          </Link>
+          <button
+            onClick={() => handleExport("financial", 30)}
+            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-4 text-center transition-colors"
+          >
+            <div className="text-3xl mb-2">📊</div>
+            <div className="font-semibold text-sm">Export Financials</div>
+          </button>
+          <button
+            onClick={() => handleExport("orders", 30)}
+            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-4 text-center transition-colors"
+          >
+            <div className="text-3xl mb-2">📋</div>
+            <div className="font-semibold text-sm">Export Orders</div>
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-white rounded-xl shadow">
+        <div className="border-b border-gray-200">
+          <div className="flex overflow-x-auto">
+            <button
+              onClick={() => setActiveTab("overview")}
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === "overview"
+                  ? "border-purple-600 text-purple-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              📊 Overview
+            </button>
+            <button
+              onClick={() => setActiveTab("analytics")}
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === "analytics"
+                  ? "border-purple-600 text-purple-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              📈 Analytics
+            </button>
+            <button
+              onClick={() => setActiveTab("inventory")}
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === "inventory"
+                  ? "border-purple-600 text-purple-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              📦 Inventory
+            </button>
+            <button
+              onClick={() => setActiveTab("orders")}
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === "orders"
+                  ? "border-purple-600 text-purple-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              🛒 Orders
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {activeTab === "overview" && (
+            <div className="space-y-6">
 
       {/* ADVERTISING TOGGLE */}
       <div className="bg-white rounded-xl shadow p-6">
@@ -610,31 +737,47 @@ function SellerDashboard() {
         </div>
       </div>
 
-      {/* RECENT FEES */}
-      <div className="bg-white rounded-xl shadow p-6">
-        <h2 className="font-accent text-2xl mb-4">Recent Fees</h2>
-        {recentFees.length === 0 ? (
-          <p className="text-gray-500">No recent fees</p>
-        ) : (
-          <div className="space-y-2">
-            {recentFees.map((fee) => (
-              <div
-                key={fee.id}
-                className="flex justify-between items-center border-b pb-2"
-              >
-                <div>
-                  <p className="font-semibold">{fee.description}</p>
-                  <p className="text-sm text-gray-500">
-                    {new Date(fee.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <span className="font-bold text-red-600">
-                  -{formatCurrency(fee.amount)}
-                </span>
+              {/* RECENT FEES */}
+              <div className="bg-white rounded-xl shadow p-6">
+                <h2 className="font-accent text-2xl mb-4">Recent Fees</h2>
+                {recentFees.length === 0 ? (
+                  <p className="text-gray-500">No recent fees</p>
+                ) : (
+                  <div className="space-y-2">
+                    {recentFees.map((fee) => (
+                      <div
+                        key={fee.id}
+                        className="flex justify-between items-center border-b pb-2"
+                      >
+                        <div>
+                          <p className="font-semibold">{fee.description}</p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(fee.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <span className="font-bold text-red-600">
+                          -{formatCurrency(fee.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
+
+          {activeTab === "analytics" && shopId && user?.id && (
+            <SalesAnalytics shopId={shopId} userId={user.id} />
+          )}
+
+          {activeTab === "inventory" && user?.id && (
+            <InventoryManagement userId={user.id} />
+          )}
+
+          {activeTab === "orders" && user?.id && (
+            <RecentOrders userId={user.id} />
+          )}
+        </div>
       </div>
     </main>
   );
