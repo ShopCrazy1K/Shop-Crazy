@@ -100,15 +100,80 @@ export default function ProfilePage() {
   }, [user, about, avatar, shopPolicies, myListings]);
 
   async function fetchAvatar() {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log("[FETCH AVATAR] No user ID");
+      return;
+    }
+
+    // First, check if user object already has avatar
+    const userWithAvatar = user as any;
+    if (userWithAvatar.avatar) {
+      console.log("[FETCH AVATAR] Found avatar in user object:", userWithAvatar.avatar);
+      setAvatar(userWithAvatar.avatar);
+      return;
+    }
+
+    // Second, check localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser.avatar) {
+            console.log("[FETCH AVATAR] Found avatar in localStorage:", parsedUser.avatar);
+            setAvatar(parsedUser.avatar);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("[FETCH AVATAR] Error reading localStorage:", error);
+      }
+    }
+
+    // Third, fetch from API
     try {
-      const response = await fetch(`/api/users/${user.id}/avatar`);
+      console.log("[FETCH AVATAR] Fetching from API for user:", user.id);
+      const response = await fetch(`/api/users/${user.id}/avatar`, {
+        headers: {
+          "x-user-id": user.id,
+        },
+      });
+
+      console.log("[FETCH AVATAR] API response status:", response.status);
+
       if (response.ok) {
         const data = await response.json();
-        setAvatar(data.avatar || null);
+        console.log("[FETCH AVATAR] API response data:", data);
+        const avatarUrl = data.avatar || null;
+        
+        if (avatarUrl) {
+          setAvatar(avatarUrl);
+          
+          // Update localStorage and user object for future reference
+          if (typeof window !== 'undefined') {
+            try {
+              const storedUser = localStorage.getItem("user");
+              if (storedUser) {
+                const parsedUser = JSON.parse(storedUser);
+                parsedUser.avatar = avatarUrl;
+                localStorage.setItem("user", JSON.stringify(parsedUser));
+              }
+            } catch (storageError) {
+              console.error("[FETCH AVATAR] Error updating localStorage:", storageError);
+            }
+          }
+        } else {
+          console.log("[FETCH AVATAR] No avatar found in API response");
+          setAvatar(null);
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        console.error("[FETCH AVATAR] API error:", errorData);
+        setAvatar(null);
       }
     } catch (error) {
-      console.error("Error fetching avatar:", error);
+      console.error("[FETCH AVATAR] Error fetching avatar:", error);
+      setAvatar(null);
     }
   }
 
@@ -604,7 +669,19 @@ export default function ProfilePage() {
             <div className="relative">
               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
                 {avatar ? (
-                  <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  <img 
+                    src={avatar} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                      console.error("[AVATAR] Failed to load image:", avatar);
+                      setAvatar(null); // Clear broken image
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                    onLoad={() => {
+                      console.log("[AVATAR] Image loaded successfully:", avatar);
+                    }}
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400 text-white text-3xl sm:text-4xl font-bold">
                     {user.username?.[0]?.toUpperCase() || user.email[0]?.toUpperCase() || "?"}
