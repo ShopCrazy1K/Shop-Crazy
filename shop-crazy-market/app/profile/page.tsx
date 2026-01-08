@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Logo from "@/components/Logo";
 import SearchBar from "@/components/SearchBar";
+import ProfileCompletion from "@/components/profile/ProfileCompletion";
 
 // Helper function to safely parse images
 function parseImages(images: string | string[] | null | undefined): string[] {
@@ -158,6 +159,9 @@ export default function ProfilePage() {
 
     setProfileCompletion(Math.round((completed / total) * 100));
   }
+
+  // Get completion from ProfileCompletion component logic (will be calculated there)
+  const [detailedCompletion, setDetailedCompletion] = useState(0);
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -582,20 +586,6 @@ export default function ProfilePage() {
             </h1>
             <p className="text-gray-600 mb-4">{user.email}</p>
             
-            {/* Profile Completion Indicator */}
-            <div className="max-w-md mx-auto mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-gray-700">Profile Completion</span>
-                <span className="text-sm font-bold text-purple-600">{profileCompletion}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${profileCompletion}%` }}
-                ></div>
-              </div>
-            </div>
-
             {/* View Public Profile Button */}
             <Link
               href={`/shop/${user.id}`}
@@ -674,6 +664,9 @@ export default function ProfilePage() {
             saveShopPolicies={saveShopPolicies}
             savingPolicies={savingPolicies}
             socialStats={socialStats}
+            avatar={avatar}
+            coverPhoto={coverPhoto}
+            listingsCount={myListings.length}
           />
         )}
 
@@ -776,9 +769,23 @@ function OverviewTab({
   saveShopPolicies,
   savingPolicies,
   socialStats,
+  avatar,
+  coverPhoto,
+  listingsCount,
 }: any) {
   return (
     <div className="space-y-6">
+      {/* Profile Completion */}
+      <ProfileCompletion
+        user={user}
+        avatar={avatar}
+        coverPhoto={coverPhoto}
+        about={about}
+        shopPolicies={shopPolicies}
+        listingsCount={listingsCount}
+        referralCount={referralCount}
+      />
+
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
         <Link href="/orders" className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow text-center">

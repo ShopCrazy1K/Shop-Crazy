@@ -40,6 +40,7 @@ model User {
   about                  String? // About section for seller profile (like Etsy)
   avatar                 String? // Profile picture/avatar URL
   coverPhoto             String? // Cover photo URL for profile page (like Etsy)
+  tutorialCompleted      Boolean  @default(false) // Track if user completed onboarding tutorial
   // Shop Policies
   shopAnnouncement       String? // Shop announcements
   shopAbout              String? // About your shop

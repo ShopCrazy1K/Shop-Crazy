@@ -12,6 +12,7 @@ import Footer from "@/components/Footer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import MobileMetaTags from "@/components/MobileMetaTags";
 import PageViewTracker from "@/components/PageViewTracker";
+import TutorialWrapper from "@/components/onboarding/TutorialWrapper";
 
 export const metadata = {
   title: "Shop Crazy Market",
@@ -124,24 +125,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeProvider>
             <ErrorBoundary fallback={<div className="p-4 text-center text-red-600">Authentication error. Please refresh.</div>}>
               <AuthProvider>
-                <ErrorBoundary fallback={<div className="p-4 text-center text-red-600">Cart error. Please refresh.</div>}>
-                  <CartProvider>
-                    {/* Decorations disabled for better mobile performance */}
-                    {/* <ChristmasDecorations /> */}
-                    {/* <NewYearDecorations /> */}
-                    {/* <WinterDecorations /> */}
-                    <ErrorBoundary fallback={<div className="p-4 text-center text-red-600">Navigation error. Please refresh.</div>}>
-                      <Navbar />
-                    </ErrorBoundary>
-                    <div className="pb-20 md:pb-0 min-h-screen flex flex-col">{children}</div>
-                    <ErrorBoundary fallback={null}>
-                      <Footer />
-                    </ErrorBoundary>
-                    <ErrorBoundary fallback={null}>
-                      <BottomNav />
-                    </ErrorBoundary>
-                  </CartProvider>
-                </ErrorBoundary>
+                <TutorialWrapper>
+                  <ErrorBoundary fallback={<div className="p-4 text-center text-red-600">Cart error. Please refresh.</div>}>
+                    <CartProvider>
+                      {/* Decorations disabled for better mobile performance */}
+                      {/* <ChristmasDecorations /> */}
+                      {/* <NewYearDecorations /> */}
+                      {/* <WinterDecorations /> */}
+                      <ErrorBoundary fallback={<div className="p-4 text-center text-red-600">Navigation error. Please refresh.</div>}>
+                        <Navbar />
+                      </ErrorBoundary>
+                      <div className="pb-20 md:pb-0 min-h-screen flex flex-col">{children}</div>
+                      <ErrorBoundary fallback={null}>
+                        <Footer />
+                      </ErrorBoundary>
+                      <ErrorBoundary fallback={null}>
+                        <BottomNav />
+                      </ErrorBoundary>
+                    </CartProvider>
+                  </ErrorBoundary>
+                </TutorialWrapper>
               </AuthProvider>
             </ErrorBoundary>
           </ThemeProvider>
