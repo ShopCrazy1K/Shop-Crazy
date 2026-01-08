@@ -168,9 +168,9 @@ export async function GET(req: NextRequest) {
     // Recent customers (last 10)
     const recentCustomers = Array.from(uniqueCustomers).slice(0, 10).map((customerId: string) => {
       const customerOrders = orders.filter(
-        (o: OrderWithCustomer) => (o.userId === customerId) || (o.buyerEmail === customerId)
+        (o) => (o.userId === customerId) || (o.buyerEmail === customerId)
       );
-      const totalSpent = customerOrders.reduce((sum, o: OrderWithCustomer) => sum + o.orderTotalCents, 0);
+      const totalSpent = customerOrders.reduce((sum, o) => sum + o.orderTotalCents, 0);
       return {
         userId: customerId,
         orders: customerOrders.length,
