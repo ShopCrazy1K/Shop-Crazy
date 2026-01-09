@@ -665,7 +665,7 @@ export default function ProfilePage() {
       {/* Profile Header with Cover Photo and Avatar */}
       <section className="relative">
         {/* Cover Photo */}
-        <div className="relative h-48 sm:h-64 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
+        <div className="relative h-40 sm:h-48 md:h-64 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 z-0">
           {coverPhoto ? (
             <img
               src={coverPhoto}
@@ -673,10 +673,10 @@ export default function ProfilePage() {
               className="w-full h-full object-cover"
             />
           ) : null}
-          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="absolute inset-0 bg-black/20 z-0"></div>
           
           {/* Cover Photo Upload Button */}
-          <div className="absolute top-4 right-4">
+          <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10">
             <button
               type="button"
               onClick={(e) => {
@@ -687,7 +687,7 @@ export default function ProfilePage() {
                 }
               }}
               disabled={uploadingCover}
-              className="bg-white/90 hover:bg-white text-gray-700 px-3 py-2 rounded-lg text-sm font-semibold cursor-pointer transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-white/90 hover:bg-white text-gray-700 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold cursor-pointer transition-colors flex items-center gap-1 sm:gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploadingCover ? "Uploading..." : "📷 Cover"}
             </button>
@@ -700,11 +700,12 @@ export default function ProfilePage() {
               className="hidden"
             />
           </div>
+        </div>
 
-          {/* Avatar */}
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-10">
-            <div className="relative">
-              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
+        {/* Avatar - positioned outside cover photo container to ensure proper layering */}
+        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-30" style={{ bottom: '-48px' }}>
+          <div className="relative">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
                 {avatar ? (
                   <img 
                     src={avatar}
@@ -743,12 +744,12 @@ export default function ProfilePage() {
                   }
                 }}
                 disabled={uploadingAvatar}
-                className="absolute bottom-0 right-0 bg-purple-600 text-white p-2 rounded-full cursor-pointer hover:bg-purple-700 transition-colors shadow-lg z-20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="absolute bottom-0 right-0 bg-purple-600 text-white p-1.5 sm:p-2 rounded-full cursor-pointer hover:bg-purple-700 transition-colors shadow-lg z-40 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploadingAvatar ? (
                   <span className="text-xs">⏳</span>
                 ) : (
-                  <span className="text-sm">📷</span>
+                  <span className="text-xs sm:text-sm">📷</span>
                 )}
               </button>
               <input
@@ -761,10 +762,9 @@ export default function ProfilePage() {
               />
             </div>
           </div>
-        </div>
 
         {/* Profile Info Section */}
-        <div className="pt-16 sm:pt-20 pb-4 bg-white">
+        <div className="pt-12 sm:pt-16 md:pt-20 pb-4 bg-white mt-0">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
               {user.username || "User"}
