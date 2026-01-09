@@ -3,7 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Logo from "@/components/Logo";
 import SearchBar from "@/components/SearchBar";
@@ -72,6 +72,8 @@ export default function ProfilePage() {
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [profileCompletion, setProfileCompletion] = useState(0);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverPhotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -652,16 +654,28 @@ export default function ProfilePage() {
           
           {/* Cover Photo Upload Button */}
           <div className="absolute top-4 right-4">
-            <label className="bg-white/90 hover:bg-white text-gray-700 px-3 py-2 rounded-lg text-sm font-semibold cursor-pointer transition-colors flex items-center gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (!uploadingCover && coverPhotoInputRef.current) {
+                  coverPhotoInputRef.current.click();
+                }
+              }}
+              disabled={uploadingCover}
+              className="bg-white/90 hover:bg-white text-gray-700 px-3 py-2 rounded-lg text-sm font-semibold cursor-pointer transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {uploadingCover ? "Uploading..." : "📷 Cover"}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleCoverPhotoUpload}
-                disabled={uploadingCover}
-                className="hidden"
-              />
-            </label>
+            </button>
+            <input
+              ref={coverPhotoInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleCoverPhotoUpload}
+              disabled={uploadingCover}
+              className="hidden"
+            />
           </div>
 
           {/* Avatar */}
@@ -688,30 +702,31 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
-              <label 
-                htmlFor="avatar-upload-input"
-                className="absolute bottom-0 right-0 bg-purple-600 text-white p-2 rounded-full cursor-pointer hover:bg-purple-700 transition-colors shadow-lg z-20"
+              <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (uploadingAvatar) {
-                    e.preventDefault();
+                  e.preventDefault();
+                  if (!uploadingAvatar && avatarInputRef.current) {
+                    avatarInputRef.current.click();
                   }
                 }}
+                disabled={uploadingAvatar}
+                className="absolute bottom-0 right-0 bg-purple-600 text-white p-2 rounded-full cursor-pointer hover:bg-purple-700 transition-colors shadow-lg z-20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploadingAvatar ? (
                   <span className="text-xs">⏳</span>
                 ) : (
                   <span className="text-sm">📷</span>
                 )}
-              </label>
+              </button>
               <input
-                id="avatar-upload-input"
+                ref={avatarInputRef}
                 type="file"
                 accept="image/*"
                 onChange={handleAvatarUpload}
                 disabled={uploadingAvatar}
                 className="hidden"
-                onClick={(e) => e.stopPropagation()}
               />
             </div>
           </div>
