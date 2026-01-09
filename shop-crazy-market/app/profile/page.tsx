@@ -703,7 +703,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Avatar - positioned outside cover photo container to ensure proper layering */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 z-30" style={{ bottom: '-40px' }}>
+        <div className="absolute left-1/2 transform -translate-x-1/2 z-30" style={{ bottom: '-48px' }}>
           <div className="relative">
             <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
                 {avatar ? (
@@ -764,7 +764,7 @@ export default function ProfilePage() {
           </div>
 
         {/* Profile Info Section */}
-        <div className="pt-12 sm:pt-16 md:pt-20 pb-4 bg-white">
+        <div className="pt-20 sm:pt-24 md:pt-28 pb-4 bg-white">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
               {user.username || "User"}
@@ -780,7 +780,7 @@ export default function ProfilePage() {
             </Link>
 
             {/* Social Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mt-6 max-w-2xl mx-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mt-8 sm:mt-10 max-w-2xl mx-auto">
               <StatCard number={socialStats.followers} label="Followers" emoji="👥" />
               <StatCard number={socialStats.following} label="Following" emoji="➕" />
               <StatCard number={socialStats.reviews} label="Reviews" emoji="⭐" />
@@ -796,7 +796,7 @@ export default function ProfilePage() {
       </section>
 
       {/* Tabs Navigation */}
-      <section className="bg-white border-b z-20">
+      <section className="bg-white border-b z-20 mt-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex overflow-x-auto">
             <TabButton
