@@ -301,6 +301,7 @@ export default function ProfilePage() {
       const saveData = await saveResponse.json();
       console.log("[AVATAR UPLOAD] Save successful:", saveData);
 
+      // Update avatar state immediately
       setAvatar(avatarUrl);
       
       // Update local user state
@@ -317,6 +318,9 @@ export default function ProfilePage() {
           console.error("[AVATAR UPLOAD] Error updating localStorage:", storageError);
         }
       }
+
+      // Refresh avatar from API to ensure we have the latest
+      await fetchAvatar();
 
       // Refresh profile completion
       calculateProfileCompletion();
@@ -684,13 +688,19 @@ export default function ProfilePage() {
               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
                 {avatar ? (
                   <img 
-                    src={avatar} 
+                    src={`${avatar}${avatar.includes('?') ? '&' : '?'}t=${Date.now()}`}
                     alt="Avatar" 
                     className="w-full h-full object-cover" 
+                    key={avatar} // Force re-render when avatar changes
                     onError={(e) => {
                       console.error("[AVATAR] Failed to load image:", avatar);
-                      setAvatar(null); // Clear broken image
-                      (e.target as HTMLImageElement).style.display = 'none';
+                      // Don't clear avatar on error - might be temporary network issue
+                      // Instead, try to fetch again
+                      setTimeout(() => {
+                        if (user?.id) {
+                          fetchAvatar();
+                        }
+                      }, 2000);
                     }}
                     onLoad={() => {
                       console.log("[AVATAR] Image loaded successfully:", avatar);
