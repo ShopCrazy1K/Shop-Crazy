@@ -107,38 +107,14 @@ export default function ProfilePage() {
       return;
     }
 
-    // First, check if user object already has avatar
-    const userWithAvatar = user as any;
-    if (userWithAvatar.avatar) {
-      console.log("[FETCH AVATAR] Found avatar in user object:", userWithAvatar.avatar);
-      setAvatar(userWithAvatar.avatar);
-      return;
-    }
-
-    // Second, check localStorage
-    if (typeof window !== 'undefined') {
-      try {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          if (parsedUser.avatar) {
-            console.log("[FETCH AVATAR] Found avatar in localStorage:", parsedUser.avatar);
-            setAvatar(parsedUser.avatar);
-            return;
-          }
-        }
-      } catch (error) {
-        console.error("[FETCH AVATAR] Error reading localStorage:", error);
-      }
-    }
-
-    // Third, fetch from API
+    // Always fetch from API first to get the latest avatar
     try {
       console.log("[FETCH AVATAR] Fetching from API for user:", user.id);
-      const response = await fetch(`/api/users/${user.id}/avatar`, {
+      const response = await fetch(`/api/users/${user.id}/avatar?t=${Date.now()}`, {
         headers: {
           "x-user-id": user.id,
         },
+        cache: 'no-store',
       });
 
       console.log("[FETCH AVATAR] API response status:", response.status);
@@ -149,9 +125,10 @@ export default function ProfilePage() {
         const avatarUrl = data.avatar || null;
         
         if (avatarUrl) {
+          console.log("[FETCH AVATAR] Setting avatar URL:", avatarUrl);
           setAvatar(avatarUrl);
           
-          // Update localStorage and user object for future reference
+          // Update localStorage for future reference
           if (typeof window !== 'undefined') {
             try {
               const storedUser = localStorage.getItem("user");
@@ -165,16 +142,50 @@ export default function ProfilePage() {
             }
           }
         } else {
-          console.log("[FETCH AVATAR] No avatar found in API response");
+          console.log("[FETCH AVATAR] No avatar found in API response (null or empty)");
           setAvatar(null);
         }
       } else {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
         console.error("[FETCH AVATAR] API error:", errorData);
+        
+        // Fallback: check localStorage if API fails
+        if (typeof window !== 'undefined') {
+          try {
+            const storedUser = localStorage.getItem("user");
+            if (storedUser) {
+              const parsedUser = JSON.parse(storedUser);
+              if (parsedUser.avatar) {
+                console.log("[FETCH AVATAR] Falling back to localStorage:", parsedUser.avatar);
+                setAvatar(parsedUser.avatar);
+                return;
+              }
+            }
+          } catch (error) {
+            console.error("[FETCH AVATAR] Error reading localStorage:", error);
+          }
+        }
         setAvatar(null);
       }
     } catch (error) {
       console.error("[FETCH AVATAR] Error fetching avatar:", error);
+      
+      // Fallback: check localStorage if API call fails
+      if (typeof window !== 'undefined') {
+        try {
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser.avatar) {
+              console.log("[FETCH AVATAR] Falling back to localStorage after error:", parsedUser.avatar);
+              setAvatar(parsedUser.avatar);
+              return;
+            }
+          }
+        } catch (storageError) {
+          console.error("[FETCH AVATAR] Error reading localStorage:", storageError);
+        }
+      }
       setAvatar(null);
     }
   }
@@ -300,27 +311,35 @@ export default function ProfilePage() {
 
       const saveData = await saveResponse.json();
       console.log("[AVATAR UPLOAD] Save successful:", saveData);
+      console.log("[AVATAR UPLOAD] Avatar URL from save response:", saveData.avatar || avatarUrl);
 
-      // Update avatar state immediately
-      setAvatar(avatarUrl);
+      // Use the avatar from the save response, or fallback to upload URL
+      const finalAvatarUrl = saveData.avatar || avatarUrl;
+      
+      // Update avatar state immediately with the final URL
+      console.log("[AVATAR UPLOAD] Setting avatar state to:", finalAvatarUrl);
+      setAvatar(finalAvatarUrl);
       
       // Update local user state
-      const updatedUser = { ...user, avatar: avatarUrl };
       if (typeof window !== 'undefined') {
         try {
           const storedUser = localStorage.getItem("user");
           if (storedUser) {
             const parsedUser = JSON.parse(storedUser);
-            parsedUser.avatar = avatarUrl;
+            parsedUser.avatar = finalAvatarUrl;
             localStorage.setItem("user", JSON.stringify(parsedUser));
+            console.log("[AVATAR UPLOAD] Updated localStorage with avatar:", finalAvatarUrl);
           }
         } catch (storageError) {
           console.error("[AVATAR UPLOAD] Error updating localStorage:", storageError);
         }
       }
 
-      // Refresh avatar from API to ensure we have the latest
-      await fetchAvatar();
+      // Small delay then refresh avatar from API to ensure we have the latest
+      setTimeout(async () => {
+        console.log("[AVATAR UPLOAD] Refreshing avatar from API after upload");
+        await fetchAvatar();
+      }, 500);
 
       // Refresh profile completion
       calculateProfileCompletion();
@@ -688,22 +707,24 @@ export default function ProfilePage() {
               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
                 {avatar ? (
                   <img 
-                    src={`${avatar}${avatar.includes('?') ? '&' : '?'}t=${Date.now()}`}
+                    src={avatar}
                     alt="Avatar" 
                     className="w-full h-full object-cover" 
                     key={avatar} // Force re-render when avatar changes
                     onError={(e) => {
-                      console.error("[AVATAR] Failed to load image:", avatar);
-                      // Don't clear avatar on error - might be temporary network issue
-                      // Instead, try to fetch again
+                      console.error("[AVATAR] Failed to load image. URL:", avatar);
+                      console.error("[AVATAR] Error details:", e);
+                      // Don't clear avatar immediately - might be temporary network issue
+                      // Try to fetch fresh avatar from API
                       setTimeout(() => {
                         if (user?.id) {
+                          console.log("[AVATAR] Retrying avatar fetch after load error");
                           fetchAvatar();
                         }
                       }, 2000);
                     }}
                     onLoad={() => {
-                      console.log("[AVATAR] Image loaded successfully:", avatar);
+                      console.log("[AVATAR] Image loaded successfully. URL:", avatar);
                     }}
                   />
                 ) : (
