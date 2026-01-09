@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 interface CompletionItem {
@@ -34,6 +34,8 @@ export default function ProfileCompletion({
 }: Props) {
   const [items, setItems] = useState<CompletionItem[]>([]);
   const [completion, setCompletion] = useState(0);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     calculateCompletion();
@@ -133,6 +135,74 @@ export default function ProfileCompletion({
   const incompleteItems = items.filter((item) => !item.completed);
   const completedCount = items.filter((item) => item.completed).length;
 
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) {
+      console.log("[PROFILE COMPLETION] No file selected or user not logged in");
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert("Please select an image file");
+      e.target.value = "";
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Image size must be less than 10MB");
+      e.target.value = "";
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errorData.error || errorData.message || "Failed to upload avatar");
+      }
+
+      const uploadData = await uploadResponse.json();
+      const avatarUrl = uploadData.url || uploadData.path;
+      
+      if (!avatarUrl) {
+        throw new Error("No URL returned from upload");
+      }
+
+      const saveResponse = await fetch(`/api/users/${user.id}/avatar`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+        },
+        body: JSON.stringify({ avatar: avatarUrl }),
+      });
+
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errorData.error || errorData.message || "Failed to save avatar");
+      }
+
+      // Reload the page to refresh the avatar state
+      window.location.reload();
+    } catch (error: any) {
+      console.error("[PROFILE COMPLETION] Error uploading avatar:", error);
+      alert(error.message || "Failed to upload avatar. Please try again.");
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-purple-200">
       <div className="flex items-center justify-between mb-4">
@@ -195,24 +265,67 @@ export default function ProfileCompletion({
       {incompleteItems.length > 0 && (
         <div className="space-y-3">
           <h4 className="font-semibold text-gray-900 mb-2">Next Steps:</h4>
-          {incompleteItems.slice(0, 4).map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              className="flex items-start gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
-            >
-              <span className="text-2xl flex-shrink-0">{item.emoji}</span>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
-                  {item.label}
-                </p>
-                <p className="text-xs text-gray-600 mt-1">{item.description}</p>
-              </div>
-              <span className="text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                →
-              </span>
-            </Link>
-          ))}
+          {incompleteItems.slice(0, 4).map((item) => {
+            // Special handling for avatar upload
+            if (item.id === "avatar") {
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-start gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+                >
+                  <span className="text-2xl flex-shrink-0">{item.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
+                      {item.label}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">{item.description}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      if (!uploadingAvatar && avatarInputRef.current) {
+                        avatarInputRef.current.click();
+                      }
+                    }}
+                    disabled={uploadingAvatar}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {uploadingAvatar ? "Uploading..." : "Upload"}
+                  </button>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    disabled={uploadingAvatar}
+                    className="hidden"
+                  />
+                </div>
+              );
+            }
+            
+            // Regular link for other items
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className="flex items-start gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+              >
+                <span className="text-2xl flex-shrink-0">{item.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
+                    {item.label}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">{item.description}</p>
+                </div>
+                <span className="text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  →
+                </span>
+              </Link>
+            );
+          })}
         </div>
       )}
 
