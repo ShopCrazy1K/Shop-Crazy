@@ -53,12 +53,41 @@ export async function POST(req: Request) {
         currency: data.currency ?? "usd",
         category: data.category ?? null,
         images: data.images ?? [],
+        thumbnails: data.thumbnails ?? [],
         digitalFiles: data.digitalFiles,
-        isActive: false,
-      },
+        // SEO & Discovery
+        tags: data.tags ?? [],
+        searchKeywords: data.searchKeywords ?? null,
+        metaDescription: data.metaDescription ?? null,
+        // Product Attributes
+        sku: data.sku ?? null,
+        brand: data.brand ?? null,
+        materials: data.materials ?? null,
+        dimensions: data.dimensions ?? null,
+        weight: data.weight ?? null,
+        color: data.color ?? null,
+        countryOfOrigin: data.countryOfOrigin ?? null,
+        // Shipping
+        shippingCostCents: data.shippingCostCents ?? null,
+        processingTime: data.processingTime ?? null,
+        shippingMethods: data.shippingMethods ?? [],
+        // Policies
+        returnPolicy: data.returnPolicy ?? null,
+        returnWindowDays: data.returnWindowDays ?? null,
+        warrantyInfo: data.warrantyInfo ?? null,
+        careInstructions: data.careInstructions ?? null,
+        // Draft
+        isDraft: data.isDraft ?? false,
+        isActive: data.isDraft ? false : false, // Drafts are never active
+      } as any,
     });
     
     console.log("[LISTING CREATE] Listing created successfully:", listing.id);
+
+    // If it's a draft, skip Stripe checkout
+    if (data.isDraft) {
+      return NextResponse.json({ ok: true, listingId: listing.id, isDraft: true }, { status: 201 });
+    }
 
     // Create Stripe customer (one per listing is fine; or you can reuse per seller)
     const customer = await stripe.customers.create({

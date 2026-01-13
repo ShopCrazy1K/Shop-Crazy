@@ -95,7 +95,31 @@ export const createListingSchema = z.object({
   currency: z.string().optional().default("usd"),
   category: z.string().optional(),
   images: z.array(z.string().min(1)).optional().default([]),
+  thumbnails: z.array(z.string().min(1)).optional().default([]),
   // ✅ Accept keys OR URLs - optional, but if provided must have at least 1
   digitalFiles: z.array(fileKeyOrUrl).min(1, "Upload at least 1 digital file").optional(),
+  // SEO & Discovery
+  tags: z.array(z.string()).optional().default([]),
+  searchKeywords: z.string().max(200).optional(),
+  metaDescription: z.string().max(160).optional(),
+  // Product Attributes
+  sku: z.string().max(100).optional(),
+  brand: z.string().max(100).optional(),
+  materials: z.string().max(200).optional(),
+  dimensions: z.string().max(100).optional(),
+  weight: z.string().max(50).optional(),
+  color: z.string().max(50).optional(),
+  countryOfOrigin: z.string().max(100).optional(),
+  // Shipping
+  shippingCostCents: z.coerce.number().int().nonnegative().optional(),
+  processingTime: z.string().max(50).optional(),
+  shippingMethods: z.array(z.string()).optional().default([]),
+  // Policies
+  returnPolicy: z.string().max(1000).optional(),
+  returnWindowDays: z.coerce.number().int().nonnegative().optional(),
+  warrantyInfo: z.string().max(200).optional(),
+  careInstructions: z.string().max(500).optional(),
+  // Draft
+  isDraft: z.boolean().optional().default(false),
 });
 

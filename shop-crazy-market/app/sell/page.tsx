@@ -22,6 +22,29 @@ interface FormData {
   category: string;
   type: "PHYSICAL" | "DIGITAL";
   condition: "NEW" | "USED";
+  // SEO & Discovery
+  tags: string[];
+  searchKeywords: string;
+  metaDescription: string;
+  // Product Attributes
+  sku: string;
+  brand: string;
+  materials: string;
+  dimensions: string;
+  weight: string;
+  color: string;
+  countryOfOrigin: string;
+  // Shipping
+  shippingCost: string;
+  processingTime: string;
+  shippingMethods: string[];
+  // Policies
+  returnPolicy: string;
+  returnWindowDays: string;
+  warrantyInfo: string;
+  careInstructions: string;
+  // Draft
+  isDraft: boolean;
 }
 
 export default function SellPage() {
@@ -41,6 +64,29 @@ export default function SellPage() {
     category: "",
     type: "PHYSICAL",
     condition: "NEW",
+    // SEO & Discovery
+    tags: [],
+    searchKeywords: "",
+    metaDescription: "",
+    // Product Attributes
+    sku: "",
+    brand: "",
+    materials: "",
+    dimensions: "",
+    weight: "",
+    color: "",
+    countryOfOrigin: "",
+    // Shipping
+    shippingCost: "",
+    processingTime: "",
+    shippingMethods: [],
+    // Policies
+    returnPolicy: "",
+    returnWindowDays: "",
+    warrantyInfo: "",
+    careInstructions: "",
+    // Draft
+    isDraft: false,
   });
 
   // Digital files state
@@ -49,7 +95,7 @@ export default function SellPage() {
   const [uploadedDigitalFileUrls, setUploadedDigitalFileUrls] = useState<string[]>([]);
 
   // Image files state (for physical products only)
-  const [thumbnail, setThumbnail] = useState<ImageItem | null>(null);
+  const [thumbnails, setThumbnails] = useState<ImageItem[]>([]); // Multiple thumbnails (Etsy-style)
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -57,6 +103,7 @@ export default function SellPage() {
   const [imageUrls, setImageUrls] = useState<string>(""); // Manual URLs
   const [imageUploadProgress, setImageUploadProgress] = useState<Map<File, number>>(new Map());
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
+  const [tagInput, setTagInput] = useState(""); // For tag input
   
   // Ref to prevent auto-save when canceling
   const isCancelingRef = useRef(false);
@@ -217,11 +264,12 @@ export default function SellPage() {
     setUploadingThumbnail(true);
     try {
       const url = await handleFileUpload(file);
-      setThumbnail({
+      const newThumbnail: ImageItem = {
         id: crypto.randomUUID(),
         url,
         path: url,
-      });
+      };
+      setThumbnails((prev) => [...prev, newThumbnail]);
     } catch (error: any) {
       alert(`Failed to upload thumbnail: ${error.message}`);
     } finally {
@@ -230,16 +278,20 @@ export default function SellPage() {
   }
 
   const handleThumbnailDrop = useCallback((files: File[]) => {
-    if (files.length > 0 && files[0].type.startsWith("image/")) {
-      handleThumbnailUpload(files[0]);
-    }
+    files.forEach((file) => {
+      if (file.type.startsWith("image/")) {
+        handleThumbnailUpload(file);
+      }
+    });
   }, []);
 
   const handleThumbnailFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      handleThumbnailUpload(file);
-    }
+    const files = Array.from(e.target.files || []);
+    files.forEach((file) => {
+      if (file.type.startsWith("image/")) {
+        handleThumbnailUpload(file);
+      }
+    });
     if (e.target) {
       e.target.value = "";
     }
@@ -248,6 +300,21 @@ export default function SellPage() {
   const handleThumbnailClick = useCallback(() => {
     thumbnailInputRef.current?.click();
   }, []);
+
+  const handleAddTag = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && tagInput.trim()) {
+      e.preventDefault();
+      const newTag = tagInput.trim().toLowerCase();
+      if (!formData.tags.includes(newTag) && formData.tags.length < 20) {
+        setFormData({ ...formData, tags: [...formData.tags, newTag] });
+        setTagInput("");
+      }
+    }
+  }, [tagInput, formData]);
+
+  const handleRemoveTag = useCallback((tagToRemove: string) => {
+    setFormData({ ...formData, tags: formData.tags.filter(t => t !== tagToRemove) });
+  }, [formData]);
 
   async function handleDigitalFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
@@ -457,34 +524,44 @@ export default function SellPage() {
         return;
       }
 
-      // Validate thumbnail (required for all product types)
-      if (!thumbnail) {
-        setError("Please upload a thumbnail image for your listing");
+      // Validate thumbnails (at least one required)
+      if (thumbnails.length === 0) {
+        setError("Please upload at least one thumbnail image for your listing");
         setLoading(false);
         return;
       }
 
       // Prepare images array
       let finalImages: string[] = [];
-      const thumbnailUrl = thumbnail.path ?? thumbnail.url;
+      const thumbnailUrls = thumbnails.map((thumb) => thumb.path ?? thumb.url);
 
       if (formData.type === "DIGITAL") {
-        // For digital products: thumbnail first, then digital files
+        // For digital products: thumbnails first, then digital files
         finalImages = [
-          thumbnailUrl,
+          ...thumbnailUrls,
           ...uploadedDigitalFileUrls
         ];
       } else {
-        // For physical products: thumbnail first, then other images, then manual URLs
+        // For physical products: thumbnails first, then other images, then manual URLs
         const imagePathsInOrder = images.map((img) => img.path ?? img.url);
         const manualUrls = imageUrls ? imageUrls.split(",").map(url => url.trim()).filter(Boolean) : [];
         
         finalImages = [
-          thumbnailUrl,
+          ...thumbnailUrls,
           ...imagePathsInOrder,
           ...manualUrls
         ];
       }
+
+      // Prepare shipping cost
+      const shippingCostCents = formData.shippingCost 
+        ? Math.round(parseFloat(formData.shippingCost) * 100) 
+        : undefined;
+
+      // Prepare return window
+      const returnWindowDays = formData.returnWindowDays 
+        ? parseInt(formData.returnWindowDays) 
+        : undefined;
 
       // Create the listing using listings/create API (handles Stripe subscription for listing fee)
       const response = await fetch("/api/listings/create", {
@@ -499,9 +576,33 @@ export default function SellPage() {
           currency: "usd",
           category: formData.category || undefined,
           images: finalImages,
+          thumbnails: thumbnailUrls,
           // digitalFiles is required - ensure we have uploaded files for digital products
           digitalFiles: formData.type === "DIGITAL" ? uploadedDigitalFileUrls : [],
           sellerId: user?.id,
+          // SEO & Discovery
+          tags: formData.tags,
+          searchKeywords: formData.searchKeywords || undefined,
+          metaDescription: formData.metaDescription || undefined,
+          // Product Attributes
+          sku: formData.sku || undefined,
+          brand: formData.brand || undefined,
+          materials: formData.materials || undefined,
+          dimensions: formData.dimensions || undefined,
+          weight: formData.weight || undefined,
+          color: formData.color || undefined,
+          countryOfOrigin: formData.countryOfOrigin || undefined,
+          // Shipping
+          shippingCostCents: shippingCostCents,
+          processingTime: formData.processingTime || undefined,
+          shippingMethods: formData.shippingMethods,
+          // Policies
+          returnPolicy: formData.returnPolicy || undefined,
+          returnWindowDays: returnWindowDays,
+          warrantyInfo: formData.warrantyInfo || undefined,
+          careInstructions: formData.careInstructions || undefined,
+          // Draft
+          isDraft: formData.isDraft,
         }),
       });
 
@@ -529,6 +630,18 @@ export default function SellPage() {
       if (listingId) {
         console.log("[LISTING CREATE] Storing listing ID:", listingId);
         setCreatedProduct(listingId);
+      }
+      
+      // If it's a draft, show success message without payment
+      if (result.isDraft || formData.isDraft) {
+        if (listingId) {
+          setShowSuccess(true);
+          setLoading(false);
+        } else {
+          setError("Draft saved but no listing ID returned");
+          setLoading(false);
+        }
+        return;
       }
       
       // If there's a checkout URL, redirect to Stripe checkout for listing fee
@@ -603,16 +716,35 @@ export default function SellPage() {
       category: "",
       type: "PHYSICAL",
       condition: "NEW",
+      tags: [],
+      searchKeywords: "",
+      metaDescription: "",
+      sku: "",
+      brand: "",
+      materials: "",
+      dimensions: "",
+      weight: "",
+      color: "",
+      countryOfOrigin: "",
+      shippingCost: "",
+      processingTime: "",
+      shippingMethods: [],
+      returnPolicy: "",
+      returnWindowDays: "",
+      warrantyInfo: "",
+      careInstructions: "",
+      isDraft: false,
     };
     
     // Clear all state synchronously using flushSync to force immediate update
     flushSync(() => {
-      setThumbnail(null);
+      setThumbnails([]);
       setDigitalFiles([]);
       setUploadedDigitalFileUrls([]);
       setImageFiles([]);
       setImages([]);
       setImageUrls("");
+      setTagInput("");
       setFormData(emptyFormData);
       setError("");
       setLoading(false);
@@ -629,12 +761,13 @@ export default function SellPage() {
   function handleCreateAnother() {
     setShowSuccess(false);
     setCreatedProduct(null);
-    setThumbnail(null);
+    setThumbnails([]);
     setDigitalFiles([]);
     setUploadedDigitalFileUrls([]);
     setImageFiles([]);
     setImages([]);
     setImageUrls("");
+    setTagInput("");
     setFormData({
       title: "",
       description: "",
@@ -643,6 +776,24 @@ export default function SellPage() {
       category: "",
       type: "PHYSICAL",
       condition: "NEW",
+      tags: [],
+      searchKeywords: "",
+      metaDescription: "",
+      sku: "",
+      brand: "",
+      materials: "",
+      dimensions: "",
+      weight: "",
+      color: "",
+      countryOfOrigin: "",
+      shippingCost: "",
+      processingTime: "",
+      shippingMethods: [],
+      returnPolicy: "",
+      returnWindowDays: "",
+      warrantyInfo: "",
+      careInstructions: "",
+      isDraft: false,
     });
     setError("");
     if (typeof window !== 'undefined') {
@@ -663,25 +814,26 @@ export default function SellPage() {
             <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-green-600">
               Listing Created Successfully!
             </h1>
-            
-            <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6 mb-8">
-              <h2 className="text-xl font-bold mb-4 text-purple-800">💰 Listing Fee Information</h2>
-              <div className="space-y-3 text-left">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700">Monthly Listing Fee:</span>
-                  <span className="text-2xl font-bold text-purple-600">${listingFeeDollars}</span>
-                </div>
-                <div className="text-sm text-gray-600 bg-white rounded-lg p-4 mt-3">
-                  <p className="mb-2">💡 <strong>How it works:</strong></p>
-                  <ul className="list-disc list-inside space-y-1 text-left">
-                    <li>You'll be charged <strong>${listingFeeDollars} per month</strong> for this listing</li>
-                    <li>Fees are billed on the 1st of each month</li>
-                    <li>You can remove listings anytime to stop fees</li>
-                    <li>Fees are charged automatically via Stripe</li>
-                  </ul>
+            {!isDraft && (
+              <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6 mb-8">
+                <h2 className="text-xl font-bold mb-4 text-purple-800">💰 Listing Fee Information</h2>
+                <div className="space-y-3 text-left">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-700">Monthly Listing Fee:</span>
+                    <span className="text-2xl font-bold text-purple-600">${listingFeeDollars}</span>
+                  </div>
+                  <div className="text-sm text-gray-600 bg-white rounded-lg p-4 mt-3">
+                    <p className="mb-2">💡 <strong>How it works:</strong></p>
+                    <ul className="list-disc list-inside space-y-1 text-left">
+                      <li>You'll be charged <strong>${listingFeeDollars} per month</strong> for this listing</li>
+                      <li>Fees are billed on the 1st of each month</li>
+                      <li>You can remove listings anytime to stop fees</li>
+                      <li>Fees are charged automatically via Stripe</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
@@ -821,8 +973,12 @@ export default function SellPage() {
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   placeholder="Enter product title"
+                  maxLength={100}
                   required
                 />
+                <p className="text-xs text-gray-400 mt-1">
+                  {formData.title.length}/100 characters
+                </p>
               </div>
 
               <div>
@@ -835,8 +991,12 @@ export default function SellPage() {
                   rows={6}
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
                   placeholder="Describe your product in detail..."
+                  maxLength={2000}
                   required
                 />
+                <p className="text-xs text-gray-400 mt-1">
+                  {formData.description.length}/2000 characters
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -943,61 +1103,395 @@ export default function SellPage() {
             </div>
           </section>
 
-          {/* Thumbnail Upload Section - Etsy Style - Visible for All Product Types */}
+          {/* SEO & Discovery Section */}
+          <section>
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+              <span className="mr-2">🔍</span>
+              SEO & Discovery
+            </h2>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Tags / Keywords
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Add tags to help buyers find your product. Press Enter to add each tag (max 20).
+                </p>
+                <div className="flex flex-wrap gap-2 mb-2 p-3 border-2 border-gray-300 rounded-xl min-h-[50px]">
+                  {formData.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(tag)}
+                        className="hover:text-purple-900"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  {formData.tags.length < 20 && (
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={handleAddTag}
+                      placeholder="Type and press Enter..."
+                      className="flex-1 min-w-[150px] border-0 focus:ring-0 focus:outline-none"
+                    />
+                  )}
+                </div>
+                <p className="text-xs text-gray-400">
+                  {formData.tags.length}/20 tags
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Search Keywords
+                </label>
+                <input
+                  type="text"
+                  value={formData.searchKeywords}
+                  onChange={(e) => setFormData({ ...formData, searchKeywords: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  placeholder="Additional keywords for search (comma-separated)"
+                  maxLength={200}
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  {formData.searchKeywords.length}/200 characters
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Meta Description (SEO)
+                </label>
+                <textarea
+                  value={formData.metaDescription}
+                  onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
+                  placeholder="Brief description for search engines (150-160 characters recommended)"
+                  maxLength={160}
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  {formData.metaDescription.length}/160 characters
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Product Attributes Section */}
+          <section>
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+              <span className="mr-2">📦</span>
+              Product Attributes
+            </h2>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  SKU / Product Code
+                </label>
+                <input
+                  type="text"
+                  value={formData.sku}
+                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  placeholder="e.g., PROD-001"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Brand / Manufacturer
+                </label>
+                <input
+                  type="text"
+                  value={formData.brand}
+                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  placeholder="Brand name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Materials
+                </label>
+                <input
+                  type="text"
+                  value={formData.materials}
+                  onChange={(e) => setFormData({ ...formData, materials: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  placeholder="e.g., Cotton, Polyester, Wood"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Dimensions
+                </label>
+                <input
+                  type="text"
+                  value={formData.dimensions}
+                  onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  placeholder="e.g., 10x5x3 inches"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Weight
+                </label>
+                <input
+                  type="text"
+                  value={formData.weight}
+                  onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  placeholder="e.g., 1.5 lbs or 0.68 kg"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Color
+                </label>
+                <input
+                  type="text"
+                  value={formData.color}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  placeholder="e.g., Red, Blue, Multi-color"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Country of Origin
+                </label>
+                <input
+                  type="text"
+                  value={formData.countryOfOrigin}
+                  onChange={(e) => setFormData({ ...formData, countryOfOrigin: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  placeholder="e.g., United States, China"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Shipping Information Section - Physical Products Only */}
+          {formData.type === "PHYSICAL" && (
+            <section>
+              <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+                <span className="mr-2">🚚</span>
+                Shipping Information
+              </h2>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Shipping Cost ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.shippingCost}
+                    onChange={(e) => setFormData({ ...formData, shippingCost: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Processing Time
+                  </label>
+                  <select
+                    value={formData.processingTime}
+                    onChange={(e) => setFormData({ ...formData, processingTime: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white"
+                  >
+                    <option value="">Select processing time</option>
+                    <option value="1-2 business days">1-2 business days</option>
+                    <option value="3-5 business days">3-5 business days</option>
+                    <option value="1 week">1 week</option>
+                    <option value="2 weeks">2 weeks</option>
+                    <option value="3+ weeks">3+ weeks</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Shipping Methods
+                  </label>
+                  <div className="flex flex-wrap gap-3">
+                    {["Standard", "Express", "Overnight", "International"].map((method) => (
+                      <label key={method} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.shippingMethods.includes(method)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({ ...formData, shippingMethods: [...formData.shippingMethods, method] });
+                            } else {
+                              setFormData({ ...formData, shippingMethods: formData.shippingMethods.filter(m => m !== method) });
+                            }
+                          }}
+                          className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                        />
+                        <span className="text-sm text-gray-700">{method}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Policies & Information Section */}
+          <section>
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+              <span className="mr-2">📋</span>
+              Policies & Information
+            </h2>
+            
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Return Window (Days)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.returnWindowDays}
+                    onChange={(e) => setFormData({ ...formData, returnWindowDays: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    placeholder="e.g., 30"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Warranty Information
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.warrantyInfo}
+                    onChange={(e) => setFormData({ ...formData, warrantyInfo: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    placeholder="e.g., 1 year manufacturer warranty"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Return Policy
+                </label>
+                <textarea
+                  value={formData.returnPolicy}
+                  onChange={(e) => setFormData({ ...formData, returnPolicy: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
+                  placeholder="Describe your return policy..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Care Instructions
+                </label>
+                <textarea
+                  value={formData.careInstructions}
+                  onChange={(e) => setFormData({ ...formData, careInstructions: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
+                  placeholder="e.g., Hand wash only, Do not bleach, Air dry"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Thumbnail Upload Section - Etsy Style - Multiple Thumbnails */}
           <section>
             <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
               <span className="mr-2">📷</span>
-              Listing Thumbnail (Cover Image) *
+              Listing Thumbnails (Cover Images) *
             </h2>
             
             <div className="space-y-3">
               <p className="text-xs text-gray-500 mb-3">
-                This is the main image that buyers will see first. Choose a high-quality image that showcases your product.
+                Upload multiple thumbnail images. The first image will be the main cover image that buyers see first. You can upload up to 10 thumbnails.
               </p>
               
-              {thumbnail ? (
-                <div className="relative border-2 border-purple-300 rounded-xl overflow-hidden bg-gray-50">
-                  <div className="relative aspect-square max-w-md mx-auto">
-                    <img
-                      src={thumbnail.url}
-                      alt="Listing thumbnail"
-                      className="w-full h-full object-contain"
-                    />
-                    {/* Overlay with change button */}
-                    <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center group">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              {thumbnails.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {thumbnails.map((thumb, index) => (
+                      <div key={thumb.id} className="relative border-2 rounded-xl overflow-hidden bg-gray-50 aspect-square">
+                        <img
+                          src={thumb.url}
+                          alt={`Thumbnail ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        {index === 0 && (
+                          <div className="absolute top-2 left-2 bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-semibold shadow-lg">
+                            Main
+                          </div>
+                        )}
                         <button
                           type="button"
-                          onClick={handleThumbnailClick}
+                          onClick={() => setThumbnails((prev) => prev.filter((t) => t.id !== thumb.id))}
                           disabled={uploadingThumbnail}
-                          className="bg-white/90 hover:bg-white px-4 py-2 rounded-lg font-semibold text-sm text-gray-700 shadow-lg transition-colors disabled:opacity-50"
+                          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold text-sm shadow-lg transition-colors disabled:opacity-50"
+                          title="Remove thumbnail"
                         >
-                          Change Thumbnail
+                          ×
                         </button>
+                        {index > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newThumbnails = [...thumbnails];
+                              [newThumbnails[0], newThumbnails[index]] = [newThumbnails[index], newThumbnails[0]];
+                              setThumbnails(newThumbnails);
+                            }}
+                            className="absolute bottom-2 left-2 bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs font-semibold shadow-lg transition-colors"
+                            title="Set as main image"
+                          >
+                            Set Main
+                          </button>
+                        )}
                       </div>
-                    </div>
-                    {/* Remove button */}
+                    ))}
+                  </div>
+                  {thumbnails.length < 10 && (
                     <button
                       type="button"
-                      onClick={() => setThumbnail(null)}
+                      onClick={handleThumbnailClick}
                       disabled={uploadingThumbnail}
-                      className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg shadow-lg transition-colors disabled:opacity-50"
-                      title="Remove thumbnail"
+                      className="w-full border-2 border-dashed border-purple-300 rounded-xl p-4 text-center hover:bg-purple-50 transition-colors disabled:opacity-50"
                     >
-                      ×
+                      + Add More Thumbnails ({thumbnails.length}/10)
                     </button>
-                    {/* Primary badge */}
-                    <div className="absolute top-2 left-2 bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
-                      Main Image
-                    </div>
-                  </div>
+                  )}
                 </div>
               ) : (
                 <DragAndDropUpload
                   onFilesSelected={handleThumbnailDrop}
                   accept="image/*"
-                  multiple={false}
-                  maxFiles={1}
+                  multiple={true}
+                  maxFiles={10}
                   maxSize={10 * 1024 * 1024} // 10MB
                   isImage={true}
                   className="w-full"
@@ -1006,13 +1500,13 @@ export default function SellPage() {
                     <div className="text-5xl">📷</div>
                     <div>
                       <p className="text-lg font-semibold text-gray-700">
-                        Upload your listing thumbnail
+                        Upload your listing thumbnails
                       </p>
                       <p className="text-sm text-gray-500 mt-2">
-                        Drag and drop an image here, or click to browse
+                        Drag and drop images here, or click to browse
                       </p>
                       <p className="text-xs text-gray-400 mt-3">
-                        Recommended: Square image (1:1 ratio), at least 1000x1000px
+                        Recommended: Square images (1:1 ratio), at least 1000x1000px. First image will be the main cover image.
                       </p>
                     </div>
                     {uploadingThumbnail && (
@@ -1024,11 +1518,12 @@ export default function SellPage() {
                   </div>
                 </DragAndDropUpload>
               )}
-              {/* Hidden input for "Change Thumbnail" button */}
+              {/* Hidden input for thumbnails */}
               <input
                 ref={thumbnailInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleThumbnailFileInput}
                 className="hidden"
               />
@@ -1267,18 +1762,42 @@ export default function SellPage() {
             </section>
           )}
 
-          {/* Listing Fee Info */}
-          <section className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-purple-900 mb-2 flex items-center">
-              <span className="mr-2">💰</span>
-              Listing Fee
-            </h3>
-            <p className="text-purple-700">
-              Monthly listing fee: <span className="font-bold text-xl">${(LISTING_FEE_PER_MONTH / 100).toFixed(2)}</span>
-            </p>
-            <p className="text-sm text-purple-600 mt-2">
-              This fee will be charged monthly to keep your listing active.
-            </p>
+          {/* Draft & Listing Fee Info */}
+          <section className="space-y-6">
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isDraft}
+                  onChange={(e) => setFormData({ ...formData, isDraft: e.target.checked })}
+                  className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-900 flex items-center">
+                    <span className="mr-2">💾</span>
+                    Save as Draft
+                  </h3>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Save this listing as a draft to finish later. Draft listings won't be visible to buyers and won't incur listing fees until published.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {!formData.isDraft && (
+              <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-purple-900 mb-2 flex items-center">
+                  <span className="mr-2">💰</span>
+                  Listing Fee
+                </h3>
+                <p className="text-purple-700">
+                  Monthly listing fee: <span className="font-bold text-xl">${(LISTING_FEE_PER_MONTH / 100).toFixed(2)}</span>
+                </p>
+                <p className="text-sm text-purple-600 mt-2">
+                  This fee will be charged monthly to keep your listing active.
+                </p>
+              </div>
+            )}
           </section>
 
           {/* Submit Button */}

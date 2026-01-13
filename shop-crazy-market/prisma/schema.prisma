@@ -40,7 +40,7 @@ model User {
   about                  String? // About section for seller profile (like Etsy)
   avatar                 String? // Profile picture/avatar URL
   coverPhoto             String? // Cover photo URL for profile page (like Etsy)
-  tutorialCompleted      Boolean  @default(false) // Track if user completed onboarding tutorial
+  tutorialCompleted      Boolean @default(false) // Track if user completed onboarding tutorial
   // Shop Policies
   shopAnnouncement       String? // Shop announcements
   shopAbout              String? // About your shop
@@ -52,36 +52,36 @@ model User {
   paymentMethods         String? // Payment methods accepted
 
   // Store Credit
-  storeCredit            Int      @default(0) // Stored in cents (500 = $5.00)
+  storeCredit Int @default(0) // Stored in cents (500 = $5.00)
 
   // Referral System
-  referralCode           String?  @unique // Unique referral code for this user
-  referredBy             String?  // User ID who referred this user
-  referredByUser         User?    @relation("Referrals", fields: [referredBy], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  referrals              User[]   @relation("Referrals") // Users referred by this user
+  referralCode   String? @unique // Unique referral code for this user
+  referredBy     String? // User ID who referred this user
+  referredByUser User?   @relation("Referrals", fields: [referredBy], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  referrals      User[]  @relation("Referrals") // Users referred by this user
 
   // Etsy-style relationships
-  shop            Shop?
-  buyerOrders     Order[]        @relation("BuyerOrders") // Orders as a buyer
-  reviews         Review[]
-  reviewsReceived Review[]       @relation("ReceivedReviews") // Reviews received as a seller
-  favorites       Favorite[]
-  messagesSent    Message[]      @relation("SentMessages")
-  messagesRecv    Message[]      @relation("ReceivedMessages")
-  listings        Listing[]
-  sellerOrders    Order[]        @relation("SellerOrders")
-  notifications   Notification[] // Notifications received by this user
-  followers       Follow[]       @relation("Followers") // Users who follow this user
-  following       Follow[]       @relation("Following") // Users this user follows
-  creditLedger    CreditLedger[] // Store credit ledger entries
-  sellerCredits   CreditLedger[] @relation("SellerCredits") // Credits funded by this seller
-  savedSearches   SavedSearch[]  // Saved searches
-  recentlyViewed  RecentlyViewed[] // Recently viewed listings
-  comparisons     ProductComparison[] // Products being compared
-  listingViews    ListingView[]  // Views on listings (for analytics)
-  priceAlerts     PriceAlert[]   // Price alerts
+  shop             Shop?
+  buyerOrders      Order[]             @relation("BuyerOrders") // Orders as a buyer
+  reviews          Review[]
+  reviewsReceived  Review[]            @relation("ReceivedReviews") // Reviews received as a seller
+  favorites        Favorite[]
+  messagesSent     Message[]           @relation("SentMessages")
+  messagesRecv     Message[]           @relation("ReceivedMessages")
+  listings         Listing[]
+  sellerOrders     Order[]             @relation("SellerOrders")
+  notifications    Notification[] // Notifications received by this user
+  followers        Follow[]            @relation("Followers") // Users who follow this user
+  following        Follow[]            @relation("Following") // Users this user follows
+  creditLedger     CreditLedger[] // Store credit ledger entries
+  sellerCredits    CreditLedger[]      @relation("SellerCredits") // Credits funded by this seller
+  savedSearches    SavedSearch[] // Saved searches
+  recentlyViewed   RecentlyViewed[] // Recently viewed listings
+  comparisons      ProductComparison[] // Products being compared
+  listingViews     ListingView[] // Views on listings (for analytics)
+  priceAlerts      PriceAlert[] // Price alerts
   listingFavorites ListingFavorite[] // Favorite listings
-  collections     Collection[]   // User collections/wishlists
+  collections      Collection[] // User collections/wishlists
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -227,9 +227,41 @@ model Listing {
   category    String? // Category slug: "shop-4-us", "game-zone", etc.
 
   // Digital files / assets (store URLs or storage keys)
-  digitalFiles String[] @default([])
-  images       String[] @default([])
-  thumbnailIndices Int[] @default([]) // Indices of images to show as thumbnails (max 4)
+  digitalFiles     String[] @default([])
+  images           String[] @default([])
+  thumbnailIndices Int[]    @default([]) // Indices of images to show as thumbnails (max 4)
+  thumbnails       String[] @default([]) // Multiple thumbnail images (Etsy-style)
+
+  // SEO & Discovery
+  tags            String[] @default([]) // Product tags/keywords for search
+  searchKeywords  String? // Additional search keywords
+  metaDescription String? // SEO meta description
+
+  // Product Attributes
+  sku             String? // Product SKU/code
+  brand           String? // Brand/Manufacturer name
+  materials       String? // Materials used
+  dimensions      String? // Product dimensions (e.g., "10x5x3 inches")
+  weight          String? // Product weight (e.g., "1.5 lbs")
+  color           String? // Primary color
+  countryOfOrigin String? // Country where product is made/shipped from
+
+  // Shipping Information (for physical products)
+  shippingCostCents Int? // Shipping cost in cents
+  processingTime    String? // Processing time (e.g., "1-3 business days")
+  shippingMethods   String[] @default([]) // Available shipping methods
+
+  // Policies & Information
+  returnPolicy     String? // Return policy description
+  returnWindowDays Int? // Return window in days
+  warrantyInfo     String? // Warranty information
+  careInstructions String? // Care/usage instructions
+
+  // Variants (stored as JSON for flexibility)
+  variants Json? // Product variants (size, color, etc.) with prices
+
+  // Draft status
+  isDraft Boolean @default(false) // Save as draft
 
   // Listing subscription fee state ($0.20/mo)
   isActive              Boolean @default(false)
@@ -269,16 +301,16 @@ model Order {
 
   // Inputs
   itemsSubtotalCents Int
-  shippingCents      Int @default(0)
-  giftWrapCents      Int @default(0)
-  taxCents           Int @default(0)
-  discountCents     Int @default(0) // Discount from promo code or deal
+  shippingCents      Int     @default(0)
+  giftWrapCents      Int     @default(0)
+  taxCents           Int     @default(0)
+  discountCents      Int     @default(0) // Discount from promo code or deal
   promoCode          String? // Promo code used (if any)
 
   // Computed
   orderSubtotalCents Int // items + shipping + gift wrap
   orderTotalCents    Int // orderSubtotal + tax
-  
+
   // Store Credit
   storeCreditUsedCents Int @default(0) // Amount of store credit used for this order
 
@@ -297,11 +329,11 @@ model Order {
   paymentStatus String @default("pending") // pending, paid, failed, refunded
 
   // Refund fields
-  refundType      RefundType?
-  refundStatus    RefundStatus @default(NONE)
-  refundAmount    Int          @default(0) // cents
-  refundReason    String?
-  refundedAt      DateTime?
+  refundType   RefundType?
+  refundStatus RefundStatus @default(NONE)
+  refundAmount Int          @default(0) // cents
+  refundReason String?
+  refundedAt   DateTime?
 
   // Shipping & Tracking
   shippingStatus  String? // processing, shipped, delivered
@@ -552,21 +584,21 @@ model Deal {
 //////////////////////////////////////
 
 model CreditLedger {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  
-  sellerId  String?  // If seller-funded, track which seller
-  seller    User?    @relation("SellerCredits", fields: [sellerId], references: [id])
-  
-  funder    String   // "PLATFORM" or "SELLER"
-  reason    String   // e.g. "REFUND", "PROMOTION", "WELCOME_BONUS"
-  amount    Int      // cents
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  sellerId String? // If seller-funded, track which seller
+  seller   User?   @relation("SellerCredits", fields: [sellerId], references: [id])
+
+  funder String // "PLATFORM" or "SELLER"
+  reason String // e.g. "REFUND", "PROMOTION", "WELCOME_BONUS"
+  amount Int // cents
+
   expiresAt DateTime? // Optional expiration date
-  
+
   createdAt DateTime @default(now())
-  
+
   @@index([userId])
   @@index([sellerId])
 }
@@ -578,10 +610,10 @@ model CreditLedger {
 model PageView {
   id        String   @id @default(cuid())
   date      DateTime @default(now()) @db.Date // Date of the view (date only, no time)
-  path      String   // Page path (e.g., "/", "/listings/123", "/marketplace")
-  userAgent String?  // User agent string
-  ipAddress String?  // IP address (for analytics, may be anonymized)
-  userId    String?  // Optional: logged-in user ID
+  path      String // Page path (e.g., "/", "/listings/123", "/marketplace")
+  userAgent String? // User agent string
+  ipAddress String? // IP address (for analytics, may be anonymized)
+  userId    String? // Optional: logged-in user ID
   createdAt DateTime @default(now()) // Timestamp of when the view was recorded
 
   @@index([date])
@@ -598,14 +630,14 @@ model SavedSearch {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id])
-  name        String?  // Optional name for the search
-  searchQuery String?  // Search term
-  category    String?  // Category filter
-  minPrice    Int?     // Min price in cents
-  maxPrice    Int?     // Max price in cents
-  productType String?  // DIGITAL or PHYSICAL
-  sortBy      String?  // Sort option
-  filters     String?  // JSON string of additional filters
+  name        String? // Optional name for the search
+  searchQuery String? // Search term
+  category    String? // Category filter
+  minPrice    Int? // Min price in cents
+  maxPrice    Int? // Max price in cents
+  productType String? // DIGITAL or PHYSICAL
+  sortBy      String? // Sort option
+  filters     String? // JSON string of additional filters
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -641,10 +673,10 @@ model ListingView {
   id        String   @id @default(cuid())
   listingId String
   listing   Listing  @relation(fields: [listingId], references: [id])
-  userId    String?  // Optional: logged-in user
+  userId    String? // Optional: logged-in user
   user      User?    @relation(fields: [userId], references: [id])
   viewedAt  DateTime @default(now())
-  duration  Int?     // View duration in seconds (optional)
+  duration  Int? // View duration in seconds (optional)
 
   @@index([listingId, viewedAt])
   @@index([userId])
@@ -652,15 +684,15 @@ model ListingView {
 }
 
 model PriceAlert {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  listingId String
-  listing   Listing  @relation(fields: [listingId], references: [id])
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id])
+  listingId        String
+  listing          Listing   @relation(fields: [listingId], references: [id])
   targetPriceCents Int // Price to alert at
-  isActive  Boolean  @default(true)
-  notifiedAt DateTime?
-  createdAt DateTime @default(now())
+  isActive         Boolean   @default(true)
+  notifiedAt       DateTime?
+  createdAt        DateTime  @default(now())
 
   @@unique([userId, listingId])
   @@index([userId, isActive])
