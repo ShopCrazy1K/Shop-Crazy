@@ -71,7 +71,7 @@ function getEnv(): Env {
           process.env.NODE_ENV === 'test' ||
           !process.env.NEXT_RUNTIME) {
         console.warn('[ENV] Validation warning (build/test):', errorMessage);
-        cachedEnv = process.env as any;
+        cachedEnv = process.env as Env;
         return cachedEnv;
       }
       
