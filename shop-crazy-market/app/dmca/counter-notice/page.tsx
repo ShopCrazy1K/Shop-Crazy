@@ -3,6 +3,8 @@
 import { useSearchParams } from "next/navigation";
 import CounterNoticeForm from "@/components/CounterNoticeForm";
 
+export const dynamic = 'force-dynamic';
+
 export default function CounterNoticePage() {
   const searchParams = useSearchParams();
   const complaintId = searchParams.get("complaintId") || "";

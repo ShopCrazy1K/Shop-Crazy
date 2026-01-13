@@ -3,6 +3,8 @@
 import { useSearchParams } from "next/navigation";
 import DMCAComplaintForm from "@/components/DMCAComplaintForm";
 
+export const dynamic = 'force-dynamic';
+
 export default function DMCAComplaintPage() {
   const searchParams = useSearchParams();
   const listingId = searchParams.get("listingId") || "";
