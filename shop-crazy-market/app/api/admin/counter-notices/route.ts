@@ -1,25 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // Get all counter-notices
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    
-    // Check if user is admin
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { role: true },
-    });
-    
-    if (user?.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
-    }
+    const adminId = req.headers.get("x-user-id");
+    await requireAdmin(adminId);
     
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
@@ -84,20 +71,8 @@ export async function GET(req: NextRequest) {
 // Update counter-notice status
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    
-    // Check if user is admin
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { role: true },
-    });
-    
-    if (user?.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
-    }
+    const adminId = req.headers.get("x-user-id");
+    await requireAdmin(adminId);
     
     const body = await req.json();
     const { counterNoticeId, status, adminNotes } = body;
@@ -127,7 +102,7 @@ export async function PATCH(req: NextRequest) {
       data: {
         status,
         adminNotes,
-        reviewedBy: session.user.id,
+        reviewedBy: adminId || null,
         reviewedAt: new Date(),
       },
     });

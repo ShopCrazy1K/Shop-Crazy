@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { sendCounterNoticeReceivedEmail } from "@/lib/email";
 
 const counterNoticeSchema = z.object({
@@ -19,10 +17,12 @@ const counterNoticeSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    // Get seller ID from header or body
+    const sellerId = req.headers.get("x-user-id") || req.headers.get("x-seller-id");
+    
+    if (!sellerId) {
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Unauthorized - seller ID required" },
         { status: 401 }
       );
     }
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Verify user owns the listing
-    if (complaint.listing.sellerId !== session.user.id) {
+    if (complaint.listing.sellerId !== sellerId) {
       return NextResponse.json(
         { error: "Unauthorized - you do not own this listing" },
         { status: 403 }
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       data: {
         complaintId: data.complaintId,
         listingId: complaint.listingId,
-        sellerId: session.user.id,
+        sellerId: sellerId,
         respondentName: data.respondentName,
         respondentEmail: data.respondentEmail,
         respondentPhone: data.respondentPhone,
