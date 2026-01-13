@@ -954,14 +954,14 @@ export default function SellPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4 sm:p-6 pb-24">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 py-4 sm:py-6 md:py-8 pb-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+        <div className="text-center mb-6 sm:mb-8 md:mb-10">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
             Create a New Listing
           </h1>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 text-base sm:text-lg md:text-xl">
             Share your products with the world
           </p>
         </div>
@@ -1034,54 +1034,54 @@ export default function SellPage() {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-purple-100 p-6 sm:p-8 space-y-8">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-purple-100 p-4 sm:p-6 md:p-8 lg:p-10 space-y-6 sm:space-y-8 md:space-y-10">
           {/* Basic Information */}
-          <section>
-            <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-              <span className="mr-2">📝</span>
-              Basic Information
+          <section className="border-b border-gray-200 pb-6 sm:pb-8 md:pb-10">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 flex items-center">
+              <span className="mr-2 text-2xl sm:text-3xl">📝</span>
+              <span>Basic Information</span>
             </h2>
             
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Product Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   placeholder="Enter product title"
                   maxLength={100}
                   required
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-400 mt-1">
                   {formData.title.length}/100 characters
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={6}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
                   placeholder="Describe your product in detail..."
                   maxLength={2000}
                   required
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-400 mt-1">
                   {formData.description.length}/2000 characters
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                     Price ($) <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -1090,14 +1090,14 @@ export default function SellPage() {
                     min="0"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="0.00"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                     Quantity
                   </label>
                   <input
@@ -1105,7 +1105,7 @@ export default function SellPage() {
                     min="1"
                     value={formData.quantity}
                     onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="1"
                   />
                 </div>
@@ -1114,21 +1114,21 @@ export default function SellPage() {
           </section>
 
           {/* Product Details */}
-          <section>
-            <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-              <span className="mr-2">🔍</span>
-              Product Details
+          <section className="border-b border-gray-200 pb-6 sm:pb-8 md:pb-10">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 flex items-center">
+              <span className="mr-2 text-2xl sm:text-3xl">🔍</span>
+              <span>Product Details</span>
             </h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Category
                 </label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white"
                 >
                   <option value="">Select a category</option>
                   {categories.map((cat) => (
@@ -1140,7 +1140,7 @@ export default function SellPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Product Type <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -1158,7 +1158,7 @@ export default function SellPage() {
                       setUploadedDigitalFileUrls([]);
                     }
                   }}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white"
                 >
                   <option value="PHYSICAL">📦 Physical Product</option>
                   <option value="DIGITAL">💾 Digital Product</option>
@@ -1167,13 +1167,13 @@ export default function SellPage() {
 
               {formData.type === "PHYSICAL" && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                     Condition
                   </label>
                   <select
                     value={formData.condition}
                     onChange={(e) => setFormData({ ...formData, condition: e.target.value as "NEW" | "USED" })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white"
                   >
                     <option value="NEW">✨ New</option>
                     <option value="USED">🔄 Used</option>
@@ -1184,31 +1184,31 @@ export default function SellPage() {
           </section>
 
           {/* SEO & Discovery Section */}
-          <section>
-            <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-              <span className="mr-2">🔍</span>
-              SEO & Discovery
+          <section className="border-b border-gray-200 pb-6 sm:pb-8 md:pb-10">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 flex items-center">
+              <span className="mr-2 text-2xl sm:text-3xl">🔍</span>
+              <span>SEO & Discovery</span>
             </h2>
             
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Tags / Keywords
                 </label>
-                <p className="text-xs text-gray-500 mb-2">
+                <p className="text-xs sm:text-sm text-gray-500 mb-2">
                   Add tags to help buyers find your product. Press Enter to add each tag (max 20).
                 </p>
-                <div className="flex flex-wrap gap-2 mb-2 p-3 border-2 border-gray-300 rounded-xl min-h-[50px]">
+                <div className="flex flex-wrap gap-2 mb-2 p-3 sm:p-4 border-2 border-gray-300 rounded-xl min-h-[50px]">
                   {formData.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm"
+                      className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm"
                     >
                       {tag}
                       <button
                         type="button"
                         onClick={() => handleRemoveTag(tag)}
-                        className="hover:text-purple-900"
+                        className="hover:text-purple-900 text-base sm:text-lg"
                       >
                         ×
                       </button>
@@ -1221,45 +1221,45 @@ export default function SellPage() {
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={handleAddTag}
                       placeholder="Type and press Enter..."
-                      className="flex-1 min-w-[150px] border-0 focus:ring-0 focus:outline-none"
+                      className="flex-1 min-w-[120px] sm:min-w-[150px] border-0 focus:ring-0 focus:outline-none text-sm sm:text-base"
                     />
                   )}
                 </div>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs sm:text-sm text-gray-400">
                   {formData.tags.length}/20 tags
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Search Keywords
                 </label>
                 <input
                   type="text"
                   value={formData.searchKeywords}
                   onChange={(e) => setFormData({ ...formData, searchKeywords: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   placeholder="Additional keywords for search (comma-separated)"
                   maxLength={200}
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-400 mt-1">
                   {formData.searchKeywords.length}/200 characters
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Meta Description (SEO)
                 </label>
                 <textarea
                   value={formData.metaDescription}
                   onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
                   placeholder="Brief description for search engines (150-160 characters recommended)"
                   maxLength={160}
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-400 mt-1">
                   {formData.metaDescription.length}/160 characters
                 </p>
               </div>
@@ -1267,100 +1267,100 @@ export default function SellPage() {
           </section>
 
           {/* Product Attributes Section */}
-          <section>
-            <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-              <span className="mr-2">📦</span>
-              Product Attributes
+          <section className="border-b border-gray-200 pb-6 sm:pb-8 md:pb-10">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 flex items-center">
+              <span className="mr-2 text-2xl sm:text-3xl">📦</span>
+              <span>Product Attributes</span>
             </h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   SKU / Product Code
                 </label>
                 <input
                   type="text"
                   value={formData.sku}
                   onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   placeholder="e.g., PROD-001"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Brand / Manufacturer
                 </label>
                 <input
                   type="text"
                   value={formData.brand}
                   onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   placeholder="Brand name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Materials
                 </label>
                 <input
                   type="text"
                   value={formData.materials}
                   onChange={(e) => setFormData({ ...formData, materials: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   placeholder="e.g., Cotton, Polyester, Wood"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Dimensions
                 </label>
                 <input
                   type="text"
                   value={formData.dimensions}
                   onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   placeholder="e.g., 10x5x3 inches"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Weight
                 </label>
                 <input
                   type="text"
                   value={formData.weight}
                   onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   placeholder="e.g., 1.5 lbs or 0.68 kg"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Color
                 </label>
                 <input
                   type="text"
                   value={formData.color}
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   placeholder="e.g., Red, Blue, Multi-color"
                 />
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Country of Origin
                 </label>
                 <input
                   type="text"
                   value={formData.countryOfOrigin}
                   onChange={(e) => setFormData({ ...formData, countryOfOrigin: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   placeholder="e.g., United States, China"
                 />
               </div>
@@ -1369,15 +1369,15 @@ export default function SellPage() {
 
           {/* Shipping Information Section - Physical Products Only */}
           {formData.type === "PHYSICAL" && (
-            <section>
-              <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-                <span className="mr-2">🚚</span>
-                Shipping Information
+            <section className="border-b border-gray-200 pb-6 sm:pb-8 md:pb-10">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 flex items-center">
+                <span className="mr-2 text-2xl sm:text-3xl">🚚</span>
+                <span>Shipping Information</span>
               </h2>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                     Shipping Cost ($)
                   </label>
                   <input
@@ -1386,19 +1386,19 @@ export default function SellPage() {
                     min="0"
                     value={formData.shippingCost}
                     onChange={(e) => setFormData({ ...formData, shippingCost: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="0.00"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                     Processing Time
                   </label>
                   <select
                     value={formData.processingTime}
                     onChange={(e) => setFormData({ ...formData, processingTime: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white"
                   >
                     <option value="">Select processing time</option>
                     <option value="1-2 business days">1-2 business days</option>
@@ -1410,10 +1410,10 @@ export default function SellPage() {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                     Shipping Methods
                   </label>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-3 sm:gap-4">
                     {["Standard", "Express", "Overnight", "International"].map((method) => (
                       <label key={method} className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -1426,9 +1426,9 @@ export default function SellPage() {
                               setFormData({ ...formData, shippingMethods: formData.shippingMethods.filter(m => m !== method) });
                             }
                           }}
-                          className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                          className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                         />
-                        <span className="text-sm text-gray-700">{method}</span>
+                        <span className="text-sm sm:text-base text-gray-700">{method}</span>
                       </label>
                     ))}
                   </div>
@@ -1438,16 +1438,16 @@ export default function SellPage() {
           )}
 
           {/* Policies & Information Section */}
-          <section>
-            <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-              <span className="mr-2">📋</span>
-              Policies & Information
+          <section className="border-b border-gray-200 pb-6 sm:pb-8 md:pb-10">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 flex items-center">
+              <span className="mr-2 text-2xl sm:text-3xl">📋</span>
+              <span>Policies & Information</span>
             </h2>
             
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                     Return Window (Days)
                   </label>
                   <input
@@ -1455,47 +1455,47 @@ export default function SellPage() {
                     min="0"
                     value={formData.returnWindowDays}
                     onChange={(e) => setFormData({ ...formData, returnWindowDays: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="e.g., 30"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                     Warranty Information
                   </label>
                   <input
                     type="text"
                     value={formData.warrantyInfo}
                     onChange={(e) => setFormData({ ...formData, warrantyInfo: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="e.g., 1 year manufacturer warranty"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Return Policy
                 </label>
                 <textarea
                   value={formData.returnPolicy}
                   onChange={(e) => setFormData({ ...formData, returnPolicy: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
                   placeholder="Describe your return policy..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                   Care Instructions
                 </label>
                 <textarea
                   value={formData.careInstructions}
                   onChange={(e) => setFormData({ ...formData, careInstructions: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-none"
                   placeholder="e.g., Hand wash only, Do not bleach, Air dry"
                 />
               </div>
@@ -1503,20 +1503,20 @@ export default function SellPage() {
           </section>
 
           {/* Thumbnail Upload Section - Etsy Style - Multiple Thumbnails */}
-          <section>
-            <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-              <span className="mr-2">📷</span>
-              Listing Thumbnails (Cover Images) *
+          <section className="border-b border-gray-200 pb-6 sm:pb-8 md:pb-10">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 flex items-center">
+              <span className="mr-2 text-2xl sm:text-3xl">📷</span>
+              <span>Listing Thumbnails (Cover Images) *</span>
             </h2>
             
-            <div className="space-y-3">
-              <p className="text-xs text-gray-500 mb-3">
+            <div className="space-y-3 sm:space-y-4">
+              <p className="text-xs sm:text-sm text-gray-500 mb-3">
                 Upload multiple thumbnail images. The first image will be the main cover image that buyers see first. You can upload up to 10 thumbnails.
               </p>
               
               {thumbnails.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                     {thumbnails.map((thumb, index) => (
                       <div key={thumb.id} className="relative border-2 rounded-xl overflow-hidden bg-gray-50 aspect-square">
                         <img
@@ -1612,13 +1612,13 @@ export default function SellPage() {
 
           {/* Digital Files Section - Only for Digital Products */}
           {formData.type === "DIGITAL" && (
-            <section>
-              <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-                <span className="mr-2">📁</span>
-                Digital Files <span className="text-red-500">*</span>
+            <section className="border-b border-gray-200 pb-6 sm:pb-8 md:pb-10">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 flex items-center">
+                <span className="mr-2 text-2xl sm:text-3xl">📁</span>
+                <span>Digital Files <span className="text-red-500">*</span></span>
               </h2>
               
-              <div className="space-y-4">
+              <div className="space-y-4 sm:space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Upload Digital Files
@@ -1725,13 +1725,13 @@ export default function SellPage() {
 
           {/* Images Section - Only for Physical Products */}
           {formData.type === "PHYSICAL" && (
-            <section>
-              <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-                <span className="mr-2">🖼️</span>
-                Additional Product Images (Optional)
+            <section className="border-b border-gray-200 pb-6 sm:pb-8 md:pb-10">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 flex items-center">
+                <span className="mr-2 text-2xl sm:text-3xl">🖼️</span>
+                <span>Additional Product Images (Optional)</span>
               </h2>
               
-              <div className="space-y-4">
+              <div className="space-y-4 sm:space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Additional Images (Optional)
@@ -1843,21 +1843,21 @@ export default function SellPage() {
           )}
 
           {/* Draft & Listing Fee Info */}
-          <section className="space-y-6">
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
-              <label className="flex items-center gap-3 cursor-pointer">
+          <section className="space-y-4 sm:space-y-6">
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 sm:p-6">
+              <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.isDraft}
                   onChange={(e) => setFormData({ ...formData, isDraft: e.target.checked })}
-                  className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                  className="w-5 h-5 mt-1 text-purple-600 border-gray-300 rounded focus:ring-purple-500 flex-shrink-0"
                 />
-                <div>
-                  <h3 className="text-lg font-semibold text-blue-900 flex items-center">
+                <div className="flex-1">
+                  <h3 className="text-base sm:text-lg font-semibold text-blue-900 flex items-center">
                     <span className="mr-2">💾</span>
                     Save as Draft
                   </h3>
-                  <p className="text-sm text-blue-700 mt-1">
+                  <p className="text-sm sm:text-base text-blue-700 mt-1">
                     Save this listing as a draft to finish later. Draft listings won't be visible to buyers and won't incur listing fees until published.
                   </p>
                 </div>
@@ -1865,15 +1865,15 @@ export default function SellPage() {
             </div>
 
             {!formData.isDraft && (
-              <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-purple-900 mb-2 flex items-center">
+              <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold text-purple-900 mb-2 flex items-center">
                   <span className="mr-2">💰</span>
                   Listing Fee
                 </h3>
-                <p className="text-purple-700">
-                  Monthly listing fee: <span className="font-bold text-xl">${(LISTING_FEE_PER_MONTH / 100).toFixed(2)}</span>
+                <p className="text-purple-700 text-sm sm:text-base">
+                  Monthly listing fee: <span className="font-bold text-lg sm:text-xl">${(LISTING_FEE_PER_MONTH / 100).toFixed(2)}</span>
                 </p>
-                <p className="text-sm text-purple-600 mt-2">
+                <p className="text-xs sm:text-sm text-purple-600 mt-2">
                   This fee will be charged monthly to keep your listing active.
                 </p>
               </div>
@@ -1881,28 +1881,30 @@ export default function SellPage() {
           </section>
 
           {/* Submit Button */}
-          <div className="flex flex-col sm:flex-row gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 mt-6 sm:mt-8 border-t border-gray-200">
             <button
               type="submit"
               disabled={loading || uploadingDigitalFiles || uploadingImages || connectionStatus === "checking"}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-sm sm:text-base hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
             >
               {loading || uploadingDigitalFiles || uploadingImages ? (
                 <>
                   <span className="animate-spin">⏳</span>
-                  Processing...
+                  <span className="hidden sm:inline">Processing...</span>
+                  <span className="sm:hidden">Processing...</span>
                 </>
               ) : (
                 <>
                   <span>✨</span>
-                  Create Listing
+                  <span className="hidden sm:inline">Create Listing</span>
+                  <span className="sm:hidden">Create</span>
                 </>
               )}
             </button>
             <button
               type="button"
               onClick={handleCancel}
-              className="px-8 py-4 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-all text-center flex items-center justify-center"
+              className="px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-sm sm:text-base border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-all text-center flex items-center justify-center"
             >
               Cancel
             </button>
