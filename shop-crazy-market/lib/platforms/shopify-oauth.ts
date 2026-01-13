@@ -2,11 +2,18 @@
 import crypto from 'crypto';
 import { env, getAppUrl } from '@/lib/env';
 
-const SHOPIFY_API_KEY = env.SHOPIFY_API_KEY || '';
-const SHOPIFY_API_SECRET = env.SHOPIFY_API_SECRET || '';
-const SHOPIFY_SCOPES = env.SHOPIFY_SCOPES;
+// Lazy getters to avoid accessing env at module load time
+function getShopifyApiKey(): string {
+  return env.SHOPIFY_API_KEY || '';
+}
 
-const APP_URL = getAppUrl();
+function getShopifyApiSecret(): string {
+  return env.SHOPIFY_API_SECRET || '';
+}
+
+function getShopifyScopes(): string {
+  return env.SHOPIFY_SCOPES;
+}
 
 /**
  * Generate Shopify OAuth authorization URL
@@ -19,16 +26,17 @@ export function getShopifyAuthUrl(
   state?: string, 
   callbackPath: string = '/api/shopify/oauth/callback'
 ): string {
-  if (!SHOPIFY_API_KEY) {
+  const apiKey = getShopifyApiKey();
+  if (!apiKey) {
     throw new Error('SHOPIFY_API_KEY is not configured');
   }
 
-  const redirectUri = `${APP_URL}${callbackPath}`;
-  const scopes = SHOPIFY_SCOPES;
+  const redirectUri = `${getAppUrl()}${callbackPath}`;
+  const scopes = getShopifyScopes();
   const nonce = state || crypto.randomBytes(16).toString('hex');
 
   const params = new URLSearchParams({
-    client_id: SHOPIFY_API_KEY,
+    client_id: apiKey,
     scope: scopes,
     redirect_uri: redirectUri,
     state: nonce,
@@ -49,7 +57,8 @@ export function getShopifyAuthUrlWithAuthCallback(shop: string, state?: string):
  * Verify Shopify OAuth HMAC
  */
 export function verifyShopifyHmac(query: URLSearchParams): boolean {
-  if (!SHOPIFY_API_SECRET) {
+  const apiSecret = getShopifyApiSecret();
+  if (!apiSecret) {
     throw new Error('SHOPIFY_API_SECRET is not configured');
   }
 
@@ -69,7 +78,7 @@ export function verifyShopifyHmac(query: URLSearchParams): boolean {
 
   // Calculate HMAC
   const calculatedHmac = crypto
-    .createHmac('sha256', SHOPIFY_API_SECRET)
+    .createHmac('sha256', apiSecret)
     .update(sortedParams)
     .digest('hex');
 
@@ -83,7 +92,10 @@ export async function exchangeCodeForToken(
   shop: string,
   code: string
 ): Promise<{ access_token: string; scope: string }> {
-  if (!SHOPIFY_API_KEY || !SHOPIFY_API_SECRET) {
+  const apiKey = getShopifyApiKey();
+  const apiSecret = getShopifyApiSecret();
+  
+  if (!apiKey || !apiSecret) {
     throw new Error('Shopify API credentials are not configured');
   }
 
@@ -93,8 +105,8 @@ export async function exchangeCodeForToken(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      client_id: SHOPIFY_API_KEY,
-      client_secret: SHOPIFY_API_SECRET,
+      client_id: apiKey,
+      client_secret: apiSecret,
       code,
     }),
   });
