@@ -53,7 +53,7 @@ function getEnv(): Env {
     return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const missing = error.errors.map(e => {
+      const missing = error.issues.map(e => {
         const path = e.path.join('.');
         return `  - ${path}: ${e.message}`;
       });
