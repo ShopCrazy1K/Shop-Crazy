@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const envSchema = z.object({
   // Database
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.string().url().optional(),
   
   // Shopify
   SHOPIFY_API_KEY: z.string().min(1).optional(),
@@ -48,16 +48,9 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
-let cachedEnv: Env | null = null;
-
 function getEnv(): Env {
-  if (cachedEnv) {
-    return cachedEnv;
-  }
-  
   try {
-    cachedEnv = envSchema.parse(process.env);
-    return cachedEnv;
+    return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missing = error.issues.map(e => {
@@ -65,15 +58,6 @@ function getEnv(): Env {
         return `  - ${path}: ${e.message}`;
       });
       const errorMessage = `Missing or invalid environment variables:\n${missing.join('\n')}\n\nPlease check your .env.local file or Vercel environment variables.`;
-      
-      // Don't throw during build time - log warning instead
-      if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'test') {
-        console.warn('[ENV] Environment validation warning (build time):', errorMessage);
-        // Return a partial env object for build time
-        cachedEnv = process.env as any;
-        return cachedEnv;
-      }
-      
       console.error(errorMessage);
       throw new Error(errorMessage);
     }
@@ -81,13 +65,7 @@ function getEnv(): Env {
   }
 }
 
-// Lazy getter - validate on first access
-export const env = new Proxy({} as Env, {
-  get(target, prop) {
-    const validatedEnv = getEnv();
-    return validatedEnv[prop as keyof Env];
-  }
-});
+export const env = getEnv();
 
 // Helper functions for common env access patterns
 export function getAppUrl(): string {
