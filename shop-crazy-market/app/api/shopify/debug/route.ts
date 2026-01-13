@@ -1,5 +1,5 @@
 import { createGetHandler } from "@/lib/api-wrapper";
-import { env, getAppUrl } from "@/lib/env";
+import { getAppUrl } from "@/lib/env";
 import { successResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
@@ -12,9 +12,9 @@ export const runtime = 'nodejs';
  */
 export const GET = createGetHandler(
   async () => {
-    const SHOPIFY_API_KEY = env.SHOPIFY_API_KEY || '';
-    const SHOPIFY_API_SECRET = env.SHOPIFY_API_SECRET || '';
-    const SHOPIFY_SCOPES = env.SHOPIFY_SCOPES;
+    const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY || '';
+    const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || '';
+    const SHOPIFY_SCOPES = process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,write_orders';
     
     const APP_URL = getAppUrl();
     const redirectUri = `${APP_URL}/api/shopify/oauth/callback`;
@@ -29,8 +29,8 @@ export const GET = createGetHandler(
         scopes: SHOPIFY_SCOPES,
         appUrl: APP_URL,
         redirectUri: redirectUri,
-        vercelUrl: env.VERCEL_URL || 'not set',
-        nextPublicAppUrl: env.NEXT_PUBLIC_APP_URL || 'not set',
+        vercelUrl: process.env.VERCEL_URL || 'not set',
+        nextPublicAppUrl: process.env.NEXT_PUBLIC_APP_URL || 'not set',
       },
       checks: {
         apiKeyConfigured: !!SHOPIFY_API_KEY,

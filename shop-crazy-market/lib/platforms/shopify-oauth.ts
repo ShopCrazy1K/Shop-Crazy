@@ -1,18 +1,18 @@
 // Shopify OAuth utilities
 import crypto from 'crypto';
-import { env, getAppUrl } from '@/lib/env';
+import { getAppUrl } from '@/lib/env';
 
 // Lazy getters to avoid accessing env at module load time
 function getShopifyApiKey(): string {
-  return env.SHOPIFY_API_KEY || '';
+  return process.env.SHOPIFY_API_KEY || '';
 }
 
 function getShopifyApiSecret(): string {
-  return env.SHOPIFY_API_SECRET || '';
+  return process.env.SHOPIFY_API_SECRET || '';
 }
 
 function getShopifyScopes(): string {
-  return env.SHOPIFY_SCOPES;
+  return process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,write_orders';
 }
 
 /**
