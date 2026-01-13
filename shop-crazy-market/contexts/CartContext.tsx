@@ -26,6 +26,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     // Load cart from localStorage - only in browser
@@ -35,44 +36,108 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (savedCart) {
           try {
             const parsedCart = JSON.parse(savedCart);
-            // Validate cart items structure
+            // Validate cart items structure more thoroughly
             if (Array.isArray(parsedCart)) {
-              setItems(parsedCart.filter(item => item && item.id && item.title && typeof item.price === 'number'));
+              const validItems = parsedCart.filter((item: any) => {
+                return (
+                  item &&
+                  typeof item === 'object' &&
+                  item.id &&
+                  typeof item.id === 'string' &&
+                  item.title &&
+                  typeof item.title === 'string' &&
+                  typeof item.price === 'number' &&
+                  !isNaN(item.price) &&
+                  item.price > 0 &&
+                  typeof item.quantity === 'number' &&
+                  !isNaN(item.quantity) &&
+                  item.quantity > 0
+                );
+              });
+              setItems(validItems);
             } else {
+              // Invalid format, clear it
+              localStorage.removeItem("cart");
               setItems([]);
             }
           } catch (error) {
             console.error("Error parsing cart:", error);
+            // Clear corrupted cart data
+            try {
+              localStorage.removeItem("cart");
+            } catch (e) {
+              // Ignore errors when clearing
+            }
             setItems([]);
           }
+        } else {
+          setItems([]);
         }
       } catch (error) {
         console.error("Error accessing localStorage:", error);
         setItems([]);
+      } finally {
+        setIsInitialized(true);
       }
+    } else {
+      setIsInitialized(true);
     }
   }, []);
 
   useEffect(() => {
-    // Save cart to localStorage whenever it changes - only in browser
-    if (typeof window !== 'undefined') {
+    // Save cart to localStorage whenever it changes - only in browser and after initialization
+    if (typeof window !== 'undefined' && isInitialized) {
       try {
-        localStorage.setItem("cart", JSON.stringify(items));
+        // Validate items before saving
+        const validItems = items.filter(item => 
+          item &&
+          item.id &&
+          item.title &&
+          typeof item.price === 'number' &&
+          !isNaN(item.price) &&
+          item.price > 0 &&
+          typeof item.quantity === 'number' &&
+          !isNaN(item.quantity) &&
+          item.quantity > 0
+        );
+        
+        if (validItems.length !== items.length) {
+          // Some items were invalid, update state with only valid items
+          setItems(validItems);
+        }
+        
+        localStorage.setItem("cart", JSON.stringify(validItems));
       } catch (error) {
         console.error("Error saving cart to localStorage:", error);
+        // If storage is full or unavailable, try to clear old data
+        try {
+          if (error instanceof DOMException && error.code === 22) {
+            // QuotaExceededError - storage is full
+            console.warn("LocalStorage quota exceeded, clearing old cart data");
+            localStorage.removeItem("cart");
+          }
+        } catch (e) {
+          // Ignore errors when clearing
+        }
       }
     }
-  }, [items]);
+  }, [items, isInitialized]);
 
   const addItem = (item: CartItem) => {
+    // Validate item before adding
+    if (!item || !item.id || !item.title || typeof item.price !== 'number' || item.price <= 0) {
+      console.error("Invalid cart item:", item);
+      return;
+    }
+    
     setItems((prev) => {
       const existing = prev.find((i) => i.id === item.id);
       if (existing) {
         return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i
+          i.id === item.id ? { ...i, quantity: Math.max(1, i.quantity + (item.quantity || 1)) } : i
         );
       }
-      return [...prev, item];
+      return [...prev, { ...item, quantity: Math.max(1, item.quantity || 1) }];
     });
   };
 
@@ -81,12 +146,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
+    if (!productId || typeof quantity !== 'number' || isNaN(quantity)) {
+      console.error("Invalid quantity update:", { productId, quantity });
+      return;
+    }
+    
     if (quantity <= 0) {
       removeItem(productId);
       return;
     }
+    
     setItems((prev) =>
-      prev.map((item) => (item.id === productId ? { ...item, quantity } : item))
+      prev.map((item) => (item.id === productId ? { ...item, quantity: Math.max(1, Math.floor(quantity)) } : item))
     );
   };
 
@@ -95,17 +166,37 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const getTotal = () => {
-    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    try {
+      return items.reduce((sum, item) => {
+        if (!item || typeof item.price !== 'number' || typeof item.quantity !== 'number') {
+          return sum;
+        }
+        return sum + (item.price * item.quantity);
+      }, 0);
+    } catch (error) {
+      console.error("Error calculating cart total:", error);
+      return 0;
+    }
   };
 
   const getItemCount = () => {
-    return items.reduce((sum, item) => sum + item.quantity, 0);
+    try {
+      return items.reduce((sum, item) => {
+        if (!item || typeof item.quantity !== 'number') {
+          return sum;
+        }
+        return sum + item.quantity;
+      }, 0);
+    } catch (error) {
+      console.error("Error calculating item count:", error);
+      return 0;
+    }
   };
 
   return (
     <CartContext.Provider
       value={{
-        items,
+        items: items || [],
         addItem,
         removeItem,
         updateQuantity,
