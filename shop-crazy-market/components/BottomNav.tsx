@@ -7,8 +7,16 @@ import NotificationBell from "@/components/NotificationBell";
 
 export default function BottomNav() {
   const { user } = useAuth();
-  const { getItemCount } = useCart();
-  const cartCount = getItemCount();
+  
+  // Safely get cart count with error handling
+  let cartCount = 0;
+  try {
+    const { getItemCount } = useCart();
+    cartCount = getItemCount();
+  } catch (error) {
+    console.error("Error getting cart count in BottomNav:", error);
+    cartCount = 0;
+  }
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-black text-white flex justify-around py-3 z-50">

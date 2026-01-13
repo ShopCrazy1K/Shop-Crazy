@@ -8,8 +8,16 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function Navbar() {
   const { user } = useAuth();
-  const { getItemCount } = useCart();
-  const cartCount = getItemCount();
+  
+  // Safely get cart count with error handling
+  let cartCount = 0;
+  try {
+    const { getItemCount } = useCart();
+    cartCount = getItemCount();
+  } catch (error) {
+    console.error("Error getting cart count in Navbar:", error);
+    cartCount = 0;
+  }
 
   return (
     <nav className="hidden md:flex justify-between items-center p-4 sm:p-5 border-b bg-white sticky top-0 z-40" style={{ isolation: 'isolate', overflow: 'visible' }}>

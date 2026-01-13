@@ -27,59 +27,78 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     // Load cart from localStorage - only in browser
-    if (typeof window !== 'undefined') {
-      try {
-        const savedCart = localStorage.getItem("cart");
-        if (savedCart) {
-          try {
-            const parsedCart = JSON.parse(savedCart);
-            // Validate cart items structure more thoroughly
-            if (Array.isArray(parsedCart)) {
-              const validItems = parsedCart.filter((item: any) => {
-                return (
-                  item &&
-                  typeof item === 'object' &&
-                  item.id &&
-                  typeof item.id === 'string' &&
-                  item.title &&
-                  typeof item.title === 'string' &&
-                  typeof item.price === 'number' &&
-                  !isNaN(item.price) &&
-                  item.price > 0 &&
-                  typeof item.quantity === 'number' &&
-                  !isNaN(item.quantity) &&
-                  item.quantity > 0
-                );
-              });
-              setItems(validItems);
-            } else {
-              // Invalid format, clear it
-              localStorage.removeItem("cart");
+    // Wrap everything in try-catch to prevent any errors from crashing the app
+    try {
+      if (typeof window !== 'undefined') {
+        try {
+          const savedCart = localStorage.getItem("cart");
+          if (savedCart) {
+            try {
+              const parsedCart = JSON.parse(savedCart);
+              // Validate cart items structure more thoroughly
+              if (Array.isArray(parsedCart)) {
+                const validItems = parsedCart.filter((item: any) => {
+                  try {
+                    return (
+                      item &&
+                      typeof item === 'object' &&
+                      item.id &&
+                      typeof item.id === 'string' &&
+                      item.title &&
+                      typeof item.title === 'string' &&
+                      typeof item.price === 'number' &&
+                      !isNaN(item.price) &&
+                      item.price > 0 &&
+                      typeof item.quantity === 'number' &&
+                      !isNaN(item.quantity) &&
+                      item.quantity > 0
+                    );
+                  } catch {
+                    return false;
+                  }
+                });
+                setItems(validItems);
+              } else {
+                // Invalid format, clear it
+                try {
+                  localStorage.removeItem("cart");
+                } catch (e) {
+                  // Ignore errors when clearing
+                }
+                setItems([]);
+              }
+            } catch (error) {
+              console.error("Error parsing cart:", error);
+              // Clear corrupted cart data
+              try {
+                localStorage.removeItem("cart");
+              } catch (e) {
+                // Ignore errors when clearing
+              }
               setItems([]);
             }
-          } catch (error) {
-            console.error("Error parsing cart:", error);
-            // Clear corrupted cart data
-            try {
-              localStorage.removeItem("cart");
-            } catch (e) {
-              // Ignore errors when clearing
-            }
+          } else {
             setItems([]);
           }
-        } else {
+        } catch (error) {
+          console.error("Error accessing localStorage:", error);
           setItems([]);
+          setHasError(true);
+        } finally {
+          setIsInitialized(true);
         }
-      } catch (error) {
-        console.error("Error accessing localStorage:", error);
-        setItems([]);
-      } finally {
+      } else {
         setIsInitialized(true);
       }
-    } else {
+    } catch (error) {
+      // Catch any unexpected errors during initialization
+      console.error("Unexpected error in CartProvider initialization:", error);
+      setItems([]);
+      setHasError(true);
       setIsInitialized(true);
     }
   }, []);
@@ -213,7 +232,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
 export function useCart() {
   const context = useContext(CartContext);
   if (context === undefined) {
-    throw new Error("useCart must be used within a CartProvider");
+    // Return a safe fallback instead of throwing to prevent app crashes
+    console.warn("useCart called outside CartProvider, returning fallback");
+    return {
+      items: [],
+      addItem: () => {},
+      removeItem: () => {},
+      updateQuantity: () => {},
+      clearCart: () => {},
+      getTotal: () => 0,
+      getItemCount: () => 0,
+    };
   }
   return context;
 }
