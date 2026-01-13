@@ -83,6 +83,53 @@ export async function GET(req: NextRequest) {
 }
 
 /**
+ * DELETE /api/notifications
+ * Delete a notification
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const userId = req.headers.get("x-user-id");
+    const body = await req.json();
+    const { notificationId } = body;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 401 }
+      );
+    }
+
+    if (!notificationId) {
+      return NextResponse.json(
+        { error: "notificationId is required" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.notification.delete({
+      where: {
+        id: notificationId,
+        userId: userId, // Ensure user owns this notification
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return NextResponse.json(
+        { error: "Notification not found" },
+        { status: 404 }
+      );
+    }
+    console.error("Error deleting notification:", error);
+    return NextResponse.json(
+      { error: "Failed to delete notification" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * PUT /api/notifications?userId=USER_ID
  * Mark notifications as read
  */

@@ -6,6 +6,7 @@ import {
   sendDMCAComplaintReceivedEmail,
   sendDMCAComplaintFiledToSellerEmail,
 } from "@/lib/email";
+import { notifyDMCAComplaint } from "@/lib/notification-helper";
 
 const dmcaComplaintSchema = z.object({
   listingId: z.string(),
@@ -109,6 +110,13 @@ export async function POST(req: NextRequest) {
       listing.title,
       counterNoticeUrl
     ).catch(err => console.error("Failed to send seller email:", err));
+    
+    // Create in-app notification for seller
+    await notifyDMCAComplaint(
+      listing.sellerId,
+      listing.title,
+      complaint.id
+    ).catch(err => console.error("Failed to create notification:", err));
     
     return NextResponse.json({
       success: true,

@@ -7,6 +7,7 @@
 
 import { prisma } from "./prisma";
 import { sendStrikeIssuedEmail } from "./email";
+import { notifyCopyrightStrike } from "./notification-helper";
 
 export interface StrikeAction {
   action: "WARN" | "SUSPEND" | "BAN";
@@ -112,6 +113,13 @@ export async function addStrike(
       action.action
     ).catch(err => console.error("Failed to send strike email:", err));
   }
+  
+  // Create in-app notification
+  await notifyCopyrightStrike(
+    sellerId,
+    strikeCount,
+    reason
+  ).catch(err => console.error("Failed to create strike notification:", err));
   
   return {
     strikeId: strike.id,

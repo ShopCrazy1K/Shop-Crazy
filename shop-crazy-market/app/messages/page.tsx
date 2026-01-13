@@ -10,6 +10,8 @@ interface Conversation {
   username: string;
   lastMessage: string;
   updatedAt: Date | string;
+  unreadCount?: number;
+  avatar?: string;
 }
 
 function MessagesContent() {
@@ -81,15 +83,33 @@ function MessagesContent() {
             <Link
               key={c.userId}
               href={`/messages/${c.userId}`}
-              className="block p-4 hover:bg-gray-50 transition-colors"
+              className="block p-4 hover:bg-gray-50 transition-colors relative"
             >
-              <div className="flex justify-between">
-                <strong>{c.username}</strong>
-                <span className="text-sm text-gray-500">
-                  {formatDate(c.updatedAt)}
-                </span>
+              <div className="flex items-start gap-3">
+                {c.avatar ? (
+                  <img src={c.avatar} alt={c.username} className="w-12 h-12 rounded-full object-cover" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold text-lg">
+                    {c.username.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-1">
+                    <strong className="text-gray-900">{c.username}</strong>
+                    <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
+                      {formatDate(c.updatedAt)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-gray-600 truncate text-sm">{c.lastMessage}</p>
+                    {c.unreadCount && c.unreadCount > 0 && (
+                      <span className="bg-purple-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
+                        {c.unreadCount > 9 ? "9+" : c.unreadCount}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <p className="text-gray-600 truncate">{c.lastMessage}</p>
             </Link>
           ))}
         </div>

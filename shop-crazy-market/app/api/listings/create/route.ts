@@ -4,6 +4,7 @@ import { stripe } from "@/lib/stripe";
 import { createListingSchema, slugify } from "@/lib/validation";
 import { checkListingForBannedWords } from "@/lib/banned-words";
 import { sendListingFlaggedEmail } from "@/lib/email";
+import { notifyListingFlagged } from "@/lib/notification-helper";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -133,6 +134,13 @@ export async function POST(req: Request) {
           flagCheck.message || "Listing contains potentially copyrighted or trademarked terms."
         ).catch(err => console.error("Failed to send flagged listing email:", err));
       }
+      
+      // Create in-app notification
+      await notifyListingFlagged(
+        sellerId,
+        data.title,
+        flagCheck.flaggedWords.map(w => w.word)
+      ).catch(err => console.error("Failed to create flagged notification:", err));
     }
 
     // If it's a draft, skip Stripe checkout

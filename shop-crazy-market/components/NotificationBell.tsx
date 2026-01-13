@@ -23,17 +23,18 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string>("all"); // "all", "message", "order", "review", "dmca", "strike"
 
   useEffect(() => {
     console.log("[NOTIFICATION BELL] Component mounted/updated, user:", user?.id ? `${user.id.substring(0, 8)}...` : 'none');
     if (user?.id) {
       console.log("[NOTIFICATION BELL] User logged in, fetching notifications");
       fetchNotifications();
-      // Poll for new notifications every 30 seconds
+      // Poll for new notifications every 15 seconds (more responsive)
       const interval = setInterval(() => {
         console.log("[NOTIFICATION BELL] Polling for new notifications");
         fetchNotifications();
-      }, 30000);
+      }, 15000);
       return () => {
         console.log("[NOTIFICATION BELL] Cleaning up interval");
         clearInterval(interval);
@@ -171,6 +172,39 @@ export default function NotificationBell() {
         )
       );
       setUnreadCount((prev) => prev + 1);
+    }
+  }
+
+  async function deleteNotification(notificationId: string) {
+    if (!user?.id) {
+      console.error("Cannot delete notification: no user ID");
+      return;
+    }
+    
+    // Optimistically remove from UI
+    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    if (notifications.find((n) => n.id === notificationId && !n.read)) {
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+    
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+        },
+        body: JSON.stringify({ notificationId }),
+      });
+
+      if (!response.ok) {
+        // Revert on error
+        await fetchNotifications();
+      }
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      // Revert on error
+      await fetchNotifications();
     }
   }
 
@@ -325,20 +359,65 @@ export default function NotificationBell() {
               console.log("[NOTIFICATION BELL] Dropdown mouseDown");
             }}
           >
-            <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
-              {unreadCount > 0 && (
+            <div className="p-3 sm:p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markAllAsRead();
+                    }}
+                    className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
+                    type="button"
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
+              {/* Filter buttons */}
+              <div className="flex gap-1 flex-wrap">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    markAllAsRead();
+                    setFilter("all");
                   }}
-                  className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
+                  className={`text-xs px-2 py-1 rounded ${filter === "all" ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-600"}`}
                   type="button"
                 >
-                  Mark all read
+                  All
                 </button>
-              )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFilter("message");
+                  }}
+                  className={`text-xs px-2 py-1 rounded ${filter === "message" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}
+                  type="button"
+                >
+                  Messages
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFilter("order");
+                  }}
+                  className={`text-xs px-2 py-1 rounded ${filter === "order" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
+                  type="button"
+                >
+                  Orders
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFilter("dmca");
+                  }}
+                  className={`text-xs px-2 py-1 rounded ${filter === "dmca" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}
+                  type="button"
+                >
+                  DMCA
+                </button>
+              </div>
             </div>
 
             <div className="overflow-y-auto flex-1">
@@ -352,7 +431,9 @@ export default function NotificationBell() {
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {notifications.map((notification) => {
+                  {notifications
+                    .filter((n) => filter === "all" || n.type === filter)
+                    .map((notification) => {
                     // Validate notification data before rendering
                     if (!notification || !notification.id || !notification.title || !notification.message) {
                       console.warn("Invalid notification data:", notification);
@@ -419,7 +500,22 @@ export default function NotificationBell() {
                                   <span className="text-yellow-600 text-sm sm:text-lg">⭐</span>
                                 </div>
                               )}
-                              {!["message", "order", "review"].includes(notification.type) && (
+                              {notification.type === "dmca" && (
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-full flex items-center justify-center">
+                                  <span className="text-red-600 text-sm sm:text-lg">⚠️</span>
+                                </div>
+                              )}
+                              {notification.type === "strike" && (
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                                  <span className="text-orange-600 text-sm sm:text-lg">🚫</span>
+                                </div>
+                              )}
+                              {notification.type === "copyright" && (
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                                  <span className="text-yellow-600 text-sm sm:text-lg">🔍</span>
+                                </div>
+                              )}
+                              {!["message", "order", "review", "dmca", "strike", "copyright"].includes(notification.type) && (
                                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center">
                                   <span className="text-purple-600 text-sm sm:text-lg">🔔</span>
                                 </div>
@@ -436,11 +532,22 @@ export default function NotificationBell() {
                                 {formatTime(notification.createdAt)}
                               </p>
                             </div>
-                            {!notification.read && (
-                              <div className="flex-shrink-0">
+                            <div className="flex-shrink-0 flex items-center gap-2">
+                              {!notification.read && (
                                 <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                              </div>
-                            )}
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNotification(notification.id);
+                                }}
+                                className="text-gray-400 hover:text-red-600 text-xs"
+                                type="button"
+                                title="Delete"
+                              >
+                                ×
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ) : (
