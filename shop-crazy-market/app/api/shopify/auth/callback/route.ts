@@ -14,10 +14,10 @@ export const runtime = 'nodejs';
  * This route exists for compatibility with code that uses /api/shopify/auth/callback
  */
 export async function GET(req: Request) {
+  const appUrl = getAppUrl();
+  
   try {
     const { searchParams } = new URL(req.url);
-    
-    const appUrl = getAppUrl();
     
     // Verify HMAC
     if (!verifyShopifyHmac(searchParams)) {
@@ -101,7 +101,6 @@ export async function GET(req: Request) {
     );
   } catch (error: any) {
     console.error("Shopify OAuth callback error:", error);
-    const appUrl = getAppUrl();
     return NextResponse.redirect(
       `${appUrl}/seller/platforms?error=${encodeURIComponent(error.message || 'oauth_failed')}`
     );

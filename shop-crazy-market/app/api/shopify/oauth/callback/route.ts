@@ -13,10 +13,10 @@ export const runtime = 'nodejs';
  * Handle Shopify OAuth callback
  */
 export async function GET(req: Request) {
+  const appUrl = getAppUrl();
+  
   try {
     const { searchParams } = new URL(req.url);
-    
-    const appUrl = getAppUrl();
     
     // Verify HMAC
     if (!verifyShopifyHmac(searchParams)) {
@@ -95,13 +95,11 @@ export async function GET(req: Request) {
     }
 
     // Redirect back to platforms page with success
-    const appUrl = getAppUrl();
     return NextResponse.redirect(
       `${appUrl}/seller/platforms?success=connected&platform=shopify`
     );
   } catch (error: any) {
     console.error("Shopify OAuth callback error:", error);
-    const appUrl = getAppUrl();
     return NextResponse.redirect(
       `${appUrl}/seller/platforms?error=${encodeURIComponent(error.message || 'oauth_failed')}`
     );
