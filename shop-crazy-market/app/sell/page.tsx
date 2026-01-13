@@ -168,9 +168,43 @@ export default function SellPage() {
       if (savedData) {
         try {
           const parsed = JSON.parse(savedData);
-          setFormData(parsed);
+          // Merge with default formData to ensure all new fields are present
+          const mergedData: FormData = {
+            title: parsed.title || "",
+            description: parsed.description || "",
+            price: parsed.price || "",
+            quantity: parsed.quantity || "1",
+            category: parsed.category || "",
+            type: parsed.type || "PHYSICAL",
+            condition: parsed.condition || "NEW",
+            tags: Array.isArray(parsed.tags) ? parsed.tags : [],
+            searchKeywords: parsed.searchKeywords || "",
+            metaDescription: parsed.metaDescription || "",
+            sku: parsed.sku || "",
+            brand: parsed.brand || "",
+            materials: parsed.materials || "",
+            dimensions: parsed.dimensions || "",
+            weight: parsed.weight || "",
+            color: parsed.color || "",
+            countryOfOrigin: parsed.countryOfOrigin || "",
+            shippingCost: parsed.shippingCost || "",
+            processingTime: parsed.processingTime || "",
+            shippingMethods: Array.isArray(parsed.shippingMethods) ? parsed.shippingMethods : [],
+            returnPolicy: parsed.returnPolicy || "",
+            returnWindowDays: parsed.returnWindowDays || "",
+            warrantyInfo: parsed.warrantyInfo || "",
+            careInstructions: parsed.careInstructions || "",
+            isDraft: parsed.isDraft || false,
+          };
+          setFormData(mergedData);
         } catch (e) {
-          // Ignore parse errors
+          console.error("Error loading saved form data:", e);
+          // Clear corrupted data
+          try {
+            localStorage.removeItem('listing-form-data');
+          } catch (clearError) {
+            // Ignore errors when clearing
+          }
         }
       }
     }
@@ -183,18 +217,36 @@ export default function SellPage() {
       return;
     }
     if (typeof window !== 'undefined' && (formData.title || formData.description)) {
-      localStorage.setItem('listing-form-data', JSON.stringify(formData));
+      try {
+        localStorage.setItem('listing-form-data', JSON.stringify(formData));
+      } catch (error) {
+        console.error("Error saving form data to localStorage:", error);
+        // If storage is full, try to clear old data
+        try {
+          if (error instanceof DOMException && error.code === 22) {
+            localStorage.removeItem('listing-form-data');
+          }
+        } catch (e) {
+          // Ignore errors when clearing
+        }
+      }
     }
   }, [formData]);
 
   // Check database connection on mount
   useEffect(() => {
-    checkConnection();
+    // Wrap in try-catch to prevent errors from crashing the page
+    try {
+      checkConnection();
+    } catch (error) {
+      console.error("Error checking connection on mount:", error);
+      setConnectionStatus("disconnected");
+    }
   }, []);
 
   const checkConnection = useCallback(async () => {
-    setConnectionStatus("checking");
     try {
+      setConnectionStatus("checking");
       // Test actual Prisma connection, not just URL pattern
       const response = await fetch("/api/test-prisma-connection");
       if (response.ok) {
@@ -207,7 +259,8 @@ export default function SellPage() {
       } else {
         setConnectionStatus("disconnected");
       }
-    } catch {
+    } catch (error) {
+      console.error("Error checking database connection:", error);
       setConnectionStatus("disconnected");
     }
   }, []);
@@ -279,7 +332,7 @@ export default function SellPage() {
     }
   }
 
-  async function handleThumbnailUpload(file: File) {
+  const handleThumbnailUpload = useCallback(async (file: File) => {
     setUploadingThumbnail(true);
     try {
       const url = await handleFileUpload(file);
@@ -290,11 +343,12 @@ export default function SellPage() {
       };
       setThumbnails((prev) => [...prev, newThumbnail]);
     } catch (error: any) {
+      console.error("Error uploading thumbnail:", error);
       alert(`Failed to upload thumbnail: ${error.message}`);
     } finally {
       setUploadingThumbnail(false);
     }
-  }
+  }, []);
 
   const handleThumbnailDrop = useCallback((files: File[]) => {
     files.forEach((file) => {
@@ -302,7 +356,7 @@ export default function SellPage() {
         handleThumbnailUpload(file);
       }
     });
-  }, []);
+  }, [handleThumbnailUpload]);
 
   const handleThumbnailFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -314,7 +368,7 @@ export default function SellPage() {
     if (e.target) {
       e.target.value = "";
     }
-  }, []);
+  }, [handleThumbnailUpload]);
 
   const handleThumbnailClick = useCallback(() => {
     thumbnailInputRef.current?.click();
