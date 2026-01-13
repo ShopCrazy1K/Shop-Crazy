@@ -23,6 +23,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@prisma/client": "^5.7.1",
     "@sentry/nextjs": "^10.32.1",
+    "@shopify/shopify-api": "^12.2.0",
     "@supabase/supabase-js": "^2.89.0",
     "@types/nodemailer": "^7.0.4",
     "@upstash/redis": "^1.36.0",

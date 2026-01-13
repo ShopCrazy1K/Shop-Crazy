@@ -1,4 +1,5 @@
 // Shopify API integration utilities
+import { decrypt } from "@/lib/encryption";
 
 interface ShopifyProduct {
   id: string;
@@ -8,14 +9,20 @@ interface ShopifyProduct {
     id: string;
     price: string;
     inventory_quantity: number;
+    sku?: string;
   }>;
   images: Array<{
     src: string;
+    alt?: string;
   }>;
+  tags?: string;
+  vendor?: string;
+  product_type?: string;
+  status?: string;
 }
 
 interface ShopifyConfig {
-  accessToken: string;
+  accessToken: string; // Can be encrypted or plain
   storeName: string;
 }
 
@@ -25,8 +32,11 @@ export class ShopifyClient {
   private baseUrl: string;
 
   constructor(config: ShopifyConfig) {
-    this.accessToken = config.accessToken;
-    this.storeName = config.storeName;
+    // Decrypt token if it's encrypted
+    this.accessToken = decrypt(config.accessToken);
+    this.storeName = config.storeName.includes('.') 
+      ? config.storeName.split('.')[0] 
+      : config.storeName;
     this.baseUrl = `https://${this.storeName}.myshopify.com/admin/api/2024-01`;
   }
 
@@ -41,15 +51,47 @@ export class ShopifyClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Shopify API error: ${response.statusText}`);
+      const errorText = await response.text();
+      let errorMessage = `Shopify API error: ${response.statusText}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.errors?.message || errorJson.error || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
-    return response.json();
+    const data = await response.json();
+    // Store headers for pagination
+    (data as any).headers = response.headers;
+    return data;
   }
 
-  async getProducts(limit = 50): Promise<ShopifyProduct[]> {
-    const response = await this.request(`/products.json?limit=${limit}`);
-    return response.products || [];
+  async getProducts(limit = 250): Promise<ShopifyProduct[]> {
+    // Shopify allows up to 250 products per request
+    const allProducts: ShopifyProduct[] = [];
+    let pageInfo: string | null = null;
+    let hasNextPage = true;
+
+    while (hasNextPage && allProducts.length < limit) {
+      let url = `/products.json?limit=${Math.min(250, limit - allProducts.length)}`;
+      if (pageInfo) {
+        url += `&page_info=${pageInfo}`;
+      }
+
+      const response = await this.request(url);
+      const products = response.products || [];
+      allProducts.push(...products);
+
+      // Check for pagination
+      const linkHeader = response.headers?.get?.('link') || '';
+      const nextMatch = linkHeader.match(/<[^>]+page_info=([^>]+)>; rel="next"/);
+      pageInfo = nextMatch ? nextMatch[1] : null;
+      hasNextPage = !!pageInfo && allProducts.length < limit;
+    }
+
+    return allProducts.slice(0, limit);
   }
 
   async getProduct(productId: string): Promise<ShopifyProduct> {
@@ -83,27 +125,32 @@ export class ShopifyClient {
 }
 
 /**
- * Convert Shopify product to our Product format
+ * Convert Shopify product to our Listing format
  */
 export function convertShopifyProduct(
   shopifyProduct: ShopifyProduct,
   shopId: string,
   zone: string = "SHOP_4_US"
 ) {
-  const variant = shopifyProduct.variants[0];
-  const image = shopifyProduct.images[0]?.src || "";
+  const variant = shopifyProduct.variants[0] || { price: "0", inventory_quantity: 0 };
+  const images = shopifyProduct.images.map((img) => img.src);
+  const tags = shopifyProduct.tags ? shopifyProduct.tags.split(',').map(t => t.trim()) : [];
 
   return {
     title: shopifyProduct.title,
     description: shopifyProduct.body_html || "",
-    price: Math.round(parseFloat(variant.price) * 100), // Convert to cents
+    priceCents: Math.round(parseFloat(variant.price) * 100), // Convert to cents
     quantity: variant.inventory_quantity || 0,
-    images: shopifyProduct.images.map((img) => img.src),
-    zone: zone as any,
-    condition: "NEW" as any,
+    images: images,
+    thumbnails: images.slice(0, 10), // First 10 images as thumbnails
+    tags: tags,
+    brand: shopifyProduct.vendor || undefined,
+    category: shopifyProduct.product_type || undefined,
+    sku: variant.sku || undefined,
     shopId,
     externalProductId: shopifyProduct.id.toString(),
     syncEnabled: true,
+    isDraft: shopifyProduct.status === 'draft',
   };
 }
 

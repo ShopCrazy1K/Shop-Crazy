@@ -183,9 +183,9 @@ model DMCAComplaint {
 
   // Counter-notice
   counterNotice CounterNotice?
-  
+
   // Strikes linked to this complaint
-  strikes      SellerStrike[]
+  strikes SellerStrike[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -251,19 +251,19 @@ model BannedWord {
 }
 
 model SellerStrike {
-  id                String    @id @default(uuid())
+  id                String         @id @default(uuid())
   sellerId          String
-  shop              Shop      @relation(fields: [sellerId], references: [id])
+  shop              Shop           @relation(fields: [sellerId], references: [id])
   reason            String
   reportId          String? // Link to CopyrightReport if applicable
   complaintId       String? // Link to DMCAComplaint if applicable
   complaint         DMCAComplaint? @relation(fields: [complaintId], references: [id])
-  strikeType        String    @default("COPYRIGHT") // "COPYRIGHT", "TRADEMARK", "OTHER"
-  status            String    @default("ACTIVE") // "ACTIVE", "APPEALED", "OVERTURNED", "UPHELD"
+  strikeType        String         @default("COPYRIGHT") // "COPYRIGHT", "TRADEMARK", "OTHER"
+  status            String         @default("ACTIVE") // "ACTIVE", "APPEALED", "OVERTURNED", "UPHELD"
   appealReason      String? // Seller's appeal explanation
   appealSubmittedAt DateTime?
   adminNotes        String?
-  createdAt         DateTime  @default(now())
+  createdAt         DateTime       @default(now())
 
   @@index([sellerId])
   @@index([status])
@@ -378,6 +378,12 @@ model Listing {
   // Draft status
   isDraft Boolean @default(false) // Save as draft
 
+  // Platform Integration
+  platformConnectionId String? // Link to PlatformConnection if synced from external platform
+  externalProductId    String? // External product ID (e.g., Shopify product ID)
+  syncEnabled          Boolean   @default(false) // Auto-sync enabled
+  lastSyncedAt         DateTime? // Last sync timestamp
+
   // Copyright/IP Protection
   copyrightStatus String          @default("CLEAR") // "CLEAR", "FLAGGED", "HIDDEN", "DISABLED", "DMCA_COMPLAINT"
   flaggedWords    String[]        @default([]) // Words that triggered auto-flag
@@ -393,14 +399,15 @@ model Listing {
   feeCustomerId         String?
 
   // Orders for this listing
-  orders           Order[]
-  deals            Deal[] // Promotions and discounts
-  copyrightReports CopyrightReport[] // Copyright reports for this listing
-  recentlyViewed   RecentlyViewed[] // Users who viewed this
-  comparisons      ProductComparison[] // Users comparing this product
-  views            ListingView[] // View tracking for analytics
-  priceAlerts      PriceAlert[] // Users with price alerts
-  favorites        ListingFavorite[] // Users who favorited this
+  orders             Order[]
+  deals              Deal[] // Promotions and discounts
+  copyrightReports   CopyrightReport[] // Copyright reports for this listing
+  recentlyViewed     RecentlyViewed[] // Users who viewed this
+  comparisons        ProductComparison[] // Users comparing this product
+  views              ListingView[] // View tracking for analytics
+  priceAlerts        PriceAlert[] // Users with price alerts
+  favorites          ListingFavorite[] // Users who favorited this
+  platformConnection PlatformConnection? @relation(fields: [platformConnectionId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -641,6 +648,7 @@ model PlatformConnection {
   syncEnabled Boolean @default(false)
 
   products Product[]
+  listings Listing[] // Listings synced from this platform
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface PlatformConnection {
   id: string;
@@ -16,7 +16,7 @@ interface PlatformConnection {
   };
 }
 
-export default function PlatformsPage() {
+function PlatformsPageContent() {
   const [connections, setConnections] = useState<PlatformConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
@@ -24,8 +24,10 @@ export default function PlatformsPage() {
   const [selectedPlatform, setSelectedPlatform] = useState<"SHOPIFY" | "PRINTIFY" | null>(null);
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [shopId, setShopId] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -40,6 +42,29 @@ export default function PlatformsPage() {
       fetchConnections();
     }
   }, [shopId]);
+
+  // Handle OAuth callback messages
+  useEffect(() => {
+    const success = searchParams?.get("success");
+    const error = searchParams?.get("error");
+    const platform = searchParams?.get("platform");
+
+    if (success === "connected" && platform === "shopify") {
+      setMessage({ type: "success", text: "Shopify store connected successfully!" });
+      fetchConnections();
+      // Clear URL params
+      router.replace("/seller/platforms");
+    } else if (error) {
+      let errorMessage = "Failed to connect platform";
+      if (error === "invalid_hmac") errorMessage = "Invalid security verification. Please try again.";
+      else if (error === "missing_params") errorMessage = "Missing required parameters.";
+      else if (error === "invalid_state") errorMessage = "Invalid session. Please try again.";
+      else if (error === "oauth_failed") errorMessage = "OAuth authentication failed. Please try again.";
+      
+      setMessage({ type: "error", text: errorMessage });
+      router.replace("/seller/platforms");
+    }
+  }, [searchParams, router]);
 
   async function fetchShop() {
     try {
@@ -114,9 +139,28 @@ export default function PlatformsPage() {
     }
   }
 
-  async function connectPlatform(platform: "SHOPIFY" | "PRINTIFY", accessToken: string, storeName: string) {
+  async function connectPlatform(platform: "SHOPIFY" | "PRINTIFY", accessToken?: string, storeName?: string) {
     if (!shopId) {
       alert("Shop not found");
+      return;
+    }
+    
+    // For Shopify, use OAuth flow
+    if (platform === "SHOPIFY") {
+      const shopInput = (document.getElementById("storeName") as HTMLInputElement)?.value;
+      if (!shopInput) {
+        alert("Please enter your Shopify store name");
+        return;
+      }
+      
+      // Redirect to Shopify OAuth
+      window.location.href = `/api/shopify/oauth?shop=${encodeURIComponent(shopInput)}&shopId=${shopId}`;
+      return;
+    }
+    
+    // For Printify, use manual token entry
+    if (!accessToken || !storeName) {
+      alert("Access token and store name are required for Printify");
       return;
     }
     
@@ -137,7 +181,8 @@ export default function PlatformsPage() {
         setShowConnectModal(false);
         fetchConnections();
       } else {
-        alert("Failed to connect platform");
+        const error = await res.json();
+        alert(error.error || "Failed to connect platform");
       }
     } catch (error) {
       console.error("Error connecting platform:", error);
@@ -159,7 +204,7 @@ export default function PlatformsPage() {
         <h1 className="font-accent text-4xl">Platform Integrations</h1>
         <button
           onClick={() => setShowConnectModal(true)}
-          className="bg-purple-600 text-white px-6 py-2 rounded-xl font-bold"
+          className="bg-purple-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-purple-700 transition-colors"
         >
           + Connect Platform
         </button>
@@ -168,6 +213,27 @@ export default function PlatformsPage() {
       <p className="text-gray-600">
         Connect your Shopify or Printify store to sync products automatically.
       </p>
+
+      {/* Success/Error Messages */}
+      {message && (
+        <div
+          className={`p-4 rounded-xl ${
+            message.type === "success"
+              ? "bg-green-50 border border-green-200 text-green-800"
+              : "bg-red-50 border border-red-200 text-red-800"
+          }`}
+        >
+          <div className="flex justify-between items-center">
+            <span>{message.text}</span>
+            <button
+              onClick={() => setMessage(null)}
+              className="ml-4 text-lg font-bold hover:opacity-70"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* CONNECTED PLATFORMS */}
       <div className="space-y-4">
@@ -256,58 +322,117 @@ export default function PlatformsPage() {
               </div>
               {selectedPlatform && (
                 <>
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">
-                      {selectedPlatform === "SHOPIFY"
-                        ? "Store Name"
-                        : "Shop ID"}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={
-                        selectedPlatform === "SHOPIFY"
-                          ? "your-store"
-                          : "Shop ID"
-                      }
-                      className="w-full border rounded-xl px-4 py-2"
-                      id="storeName"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">
-                      Access Token
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="Enter access token"
-                      className="w-full border rounded-xl px-4 py-2"
-                      id="accessToken"
-                    />
-                  </div>
-                  <div className="flex gap-2 pt-4">
-                    <button
-                      onClick={() => {
-                        const storeName = (
-                          document.getElementById("storeName") as HTMLInputElement
-                        ).value;
-                        const accessToken = (
-                          document.getElementById("accessToken") as HTMLInputElement
-                        ).value;
-                        if (storeName && accessToken && selectedPlatform) {
-                          connectPlatform(selectedPlatform, accessToken, storeName);
-                        }
-                      }}
-                      className="flex-1 bg-purple-600 text-white py-2 rounded-xl font-bold"
-                    >
-                      Connect
-                    </button>
-                    <button
-                      onClick={() => setShowConnectModal(false)}
-                      className="flex-1 border border-gray-300 py-2 rounded-xl font-semibold"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                  {selectedPlatform === "SHOPIFY" ? (
+                    <>
+                      <div>
+                        <label className="block text-sm font-semibold mb-2">
+                          Shopify Store Name
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="your-store (without .myshopify.com)"
+                          className="w-full border rounded-xl px-4 py-2"
+                          id="storeName"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter your store name (e.g., "my-store" for my-store.myshopify.com)
+                        </p>
+                      </div>
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <p className="text-sm text-blue-800">
+                          <strong>🔒 Secure OAuth Connection</strong>
+                          <br />
+                          You'll be redirected to Shopify to authorize this connection securely.
+                          No need to manually enter access tokens.
+                        </p>
+                      </div>
+                      <div className="flex gap-2 pt-4">
+                        <button
+                          onClick={() => {
+                            const storeName = (
+                              document.getElementById("storeName") as HTMLInputElement
+                            ).value;
+                            if (storeName && selectedPlatform) {
+                              connectPlatform(selectedPlatform);
+                            } else {
+                              alert("Please enter your Shopify store name");
+                            }
+                          }}
+                          className="flex-1 bg-purple-600 text-white py-2 rounded-xl font-bold hover:bg-purple-700 transition-colors"
+                        >
+                          Connect with Shopify
+                        </button>
+                        <button
+                          onClick={() => setShowConnectModal(false)}
+                          className="flex-1 border border-gray-300 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-sm font-semibold mb-2">
+                          Shop ID
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Printify Shop ID"
+                          className="w-full border rounded-xl px-4 py-2"
+                          id="storeName"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold mb-2">
+                          Access Token
+                        </label>
+                        <input
+                          type="password"
+                          placeholder="Enter Printify API token"
+                          className="w-full border rounded-xl px-4 py-2"
+                          id="accessToken"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Get your API token from{" "}
+                          <a
+                            href="https://developers.printify.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-600 hover:underline"
+                          >
+                            Printify Developer Portal
+                          </a>
+                        </p>
+                      </div>
+                      <div className="flex gap-2 pt-4">
+                        <button
+                          onClick={() => {
+                            const storeName = (
+                              document.getElementById("storeName") as HTMLInputElement
+                            ).value;
+                            const accessToken = (
+                              document.getElementById("accessToken") as HTMLInputElement
+                            ).value;
+                            if (storeName && accessToken && selectedPlatform) {
+                              connectPlatform(selectedPlatform, accessToken, storeName);
+                            } else {
+                              alert("Please enter both Shop ID and Access Token");
+                            }
+                          }}
+                          className="flex-1 bg-purple-600 text-white py-2 rounded-xl font-bold hover:bg-purple-700 transition-colors"
+                        >
+                          Connect
+                        </button>
+                        <button
+                          onClick={() => setShowConnectModal(false)}
+                          className="flex-1 border border-gray-300 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -329,14 +454,9 @@ export default function PlatformsPage() {
               <li>• Price updates</li>
               <li>• Product images</li>
             </ul>
-            <a
-              href="https://shopify.dev/docs/apps/auth/oauth/getting-started"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-purple-600 hover:underline mt-2 inline-block"
-            >
-              Get Shopify API token →
-            </a>
+            <p className="text-xs text-gray-500 mt-2">
+              Click "Connect Platform" above to connect via secure OAuth. No manual token entry required!
+            </p>
           </div>
           <div>
             <h3 className="font-semibold text-lg mb-2">🖨️ Printify</h3>
@@ -363,3 +483,14 @@ export default function PlatformsPage() {
   );
 }
 
+export default function PlatformsPage() {
+  return (
+    <Suspense fallback={
+      <main className="p-6">
+        <div className="text-center text-gray-500 py-10">Loading...</div>
+      </main>
+    }>
+      <PlatformsPageContent />
+    </Suspense>
+  );
+}

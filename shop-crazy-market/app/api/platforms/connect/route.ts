@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { encrypt } from "@/lib/encryption";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
       const connection = await prisma.platformConnection.update({
         where: { id: existing.id },
         data: {
-          accessToken, // In production, encrypt this
+          accessToken: encrypt(accessToken), // Encrypt token
           storeName,
           storeUrl,
           isActive: true,
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
       data: {
         shopId,
         platform: platform as any,
-        accessToken, // In production, encrypt this
+        accessToken: encrypt(accessToken), // Encrypt token
         storeName,
         storeUrl,
         isActive: true,

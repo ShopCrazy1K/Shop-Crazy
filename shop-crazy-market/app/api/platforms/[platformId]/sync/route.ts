@@ -40,7 +40,7 @@ export async function POST(
         storeName: connection.storeName || "",
       });
 
-      const shopifyProducts = await client.getProducts();
+      const shopifyProducts = await client.getProducts(250); // Get up to 250 products
 
       for (const shopifyProduct of shopifyProducts) {
         try {
@@ -50,38 +50,68 @@ export async function POST(
             zone || "SHOP_4_US"
           );
 
-          // Check if product already exists
-          const existing = await prisma.product.findFirst({
+          // Check if listing already exists by externalProductId
+          const existingListing = await prisma.listing.findFirst({
             where: {
-              shopId: connection.shopId,
+              sellerId: connection.shop.ownerId,
               externalProductId: productData.externalProductId,
+              platformConnectionId: platformId,
             },
           });
 
-          if (existing) {
-            // Update existing product
-            await prisma.product.update({
-              where: { id: existing.id },
+          if (existingListing) {
+            // Update existing listing
+            await prisma.listing.update({
+              where: { id: existingListing.id },
               data: {
-                ...productData,
-                images: JSON.stringify(productData.images || []),
+                title: productData.title,
+                description: productData.description,
+                priceCents: productData.priceCents,
+                images: productData.images,
+                thumbnails: productData.thumbnails,
+                tags: productData.tags,
+                brand: productData.brand,
+                category: productData.category,
+                sku: productData.sku,
+                syncEnabled: productData.syncEnabled,
                 lastSyncedAt: new Date(),
+                updatedAt: new Date(),
               },
             });
             results.updated++;
           } else {
-            // Create new product
-            await prisma.product.create({
+            // Generate slug from title
+            const slug = productData.title
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/(^-|-$)/g, '') + '-' + Date.now();
+
+            // Create new listing from Shopify product
+            await prisma.listing.create({
               data: {
-                ...productData,
-                images: JSON.stringify(productData.images || []),
+                title: productData.title,
+                description: productData.description,
+                slug,
+                priceCents: productData.priceCents,
+                currency: "usd",
+                images: productData.images,
+                thumbnails: productData.thumbnails,
+                tags: productData.tags,
+                brand: productData.brand,
+                category: productData.category,
+                sku: productData.sku,
+                sellerId: connection.shop.ownerId,
+                isDraft: productData.isDraft || false,
                 platformConnectionId: platformId,
+                externalProductId: productData.externalProductId,
+                syncEnabled: productData.syncEnabled,
                 lastSyncedAt: new Date(),
               },
             });
             results.created++;
           }
         } catch (error: any) {
+          console.error(`Error syncing Shopify product ${shopifyProduct.id}:`, error);
           results.errors.push(`Product ${shopifyProduct.id}: ${error.message}`);
         }
       }
