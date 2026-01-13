@@ -8,9 +8,10 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 /**
- * GET /api/shopify/oauth/callback
+ * GET /api/shopify/auth/callback
  * 
- * Handle Shopify OAuth callback
+ * Handle Shopify OAuth callback (alias for /api/shopify/oauth/callback)
+ * This route exists for compatibility with code that uses /api/shopify/auth/callback
  */
 export async function GET(req: Request) {
   try {
@@ -95,7 +96,6 @@ export async function GET(req: Request) {
     }
 
     // Redirect back to platforms page with success
-    const appUrl = getAppUrl();
     return NextResponse.redirect(
       `${appUrl}/seller/platforms?success=connected&platform=shopify`
     );

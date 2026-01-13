@@ -1,20 +1,29 @@
 // Shopify OAuth utilities
 import crypto from 'crypto';
+import { getAppUrl } from '@/lib/utils/app-url';
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY || '';
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || '';
 const SHOPIFY_SCOPES = process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,write_orders';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000';
+
+const APP_URL = getAppUrl();
 
 /**
  * Generate Shopify OAuth authorization URL
+ * @param shop - Shopify store domain (e.g., "press-go-transfers.myshopify.com")
+ * @param state - Optional state parameter for OAuth flow
+ * @param callbackPath - Optional custom callback path (defaults to "/api/shopify/oauth/callback")
  */
-export function getShopifyAuthUrl(shop: string, state?: string): string {
+export function getShopifyAuthUrl(
+  shop: string, 
+  state?: string, 
+  callbackPath: string = '/api/shopify/oauth/callback'
+): string {
   if (!SHOPIFY_API_KEY) {
     throw new Error('SHOPIFY_API_KEY is not configured');
   }
 
-  const redirectUri = `${APP_URL}/api/shopify/oauth/callback`;
+  const redirectUri = `${APP_URL}${callbackPath}`;
   const scopes = SHOPIFY_SCOPES;
   const nonce = state || crypto.randomBytes(16).toString('hex');
 
@@ -26,6 +35,14 @@ export function getShopifyAuthUrl(shop: string, state?: string): string {
   });
 
   return `https://${shop}/admin/oauth/authorize?${params.toString()}`;
+}
+
+/**
+ * Generate Shopify OAuth authorization URL with /api/shopify/auth/callback path
+ * This is a convenience function for code that uses the /auth/callback path
+ */
+export function getShopifyAuthUrlWithAuthCallback(shop: string, state?: string): string {
+  return getShopifyAuthUrl(shop, state, '/api/shopify/auth/callback');
 }
 
 /**
