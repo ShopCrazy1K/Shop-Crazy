@@ -48,9 +48,16 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+let cachedEnv: Env | null = null;
+
 function getEnv(): Env {
+  if (cachedEnv) {
+    return cachedEnv;
+  }
+  
   try {
-    return envSchema.parse(process.env);
+    cachedEnv = envSchema.parse(process.env);
+    return cachedEnv;
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missing = error.issues.map(e => {
@@ -58,6 +65,16 @@ function getEnv(): Env {
         return `  - ${path}: ${e.message}`;
       });
       const errorMessage = `Missing or invalid environment variables:\n${missing.join('\n')}\n\nPlease check your .env.local file or Vercel environment variables.`;
+      
+      // During build time, don't throw - just return a partial object
+      if (process.env.NEXT_PHASE === 'phase-production-build' || 
+          process.env.NODE_ENV === 'test' ||
+          !process.env.NEXT_RUNTIME) {
+        console.warn('[ENV] Validation warning (build/test):', errorMessage);
+        cachedEnv = process.env as any;
+        return cachedEnv;
+      }
+      
       console.error(errorMessage);
       throw new Error(errorMessage);
     }
@@ -65,7 +82,13 @@ function getEnv(): Env {
   }
 }
 
-export const env = getEnv();
+// Lazy getter - only validates when accessed
+export const env: Env = new Proxy({} as Env, {
+  get(target, prop) {
+    const validatedEnv = getEnv();
+    return validatedEnv[prop as keyof Env];
+  }
+});
 
 // Helper functions for common env access patterns
 // These functions access process.env directly to avoid triggering validation at module load time
