@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { verifyShopifyHmac } from "@/lib/platforms/shopify-oauth";
 import { getAppUrl } from "@/lib/env";
 import { createGetHandler } from "@/lib/api-wrapper";
@@ -24,7 +24,7 @@ export const GET = createGetHandler(
     
     // If no shop parameter, redirect to platforms page
     if (!shop) {
-      return Response.redirect(`${appUrl}/seller/platforms`);
+      return NextResponse.redirect(`${appUrl}/seller/platforms`);
     }
     
     // Verify HMAC if present (Shopify sends this for security)
@@ -39,7 +39,7 @@ export const GET = createGetHandler(
     const shopName = shop.includes('.') ? shop.split('.')[0] : shop;
     
     // Redirect to platforms page with shop parameter
-    return Response.redirect(`${appUrl}/seller/platforms?shop=${encodeURIComponent(shopName)}`);
+    return NextResponse.redirect(`${appUrl}/seller/platforms?shop=${encodeURIComponent(shopName)}`);
   },
   {
     rateLimit: 'standard',

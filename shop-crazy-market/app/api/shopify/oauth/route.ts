@@ -1,9 +1,8 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getShopifyAuthUrl } from "@/lib/platforms/shopify-oauth";
 import { createGetHandler } from "@/lib/api-wrapper";
 import { validateQuery } from "@/lib/validate";
 import { z } from "zod";
-import { badRequestResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -35,7 +34,7 @@ export const GET = createGetHandler(
     const authUrl = getShopifyAuthUrl(shopDomain, state);
 
     // Redirect to Shopify OAuth
-    return Response.redirect(authUrl);
+    return NextResponse.redirect(authUrl);
   },
   {
     rateLimit: 'standard',
