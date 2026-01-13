@@ -1157,6 +1157,7 @@ export default function SellPage() {
                   <p className="text-xs text-gray-500 mb-3">
                     Add more images to show different angles, details, or variations of your product. You can upload up to 10 images total (including thumbnail).
                   </p>
+                </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Upload Images
