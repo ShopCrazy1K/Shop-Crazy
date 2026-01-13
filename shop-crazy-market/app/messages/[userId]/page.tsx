@@ -10,6 +10,11 @@ interface Message {
   text: string;
   fromMe: boolean;
   createdAt: Date;
+  sender?: {
+    id: string;
+    username: string | null;
+    email: string;
+  };
 }
 
 export default function ConversationPage() {
