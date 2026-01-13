@@ -47,7 +47,20 @@ export async function GET(request: Request) {
     });
 
     // Group by conversation partner
-    const conversationsMap = new Map();
+    const conversationsMap = new Map<string, any>();
+    
+    // Count unread messages per sender (messages received in last 24 hours)
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+    const recentReceivedMessages = receivedMessages.filter(
+      (msg) => new Date(msg.createdAt) > oneDayAgo
+    );
+    
+    const unreadMap = new Map<string, number>();
+    recentReceivedMessages.forEach((msg) => {
+      const senderId = msg.senderId;
+      unreadMap.set(senderId, (unreadMap.get(senderId) || 0) + 1);
+    });
 
     // Process sent messages
     sentMessages.forEach((msg) => {
@@ -59,6 +72,8 @@ export async function GET(request: Request) {
           username: msg.receiver.username || msg.receiver.email,
           lastMessage: msg.content,
           updatedAt: msg.createdAt,
+          unreadCount: 0,
+          avatar: null,
         });
       } else {
         const conv = conversationsMap.get(key);
@@ -73,12 +88,15 @@ export async function GET(request: Request) {
     receivedMessages.forEach((msg) => {
       const partnerId = msg.senderId;
       const key = partnerId;
+      const unreadCount = unreadMap.get(partnerId) || 0;
       if (!conversationsMap.has(key)) {
         conversationsMap.set(key, {
           userId: partnerId,
           username: msg.sender.username || msg.sender.email,
           lastMessage: msg.content,
           updatedAt: msg.createdAt,
+          unreadCount,
+          avatar: null,
         });
       } else {
         const conv = conversationsMap.get(key);
@@ -86,10 +104,14 @@ export async function GET(request: Request) {
           conv.lastMessage = msg.content;
           conv.updatedAt = msg.createdAt;
         }
+        // Update unread count
+        conv.unreadCount = unreadCount;
       }
     });
 
     const conversations = Array.from(conversationsMap.values());
+    // Sort by most recent first
+    conversations.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
     return NextResponse.json(conversations);
   } catch (error) {
