@@ -1,230 +1,135 @@
-export default function TermsOfServicePage() {
+export default function TermsPage() {
   return (
-    <main className="max-w-4xl mx-auto p-6 space-y-6">
-      <h1 className="font-accent text-4xl">Terms of Service</h1>
-      <p className="text-gray-600">Last updated: December 29, 2024</p>
-
-      <div className="bg-white rounded-xl shadow p-6 space-y-6">
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-4xl font-bold mb-6">Terms of Service</h1>
+      
+      <div className="prose max-w-none space-y-6">
         <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">1. Acceptance of Terms</h2>
           <p className="text-gray-700">
-            By accessing and using Shop Crazy Market ("the Platform", "we", "us", or "our"), 
-            you accept and agree to be bound by the terms and provision of this agreement. 
-            If you do not agree to these Terms of Service, please do not use our Platform.
+            <strong>Last Updated:</strong> {new Date().toLocaleDateString()}
           </p>
-        </section>
-
-        <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">2. Description of Service</h2>
           <p className="text-gray-700">
-            Shop Crazy Market is an online marketplace that connects buyers and sellers. 
-            We provide a platform for sellers to list and sell products (both physical and digital) 
-            and for buyers to purchase these products. We are not directly involved in transactions 
-            between buyers and sellers and are not responsible for the quality, safety, or legality 
-            of items listed on our Platform.
+            Please read these Terms of Service ("Terms") carefully before using Shop Crazy Market
+            ("the Service") operated by Shop Crazy Market ("us", "we", or "our").
           </p>
         </section>
-
+        
         <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">3. User Accounts</h2>
-          <div className="space-y-3 text-gray-700">
-            <p>
-              <strong>3.1 Account Creation:</strong> To use certain features of our Platform, 
-              you must create an account. You agree to provide accurate, current, and complete 
-              information during registration and to update such information to keep it accurate, 
-              current, and complete.
-            </p>
-            <p>
-              <strong>3.2 Account Security:</strong> You are responsible for maintaining the 
-              confidentiality of your account credentials and for all activities that occur 
-              under your account. You agree to notify us immediately of any unauthorized use 
-              of your account.
-            </p>
-            <p>
-              <strong>3.3 Account Termination:</strong> We reserve the right to suspend or 
-              terminate your account at any time for violations of these Terms or for any 
-              other reason we deem necessary.
-            </p>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">4. Seller Obligations</h2>
-          <div className="space-y-3 text-gray-700">
-            <p>
-              <strong>4.1 Listing Requirements:</strong> Sellers must provide accurate descriptions 
-              of their products, including condition, price, and shipping information. All listings 
-              must comply with our Prohibited Items Policy.
-            </p>
-            <p>
-              <strong>4.2 Listing Fees:</strong> Sellers agree to pay monthly listing fees as 
-              specified on the Platform. Fees are charged automatically via Stripe subscription.
-            </p>
-            <p>
-              <strong>4.3 Transaction Fees:</strong> A transaction fee of 5% is applied to all 
-              sales. Additional fees may apply for advertising and payment processing.
-            </p>
-            <p>
-              <strong>4.4 Payment Processing:</strong> Sellers must set up payment methods via 
-              Stripe Connect to receive payouts. Payouts are subject to Stripe's terms and 
-              processing times.
-            </p>
-            <p>
-              <strong>4.5 Product Delivery:</strong> Sellers are responsible for shipping physical 
-              products in a timely manner and providing tracking information. For digital products, 
-              sellers must ensure buyers receive access to purchased files.
-            </p>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">5. Buyer Obligations</h2>
-          <div className="space-y-3 text-gray-700">
-            <p>
-              <strong>5.1 Payment:</strong> Buyers agree to pay the listed price plus any applicable 
-              fees and taxes. Payment is processed securely through Stripe.
-            </p>
-            <p>
-              <strong>5.2 Product Information:</strong> Buyers are responsible for reading product 
-              descriptions, reviews, and seller policies before making a purchase.
-            </p>
-            <p>
-              <strong>5.3 Returns and Refunds:</strong> Return and refund policies are set by individual 
-              sellers. Buyers should review seller policies before purchasing.
-            </p>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">6. Fees and Payments</h2>
-          <div className="space-y-3 text-gray-700">
-            <p>
-              <strong>6.1 Listing Fees:</strong> Sellers pay a monthly fee per active listing. 
-              Fees are billed on the 1st of each month.
-            </p>
-            <p>
-              <strong>6.2 Transaction Fees:</strong> A 5% transaction fee is deducted from seller 
-              revenue on each sale.
-            </p>
-            <p>
-              <strong>6.3 Payment Processing Fees:</strong> Standard payment processing fees apply 
-              as determined by Stripe.
-            </p>
-            <p>
-              <strong>6.4 Advertising Fees:</strong> Optional advertising fees (15% of sale price) 
-              apply when sellers enable advertising for their listings.
-            </p>
-            <p>
-              <strong>6.5 Refunds:</strong> Refund policies are determined by individual sellers. 
-              Platform fees are non-refundable except in cases of platform error.
-            </p>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">7. Prohibited Items and Activities</h2>
+          <h2 className="text-2xl font-semibold mb-4">Agreement to Terms</h2>
           <p className="text-gray-700">
-            Users may not list, sell, or purchase items that are illegal, harmful, or violate 
-            our Prohibited Items Policy. This includes but is not limited to: illegal drugs, 
-            weapons, counterfeit goods, stolen items, and items that infringe on intellectual 
-            property rights. Please review our complete Prohibited Items Policy for details.
+            By accessing or using our Service, you agree to be bound by these Terms. If you disagree
+            with any part of these terms, then you may not access the Service.
           </p>
         </section>
-
+        
         <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">8. Intellectual Property</h2>
-          <div className="space-y-3 text-gray-700">
-            <p>
-              <strong>8.1 Platform Content:</strong> All content on the Platform, including text, 
-              graphics, logos, and software, is the property of Shop Crazy Market or its content 
-              suppliers and is protected by copyright and other intellectual property laws.
-            </p>
-            <p>
-              <strong>8.2 User Content:</strong> By posting content on the Platform, you grant us 
-              a non-exclusive, worldwide, royalty-free license to use, reproduce, and display 
-              your content for the purpose of operating the Platform.
-            </p>
-            <p>
-              <strong>8.3 Copyright Infringement:</strong> We respect intellectual property rights 
-              and will respond to valid DMCA takedown notices. See our DMCA Policy for details.
-            </p>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">9. Disputes and Resolution</h2>
-          <div className="space-y-3 text-gray-700">
-            <p>
-              <strong>9.1 Buyer-Seller Disputes:</strong> We encourage buyers and sellers to 
-              resolve disputes directly. If a dispute cannot be resolved, either party may 
-              contact our support team.
-            </p>
-            <p>
-              <strong>9.2 Platform Disputes:</strong> Any disputes arising from these Terms or 
-              your use of the Platform shall be resolved through binding arbitration in accordance 
-              with the rules of the American Arbitration Association.
-            </p>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">10. Limitation of Liability</h2>
+          <h2 className="text-2xl font-semibold mb-4">Use License</h2>
           <p className="text-gray-700">
-            TO THE MAXIMUM EXTENT PERMITTED BY LAW, SHOP CRAZY MARKET SHALL NOT BE LIABLE FOR 
-            ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS 
-            OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, 
-            USE, GOODWILL, OR OTHER INTANGIBLE LOSSES RESULTING FROM YOUR USE OF THE PLATFORM.
+            Permission is granted to temporarily access the materials on Shop Crazy Market's website
+            for personal, non-commercial transitory viewing only. This is the grant of a license, not
+            a transfer of title, and under this license you may not:
           </p>
+          <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
+            <li>Modify or copy the materials</li>
+            <li>Use the materials for any commercial purpose or for any public display</li>
+            <li>Attempt to decompile or reverse engineer any software contained on Shop Crazy Market's website</li>
+            <li>Remove any copyright or other proprietary notations from the materials</li>
+          </ul>
         </section>
-
+        
         <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">11. Indemnification</h2>
+          <h2 className="text-2xl font-semibold mb-4">User Accounts</h2>
           <p className="text-gray-700">
-            You agree to indemnify and hold harmless Shop Crazy Market, its officers, directors, 
-            employees, and agents from any claims, damages, losses, liabilities, and expenses 
-            (including legal fees) arising out of your use of the Platform, violation of these 
-            Terms, or infringement of any rights of another.
+            When you create an account with us, you must provide information that is accurate, complete,
+            and current at all times. You are responsible for safeguarding the password and for all activities
+            that occur under your account.
           </p>
         </section>
-
+        
         <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">12. Modifications to Terms</h2>
-          <p className="text-gray-700">
-            We reserve the right to modify these Terms at any time. We will notify users of 
-            significant changes via email or through a notice on the Platform. Your continued 
-            use of the Platform after such modifications constitutes acceptance of the updated Terms.
-          </p>
+          <h2 className="text-2xl font-semibold mb-4">Prohibited Uses</h2>
+          <p className="text-gray-700 mb-4">You may not use our Service:</p>
+          <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
+            <li>In any way that violates any applicable national or international law or regulation</li>
+            <li>To transmit, or procure the sending of, any advertising or promotional material</li>
+            <li>To impersonate or attempt to impersonate the company, a company employee, another user, or any other person or entity</li>
+            <li>In any way that infringes upon the rights of others, or in any way is illegal, threatening, fraudulent, or harmful</li>
+            <li>To engage in any other conduct that restricts or inhibits anyone's use or enjoyment of the website</li>
+          </ul>
         </section>
-
+        
         <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">13. Termination</h2>
+          <h2 className="text-2xl font-semibold mb-4">Intellectual Property</h2>
           <p className="text-gray-700">
-            We may terminate or suspend your account and access to the Platform immediately, 
-            without prior notice, for conduct that we believe violates these Terms or is harmful 
-            to other users, us, or third parties, or for any other reason.
+            The Service and its original content, features, and functionality are and will remain the
+            exclusive property of Shop Crazy Market and its licensors. The Service is protected by
+            copyright, trademark, and other laws. Our trademarks may not be used in connection with
+            any product or service without our prior written consent.
           </p>
         </section>
-
+        
         <section>
-          <h2 className="font-bold text-2xl mt-6 mb-4">14. Contact Information</h2>
+          <h2 className="text-2xl font-semibold mb-4">Copyright Policy</h2>
           <p className="text-gray-700">
-            If you have any questions about these Terms of Service, please contact us at:
+            We respect the intellectual property rights of others. It is our policy to respond to any
+            claim that content posted on the Service infringes on the copyright or other intellectual
+            property rights of any person. Please see our{" "}
+            <a href="/legal/dmca" className="text-blue-600 hover:underline">DMCA Policy</a> for more information.
           </p>
-          <div className="bg-purple-100 rounded-lg p-4 border-2 border-purple-300 mt-4">
-            <p className="font-bold text-lg text-purple-900">
-              Email: support@shopcrazymarket.com
-            </p>
-          </div>
         </section>
-
-        <div className="bg-yellow-100 rounded-lg p-4 border-2 border-yellow-300 mt-6">
-          <p className="text-sm text-yellow-900">
-            <strong>Note:</strong> These Terms of Service are a legal agreement. Please read 
-            them carefully. By using Shop Crazy Market, you agree to be bound by these terms.
+        
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Termination</h2>
+          <p className="text-gray-700">
+            We may terminate or suspend your account and bar access to the Service immediately, without
+            prior notice or liability, under our sole discretion, for any reason whatsoever and without
+            limitation, including but not limited to a breach of the Terms.
           </p>
-        </div>
+        </section>
+        
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Disclaimer</h2>
+          <p className="text-gray-700">
+            The information on this Service is provided on an "as is" basis. To the fullest extent
+            permitted by law, this Company excludes all representations, warranties, conditions, and
+            terms relating to our website and the use of this website.
+          </p>
+        </section>
+        
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Limitation of Liability</h2>
+          <p className="text-gray-700">
+            In no event shall Shop Crazy Market, nor its directors, employees, partners, agents,
+            suppliers, or affiliates, be liable for any indirect, incidental, special, consequential,
+            or punitive damages, including without limitation, loss of profits, data, use, goodwill,
+            or other intangible losses, resulting from your use of the Service.
+          </p>
+        </section>
+        
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Governing Law</h2>
+          <p className="text-gray-700">
+            These Terms shall be interpreted and governed by the laws of [Your Jurisdiction], without
+            regard to its conflict of law provisions.
+          </p>
+        </section>
+        
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Changes to Terms</h2>
+          <p className="text-gray-700">
+            We reserve the right, at our sole discretion, to modify or replace these Terms at any time.
+            If a revision is material, we will provide at least 30 days notice prior to any new terms
+            taking effect.
+          </p>
+        </section>
+        
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Contact Us</h2>
+          <p className="text-gray-700">
+            If you have any questions about these Terms, please contact us at legal@shopcrazymarket.com
+          </p>
+        </section>
       </div>
-    </main>
+    </div>
   );
 }
-

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { createListingSchema, slugify } from "@/lib/validation";
+import { checkListingForBannedWords } from "@/lib/banned-words";
+import { sendListingFlaggedEmail } from "@/lib/email";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -33,6 +35,31 @@ export async function POST(req: Request) {
       slug = `${baseSlug}-${i++}`;
     }
 
+    // Check for banned words and auto-flag
+    const flagCheck = checkListingForBannedWords(
+      data.title,
+      data.description,
+      data.brand ?? undefined,
+      data.tags ?? undefined
+    );
+    
+    // Determine copyright status and active status based on flag check
+    let copyrightStatus = "CLEAR";
+    let isActiveAfterFlag = !data.isDraft; // Only active if not draft and not flagged
+    
+    if (flagCheck.flagged) {
+      if (flagCheck.severity === "AUTO_HIDE") {
+        copyrightStatus = "HIDDEN";
+        isActiveAfterFlag = false;
+      } else if (flagCheck.severity === "AUTO_FLAG") {
+        copyrightStatus = "FLAGGED";
+        isActiveAfterFlag = false; // Don't activate flagged listings
+      } else {
+        copyrightStatus = "FLAGGED";
+        // WARNING severity can still be active but flagged
+      }
+    }
+    
     // Create listing first (inactive until fee subscription active)
     console.log("[LISTING CREATE] Creating listing with data:", {
       sellerId,
@@ -41,6 +68,8 @@ export async function POST(req: Request) {
       priceCents: data.priceCents,
       imagesCount: data.images?.length || 0,
       digitalFilesCount: data.digitalFiles?.length || 0,
+      flagged: flagCheck.flagged,
+      copyrightStatus,
     });
     
     const listing = await prisma.listing.create({
@@ -76,13 +105,35 @@ export async function POST(req: Request) {
         returnWindowDays: data.returnWindowDays ?? null,
         warrantyInfo: data.warrantyInfo ?? null,
         careInstructions: data.careInstructions ?? null,
+        // Copyright/IP Protection
+        copyrightStatus,
+        flaggedWords: flagCheck.flaggedWords.map(w => w.word),
+        flaggedAt: flagCheck.flagged ? new Date() : null,
+        flaggedReason: flagCheck.message ?? null,
         // Draft
         isDraft: data.isDraft ?? false,
-        isActive: data.isDraft ? false : false, // Drafts are never active
+        isActive: data.isDraft ? false : isActiveAfterFlag, // Drafts are never active, flagged listings are inactive
       } as any,
     });
     
     console.log("[LISTING CREATE] Listing created successfully:", listing.id);
+
+    // Send email notification if listing was flagged
+    if (flagCheck.flagged && flagCheck.severity !== "WARNING") {
+      const seller = await prisma.user.findUnique({
+        where: { id: sellerId },
+        select: { email: true },
+      });
+      
+      if (seller?.email) {
+        await sendListingFlaggedEmail(
+          seller.email,
+          data.title,
+          flagCheck.flaggedWords.map(w => w.word),
+          flagCheck.message || "Listing contains potentially copyrighted or trademarked terms."
+        ).catch(err => console.error("Failed to send flagged listing email:", err));
+      }
+    }
 
     // If it's a draft, skip Stripe checkout
     if (data.isDraft) {

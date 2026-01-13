@@ -856,13 +856,29 @@ function ListingPageContent() {
                   )}
                 </div>
 
-                {/* Report Button */}
-                <div className="mb-6">
+                {/* Report Button & DMCA Complaint */}
+                <div className="mb-6 space-y-2">
                   {user && listing?.seller?.id && user.id !== listing.seller.id && (
-                    <ReportButton listingId={listingId} />
+                    <>
+                      <ReportButton listingId={listingId} />
+                      <Link
+                        href={`/dmca/complaint?listingId=${listingId}&listingTitle=${encodeURIComponent(listing.title)}`}
+                        className="block text-sm text-red-600 hover:text-red-700 hover:underline"
+                      >
+                        Report Copyright Infringement (DMCA)
+                      </Link>
+                    </>
                   )}
                   {!user && (
-                    <ReportButton listingId={listingId} />
+                    <>
+                      <ReportButton listingId={listingId} />
+                      <Link
+                        href={`/dmca/complaint?listingId=${listingId}&listingTitle=${encodeURIComponent(listing.title)}`}
+                        className="block text-sm text-red-600 hover:text-red-700 hover:underline"
+                      >
+                        Report Copyright Infringement (DMCA)
+                      </Link>
+                    </>
                   )}
                 </div>
               </div>

@@ -440,6 +440,97 @@ export async function sendOrderConfirmationEmail(order: {
   });
 }
 
+// DMCA & Copyright Email Functions
+import {
+  dmcaComplaintReceivedTemplate,
+  dmcaComplaintValidatedTemplate,
+  dmcaComplaintFiledToSellerTemplate,
+  counterNoticeReceivedTemplate,
+  listingFlaggedTemplate,
+  strikeIssuedTemplate,
+} from "./email-templates";
+
+export async function sendDMCAComplaintReceivedEmail(
+  complainantEmail: string,
+  complaintId: string,
+  listingTitle: string
+) {
+  const template = dmcaComplaintReceivedTemplate(complaintId, listingTitle);
+  return sendEmail({
+    to: complainantEmail,
+    subject: template.subject,
+    html: template.html,
+  });
+}
+
+export async function sendDMCAComplaintValidatedEmail(
+  complainantEmail: string,
+  complaintId: string,
+  listingTitle: string
+) {
+  const template = dmcaComplaintValidatedTemplate(complaintId, listingTitle);
+  return sendEmail({
+    to: complainantEmail,
+    subject: template.subject,
+    html: template.html,
+  });
+}
+
+export async function sendDMCAComplaintFiledToSellerEmail(
+  sellerEmail: string,
+  complaintId: string,
+  listingTitle: string,
+  counterNoticeUrl: string
+) {
+  const template = dmcaComplaintFiledToSellerTemplate(complaintId, listingTitle, counterNoticeUrl);
+  return sendEmail({
+    to: sellerEmail,
+    subject: template.subject,
+    html: template.html,
+  });
+}
+
+export async function sendCounterNoticeReceivedEmail(
+  sellerEmail: string,
+  counterNoticeId: string,
+  listingTitle: string
+) {
+  const template = counterNoticeReceivedTemplate(counterNoticeId, listingTitle);
+  return sendEmail({
+    to: sellerEmail,
+    subject: template.subject,
+    html: template.html,
+  });
+}
+
+export async function sendListingFlaggedEmail(
+  sellerEmail: string,
+  listingTitle: string,
+  flaggedWords: string[],
+  reason: string
+) {
+  const template = listingFlaggedTemplate(listingTitle, flaggedWords, reason);
+  return sendEmail({
+    to: sellerEmail,
+    subject: template.subject,
+    html: template.html,
+  });
+}
+
+export async function sendStrikeIssuedEmail(
+  sellerEmail: string,
+  strikeCount: number,
+  reason: string,
+  action: string
+) {
+  const template = strikeIssuedTemplate(strikeCount, reason, action);
+  return sendEmail({
+    to: sellerEmail,
+    subject: template.subject,
+    html: template.html,
+  });
+}
+
 export async function sendRefundStatusEmail(params: {
   to: string;
   orderId: string;

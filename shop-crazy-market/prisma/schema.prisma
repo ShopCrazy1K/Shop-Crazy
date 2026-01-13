@@ -82,6 +82,7 @@ model User {
   priceAlerts      PriceAlert[] // Price alerts
   listingFavorites ListingFavorite[] // Favorite listings
   collections      Collection[] // User collections/wishlists
+  counterNotices   CounterNotice[] // DMCA counter-notices filed by this seller
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -138,6 +139,112 @@ model CopyrightReport {
   @@index([listingId])
   @@index([status])
   @@index([reporterEmail])
+}
+
+//////////////////////////////////////
+// DMCA & IP PROTECTION SYSTEM
+//////////////////////////////////////
+
+model DMCAComplaint {
+  id        String  @id @default(uuid())
+  listingId String
+  listing   Listing @relation("DMCAComplaints", fields: [listingId], references: [id])
+
+  // Complainant Information (Required by DMCA)
+  complainantName    String
+  complainantEmail   String
+  complainantPhone   String?
+  complainantAddress String // Physical address required by DMCA
+
+  // Copyright Owner Information
+  copyrightOwnerName  String
+  copyrightOwnerEmail String?
+
+  // Infringement Details
+  copyrightedWork        String // Description of copyrighted work
+  infringingWork         String // Description of infringing material
+  locationOfInfringement String // URL or description of where infringement appears
+
+  // Good Faith Statement (Required by DMCA)
+  goodFaithStatement String // Statement that complaint is in good faith
+
+  // Signature
+  electronicSignature String // Name of person authorized to act
+
+  // Status & Resolution
+  status     String    @default("PENDING") // "PENDING", "VALID", "INVALID", "RESOLVED", "COUNTER_NOTICED"
+  adminNotes String?
+  reviewedBy String? // Admin user ID
+  reviewedAt DateTime?
+
+  // Auto-flag info
+  autoFlagged  Boolean  @default(false)
+  flaggedWords String[] @default([])
+
+  // Counter-notice
+  counterNotice CounterNotice?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([listingId])
+  @@index([status])
+  @@index([complainantEmail])
+  @@index([createdAt])
+}
+
+model CounterNotice {
+  id          String        @id @default(uuid())
+  complaintId String        @unique
+  complaint   DMCAComplaint @relation(fields: [complaintId], references: [id])
+  listingId   String
+  listing     Listing       @relation("CounterNotices", fields: [listingId], references: [id])
+  sellerId    String
+  seller      User          @relation(fields: [sellerId], references: [id])
+
+  // Respondent Information (Required by DMCA)
+  respondentName    String
+  respondentEmail   String
+  respondentPhone   String?
+  respondentAddress String // Physical address required by DMCA
+
+  // Statement
+  statement String // Statement that material was removed/misidentified
+
+  // Good Faith Statement
+  goodFaithStatement String // Statement that counter-notice is in good faith
+
+  // Consent to Jurisdiction
+  consentToJurisdiction String // Consent to jurisdiction of federal court
+
+  // Signature
+  electronicSignature String // Name of person authorized to act
+
+  // Status & Resolution
+  status     String    @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  adminNotes String?
+  reviewedBy String? // Admin user ID
+  reviewedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([complaintId])
+  @@index([listingId])
+  @@index([sellerId])
+  @@index([status])
+}
+
+model BannedWord {
+  id        String   @id @default(uuid())
+  word      String   @unique // The banned word/phrase
+  category  String? // Optional: "brand", "celebrity", "movie", "logo", etc.
+  severity  String   @default("WARNING") // "WARNING", "AUTO_FLAG", "AUTO_HIDE"
+  createdAt DateTime @default(now())
+  createdBy String? // Admin user ID who added it
+
+  @@index([word])
+  @@index([category])
 }
 
 model SellerStrike {
@@ -262,6 +369,14 @@ model Listing {
 
   // Draft status
   isDraft Boolean @default(false) // Save as draft
+
+  // Copyright/IP Protection
+  copyrightStatus String          @default("CLEAR") // "CLEAR", "FLAGGED", "HIDDEN", "DISABLED", "DMCA_COMPLAINT"
+  flaggedWords    String[]        @default([]) // Words that triggered auto-flag
+  flaggedAt       DateTime?
+  flaggedReason   String? // Reason for flagging
+  dmcaComplaints  DMCAComplaint[] @relation("DMCAComplaints")
+  counterNotices  CounterNotice[] @relation("CounterNotices")
 
   // Listing subscription fee state ($0.20/mo)
   isActive              Boolean @default(false)
