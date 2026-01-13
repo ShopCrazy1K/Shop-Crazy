@@ -253,13 +253,18 @@ model SellerStrike {
   shop              Shop      @relation(fields: [sellerId], references: [id])
   reason            String
   reportId          String? // Link to CopyrightReport if applicable
+  complaintId       String? // Link to DMCAComplaint if applicable
+  complaint         DMCAComplaint? @relation(fields: [complaintId], references: [id])
+  strikeType        String    @default("COPYRIGHT") // "COPYRIGHT", "TRADEMARK", "OTHER"
   status            String    @default("ACTIVE") // "ACTIVE", "APPEALED", "OVERTURNED", "UPHELD"
   appealReason      String? // Seller's appeal explanation
   appealSubmittedAt DateTime?
+  adminNotes        String?
   createdAt         DateTime  @default(now())
 
   @@index([sellerId])
   @@index([status])
+  @@index([strikeType])
 }
 
 //////////////////////////////////////

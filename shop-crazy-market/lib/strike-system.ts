@@ -67,7 +67,7 @@ export async function addStrike(
     data: {
       sellerId,
       reason,
-      complaintId,
+      complaintId: complaintId || null,
       strikeType,
       status: "ACTIVE",
     },
