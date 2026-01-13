@@ -183,6 +183,9 @@ model DMCAComplaint {
 
   // Counter-notice
   counterNotice CounterNotice?
+  
+  // Strikes linked to this complaint
+  strikes      SellerStrike[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
