@@ -12,7 +12,7 @@ export async function validateRequest<T extends z.ZodType>(
     return await schema.parseAsync(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw new ValidationError('Invalid input', error.errors);
+      throw new ValidationError('Invalid input', error.issues);
     }
     throw error;
   }
@@ -61,7 +61,7 @@ export function validateParams<T extends z.ZodType>(
     return schema.parse(params);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw new ValidationError('Invalid path parameters', error.errors);
+      throw new ValidationError('Invalid path parameters', error.issues);
     }
     throw error;
   }
