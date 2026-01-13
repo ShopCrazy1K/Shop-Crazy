@@ -11,8 +11,10 @@ export default function BottomNav() {
   // Safely get cart count with error handling
   let cartCount = 0;
   try {
-    const { getItemCount } = useCart();
-    cartCount = getItemCount();
+    const cart = useCart();
+    if (cart && typeof cart.getItemCount === 'function') {
+      cartCount = cart.getItemCount();
+    }
   } catch (error) {
     console.error("Error getting cart count in BottomNav:", error);
     cartCount = 0;
