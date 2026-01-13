@@ -68,23 +68,24 @@ function getEnv(): Env {
 export const env = getEnv();
 
 // Helper functions for common env access patterns
+// These functions access process.env directly to avoid triggering validation at module load time
 export function getAppUrl(): string {
-  if (env.NEXT_PUBLIC_APP_URL) {
-    return env.NEXT_PUBLIC_APP_URL;
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
   }
-  if (env.SHOPIFY_APP_URL) {
-    return env.SHOPIFY_APP_URL;
+  if (process.env.SHOPIFY_APP_URL) {
+    return process.env.SHOPIFY_APP_URL;
   }
-  if (env.VERCEL_URL) {
-    return `https://${env.VERCEL_URL}`;
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
   }
   return 'http://localhost:3000';
 }
 
 export function isProduction(): boolean {
-  return env.NODE_ENV === 'production';
+  return process.env.NODE_ENV === 'production';
 }
 
 export function isDevelopment(): boolean {
-  return env.NODE_ENV === 'development';
+  return process.env.NODE_ENV === 'development';
 }
