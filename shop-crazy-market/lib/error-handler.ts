@@ -57,7 +57,7 @@ export function handleError(error: unknown): NextResponse {
   // Zod validation errors
   if (error instanceof ZodError) {
     return badRequestResponse('Validation failed', {
-      errors: error.errors.map(e => ({
+      errors: error.issues.map(e => ({
         path: e.path.join('.'),
         message: e.message,
       })),
