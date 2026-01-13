@@ -457,8 +457,8 @@ export default function SellPage() {
         return;
       }
 
-      // Validate thumbnail for physical products
-      if (formData.type === "PHYSICAL" && !thumbnail && images.length === 0 && !imageUrls) {
+      // Validate thumbnail (required for all product types)
+      if (!thumbnail) {
         setError("Please upload a thumbnail image for your listing");
         setLoading(false);
         return;
@@ -466,18 +466,21 @@ export default function SellPage() {
 
       // Prepare images array
       let finalImages: string[] = [];
+      const thumbnailUrl = thumbnail.path ?? thumbnail.url;
 
       if (formData.type === "DIGITAL") {
-        // For digital products: digital files are the images
-        finalImages = uploadedDigitalFileUrls;
+        // For digital products: thumbnail first, then digital files
+        finalImages = [
+          thumbnailUrl,
+          ...uploadedDigitalFileUrls
+        ];
       } else {
         // For physical products: thumbnail first, then other images, then manual URLs
-        const thumbnailUrl = thumbnail ? (thumbnail.path ?? thumbnail.url) : null;
         const imagePathsInOrder = images.map((img) => img.path ?? img.url);
         const manualUrls = imageUrls ? imageUrls.split(",").map(url => url.trim()).filter(Boolean) : [];
         
         finalImages = [
-          ...(thumbnailUrl ? [thumbnailUrl] : []),
+          thumbnailUrl,
           ...imagePathsInOrder,
           ...manualUrls
         ];
@@ -940,6 +943,98 @@ export default function SellPage() {
             </div>
           </section>
 
+          {/* Thumbnail Upload Section - Etsy Style - Visible for All Product Types */}
+          <section>
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+              <span className="mr-2">📷</span>
+              Listing Thumbnail (Cover Image) *
+            </h2>
+            
+            <div className="space-y-3">
+              <p className="text-xs text-gray-500 mb-3">
+                This is the main image that buyers will see first. Choose a high-quality image that showcases your product.
+              </p>
+              
+              {thumbnail ? (
+                <div className="relative border-2 border-purple-300 rounded-xl overflow-hidden bg-gray-50">
+                  <div className="relative aspect-square max-w-md mx-auto">
+                    <img
+                      src={thumbnail.url}
+                      alt="Listing thumbnail"
+                      className="w-full h-full object-contain"
+                    />
+                    {/* Overlay with change button */}
+                    <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center group">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={handleThumbnailClick}
+                          disabled={uploadingThumbnail}
+                          className="bg-white/90 hover:bg-white px-4 py-2 rounded-lg font-semibold text-sm text-gray-700 shadow-lg transition-colors disabled:opacity-50"
+                        >
+                          Change Thumbnail
+                        </button>
+                      </div>
+                    </div>
+                    {/* Remove button */}
+                    <button
+                      type="button"
+                      onClick={() => setThumbnail(null)}
+                      disabled={uploadingThumbnail}
+                      className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg shadow-lg transition-colors disabled:opacity-50"
+                      title="Remove thumbnail"
+                    >
+                      ×
+                    </button>
+                    {/* Primary badge */}
+                    <div className="absolute top-2 left-2 bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
+                      Main Image
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <DragAndDropUpload
+                  onFilesSelected={handleThumbnailDrop}
+                  accept="image/*"
+                  multiple={false}
+                  maxFiles={1}
+                  maxSize={10 * 1024 * 1024} // 10MB
+                  isImage={true}
+                  className="w-full"
+                >
+                  <div className="space-y-4 py-8">
+                    <div className="text-5xl">📷</div>
+                    <div>
+                      <p className="text-lg font-semibold text-gray-700">
+                        Upload your listing thumbnail
+                      </p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Drag and drop an image here, or click to browse
+                      </p>
+                      <p className="text-xs text-gray-400 mt-3">
+                        Recommended: Square image (1:1 ratio), at least 1000x1000px
+                      </p>
+                    </div>
+                    {uploadingThumbnail && (
+                      <div className="flex items-center justify-center gap-2 text-purple-600">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                        <span className="text-sm">Uploading...</span>
+                      </div>
+                    )}
+                  </div>
+                </DragAndDropUpload>
+              )}
+              {/* Hidden input for "Change Thumbnail" button */}
+              <input
+                ref={thumbnailInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleThumbnailFileInput}
+                className="hidden"
+              />
+            </div>
+          </section>
+
           {/* Digital Files Section - Only for Digital Products */}
           {formData.type === "DIGITAL" && (
             <section>
@@ -1058,97 +1153,9 @@ export default function SellPage() {
             <section>
               <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
                 <span className="mr-2">🖼️</span>
-                Product Images
+                Additional Product Images (Optional)
               </h2>
               
-              {/* Thumbnail Upload Section - Etsy Style */}
-              <div className="space-y-3 mb-8">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Listing Thumbnail (Cover Image) *
-                </label>
-                <p className="text-xs text-gray-500 mb-3">
-                  This is the main image that buyers will see first. Choose a high-quality image that showcases your product.
-                </p>
-                
-                {thumbnail ? (
-                  <div className="relative border-2 border-purple-300 rounded-xl overflow-hidden bg-gray-50">
-                    <div className="relative aspect-square max-w-md mx-auto">
-                      <img
-                        src={thumbnail.url}
-                        alt="Listing thumbnail"
-                        className="w-full h-full object-contain"
-                      />
-                      {/* Overlay with change button */}
-                      <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center group">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            type="button"
-                            onClick={handleThumbnailClick}
-                            disabled={uploadingThumbnail}
-                            className="bg-white/90 hover:bg-white px-4 py-2 rounded-lg font-semibold text-sm text-gray-700 shadow-lg transition-colors disabled:opacity-50"
-                          >
-                            Change Thumbnail
-                          </button>
-                        </div>
-                      </div>
-                      {/* Remove button */}
-                      <button
-                        type="button"
-                        onClick={() => setThumbnail(null)}
-                        disabled={uploadingThumbnail}
-                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg shadow-lg transition-colors disabled:opacity-50"
-                        title="Remove thumbnail"
-                      >
-                        ×
-                      </button>
-                      {/* Primary badge */}
-                      <div className="absolute top-2 left-2 bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
-                        Main Image
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <DragAndDropUpload
-                    onFilesSelected={handleThumbnailDrop}
-                    accept="image/*"
-                    multiple={false}
-                    maxFiles={1}
-                    maxSize={10 * 1024 * 1024} // 10MB
-                    isImage={true}
-                    className="w-full"
-                  >
-                    <div className="space-y-4 py-8">
-                      <div className="text-5xl">📷</div>
-                      <div>
-                        <p className="text-lg font-semibold text-gray-700">
-                          Upload your listing thumbnail
-                        </p>
-                        <p className="text-sm text-gray-500 mt-2">
-                          Drag and drop an image here, or click to browse
-                        </p>
-                        <p className="text-xs text-gray-400 mt-3">
-                          Recommended: Square image (1:1 ratio), at least 1000x1000px
-                        </p>
-                      </div>
-                      {uploadingThumbnail && (
-                        <div className="flex items-center justify-center gap-2 text-purple-600">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
-                          <span className="text-sm">Uploading...</span>
-                        </div>
-                      )}
-                    </div>
-                  </DragAndDropUpload>
-                )}
-                {/* Hidden input for "Change Thumbnail" button */}
-                <input
-                  ref={thumbnailInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleThumbnailFileInput}
-                  className="hidden"
-                />
-              </div>
-
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
