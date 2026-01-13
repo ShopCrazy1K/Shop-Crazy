@@ -1,10 +1,10 @@
 // Shopify OAuth utilities
 import crypto from 'crypto';
-import { getAppUrl } from '@/lib/utils/app-url';
+import { env, getAppUrl } from '@/lib/env';
 
-const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY || '';
-const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || '';
-const SHOPIFY_SCOPES = process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,write_orders';
+const SHOPIFY_API_KEY = env.SHOPIFY_API_KEY || '';
+const SHOPIFY_API_SECRET = env.SHOPIFY_API_SECRET || '';
+const SHOPIFY_SCOPES = env.SHOPIFY_SCOPES;
 
 const APP_URL = getAppUrl();
 

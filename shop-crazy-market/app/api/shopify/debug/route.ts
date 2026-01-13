@@ -1,4 +1,6 @@
-import { NextResponse } from "next/server";
+import { createGetHandler } from "@/lib/api-wrapper";
+import { env, getAppUrl } from "@/lib/env";
+import { successResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -8,19 +10,17 @@ export const runtime = 'nodejs';
  * 
  * Diagnostic endpoint to check Shopify configuration
  */
-export async function GET(req: Request) {
-  try {
-    const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY || '';
-    const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || '';
-    const SHOPIFY_SCOPES = process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,write_orders';
+export const GET = createGetHandler(
+  async () => {
+    const SHOPIFY_API_KEY = env.SHOPIFY_API_KEY || '';
+    const SHOPIFY_API_SECRET = env.SHOPIFY_API_SECRET || '';
+    const SHOPIFY_SCOPES = env.SHOPIFY_SCOPES;
     
-    // Import the utility function
-    const { getAppUrl } = await import('@/lib/utils/app-url');
     const APP_URL = getAppUrl();
     const redirectUri = `${APP_URL}/api/shopify/oauth/callback`;
     
     const diagnostics = {
-      status: 'ok',
+      status: 'ok' as const,
       configuration: {
         hasApiKey: !!SHOPIFY_API_KEY,
         hasApiSecret: !!SHOPIFY_API_SECRET,
@@ -29,8 +29,8 @@ export async function GET(req: Request) {
         scopes: SHOPIFY_SCOPES,
         appUrl: APP_URL,
         redirectUri: redirectUri,
-        vercelUrl: process.env.VERCEL_URL || 'not set',
-        nextPublicAppUrl: process.env.NEXT_PUBLIC_APP_URL || 'not set',
+        vercelUrl: env.VERCEL_URL || 'not set',
+        nextPublicAppUrl: env.NEXT_PUBLIC_APP_URL || 'not set',
       },
       checks: {
         apiKeyConfigured: !!SHOPIFY_API_KEY,
@@ -58,23 +58,13 @@ export async function GET(req: Request) {
     }
     
     if (issues.length > 0) {
-      diagnostics.status = 'issues_found';
+      (diagnostics as any).status = 'issues_found';
       (diagnostics as any).issues = issues;
     }
     
-    return NextResponse.json(diagnostics, {
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-      }
-    });
-  } catch (error: any) {
-    return NextResponse.json(
-      { 
-        status: 'error',
-        error: error.message || 'Unknown error',
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      },
-      { status: 500 }
-    );
+    return successResponse(diagnostics, 200, undefined);
+  },
+  {
+    rateLimit: 'lenient',
   }
-}
+);

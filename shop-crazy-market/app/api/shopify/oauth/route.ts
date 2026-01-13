@@ -1,8 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getShopifyAuthUrl } from "@/lib/platforms/shopify-oauth";
+import { createGetHandler } from "@/lib/api-wrapper";
+import { validateQuery } from "@/lib/validate";
+import { z } from "zod";
+import { badRequestResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+const querySchema = z.object({
+  shop: z.string().min(1, "Shop parameter is required (e.g., your-store.myshopify.com or your-store)"),
+  shopId: z.string().uuid("shopId must be a valid UUID"),
+});
 
 /**
  * GET /api/shopify/oauth
@@ -10,25 +19,10 @@ export const runtime = 'nodejs';
  * Initiate Shopify OAuth flow
  * Query params: shop (shopify store name), shopId (our shop ID)
  */
-export async function GET(req: Request) {
-  try {
+export const GET = createGetHandler(
+  async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
-    const shop = searchParams.get("shop");
-    const shopId = searchParams.get("shopId");
-
-    if (!shop) {
-      return NextResponse.json(
-        { error: "Shop parameter is required (e.g., your-store.myshopify.com or your-store)" },
-        { status: 400 }
-      );
-    }
-
-    if (!shopId) {
-      return NextResponse.json(
-        { error: "shopId parameter is required" },
-        { status: 400 }
-      );
-    }
+    const { shop, shopId } = await validateQuery(querySchema, searchParams);
 
     // Normalize shop name (add .myshopify.com if not present)
     const normalizedShop = shop.includes('.') ? shop.split('.')[0] : shop;
@@ -41,12 +35,9 @@ export async function GET(req: Request) {
     const authUrl = getShopifyAuthUrl(shopDomain, state);
 
     // Redirect to Shopify OAuth
-    return NextResponse.redirect(authUrl);
-  } catch (error: any) {
-    console.error("Shopify OAuth initiation error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to initiate Shopify OAuth" },
-      { status: 500 }
-    );
+    return Response.redirect(authUrl);
+  },
+  {
+    rateLimit: 'standard',
   }
-}
+);

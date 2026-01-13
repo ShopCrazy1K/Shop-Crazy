@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { verifyShopifyHmac } from "@/lib/platforms/shopify-oauth";
-import { getAppUrl } from "@/lib/utils/app-url";
+import { getAppUrl } from "@/lib/env";
+import { createGetHandler } from "@/lib/api-wrapper";
+import { unauthorizedResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -11,8 +13,8 @@ export const runtime = 'nodejs';
  * Handle direct access from Shopify admin panel
  * This route is called when users access the app from admin.shopify.com
  */
-export async function GET(req: Request) {
-  try {
+export const GET = createGetHandler(
+  async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const shop = searchParams.get("shop");
     const hmac = searchParams.get("hmac");
@@ -22,17 +24,14 @@ export async function GET(req: Request) {
     
     // If no shop parameter, redirect to platforms page
     if (!shop) {
-      return NextResponse.redirect(`${appUrl}/seller/platforms`);
+      return Response.redirect(`${appUrl}/seller/platforms`);
     }
     
     // Verify HMAC if present (Shopify sends this for security)
     if (hmac && timestamp) {
       const isValid = verifyShopifyHmac(searchParams);
       if (!isValid) {
-        return NextResponse.json(
-          { error: "Invalid HMAC verification" },
-          { status: 401 }
-        );
+        return unauthorizedResponse("Invalid HMAC verification");
       }
     }
     
@@ -40,10 +39,9 @@ export async function GET(req: Request) {
     const shopName = shop.includes('.') ? shop.split('.')[0] : shop;
     
     // Redirect to platforms page with shop parameter
-    return NextResponse.redirect(`${appUrl}/seller/platforms?shop=${encodeURIComponent(shopName)}`);
-  } catch (error: any) {
-    console.error("Shopify app route error:", error);
-    const appUrl = getAppUrl();
-    return NextResponse.redirect(`${appUrl}/seller/platforms?error=connection_failed`);
+    return Response.redirect(`${appUrl}/seller/platforms?shop=${encodeURIComponent(shopName)}`);
+  },
+  {
+    rateLimit: 'standard',
   }
-}
+);
