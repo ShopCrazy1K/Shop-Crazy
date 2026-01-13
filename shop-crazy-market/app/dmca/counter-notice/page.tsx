@@ -1,11 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import CounterNoticeForm from "@/components/CounterNoticeForm";
 
-export const dynamic = 'force-dynamic';
-
-export default function CounterNoticePage() {
+function CounterNoticePageContent() {
   const searchParams = useSearchParams();
   const complaintId = searchParams.get("complaintId") || "";
   const listingId = searchParams.get("listingId") || "";
@@ -21,4 +20,16 @@ export default function CounterNoticePage() {
   }
 
   return <CounterNoticeForm complaintId={complaintId} listingId={listingId} />;
+}
+
+export default function CounterNoticePage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-3xl mx-auto p-6">
+        <div className="text-center">Loading...</div>
+      </div>
+    }>
+      <CounterNoticePageContent />
+    </Suspense>
+  );
 }

@@ -1,11 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import DMCAComplaintForm from "@/components/DMCAComplaintForm";
 
-export const dynamic = 'force-dynamic';
-
-export default function DMCAComplaintPage() {
+function DMCAComplaintPageContent() {
   const searchParams = useSearchParams();
   const listingId = searchParams.get("listingId") || "";
   const listingTitle = searchParams.get("listingTitle") || "Unknown Listing";
@@ -21,4 +20,16 @@ export default function DMCAComplaintPage() {
   }
 
   return <DMCAComplaintForm listingId={listingId} listingTitle={decodeURIComponent(listingTitle)} />;
+}
+
+export default function DMCAComplaintPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-3xl mx-auto p-6">
+        <div className="text-center">Loading...</div>
+      </div>
+    }>
+      <DMCAComplaintPageContent />
+    </Suspense>
+  );
 }
