@@ -133,7 +133,7 @@ export default function SellPage() {
         // Clear the flag and don't load any data
         sessionStorage.removeItem('form-canceled');
         // Ensure form is empty
-        setFormData({
+        const emptyFormData: FormData = {
           title: "",
           description: "",
           price: "",
@@ -141,7 +141,26 @@ export default function SellPage() {
           category: "",
           type: "PHYSICAL",
           condition: "NEW",
-        });
+          tags: [],
+          searchKeywords: "",
+          metaDescription: "",
+          sku: "",
+          brand: "",
+          materials: "",
+          dimensions: "",
+          weight: "",
+          color: "",
+          countryOfOrigin: "",
+          shippingCost: "",
+          processingTime: "",
+          shippingMethods: [],
+          returnPolicy: "",
+          returnWindowDays: "",
+          warrantyInfo: "",
+          careInstructions: "",
+          isDraft: false,
+        };
+        setFormData(emptyFormData);
         return;
       }
       
@@ -812,9 +831,16 @@ export default function SellPage() {
           <div className="bg-white rounded-2xl p-8 sm:p-12 text-center shadow-2xl border border-green-200">
             <div className="text-6xl mb-6 animate-bounce">✅</div>
             <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-green-600">
-              Listing Created Successfully!
+              {formData.isDraft ? "Draft Saved Successfully!" : "Listing Created Successfully!"}
             </h1>
-            {!isDraft && (
+            {formData.isDraft && (
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
+                <p className="text-blue-800 font-semibold">
+                  💾 Your listing has been saved as a draft. It won't be visible to buyers until you publish it.
+                </p>
+              </div>
+            )}
+            {!formData.isDraft && (
               <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6 mb-8">
                 <h2 className="text-xl font-bold mb-4 text-purple-800">💰 Listing Fee Information</h2>
                 <div className="space-y-3 text-left">
