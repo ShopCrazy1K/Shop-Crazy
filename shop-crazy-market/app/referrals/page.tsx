@@ -165,7 +165,7 @@ export default function ReferralsPage() {
             }}
             className="px-3 sm:px-4 py-2.5 sm:py-3 bg-sky-500 text-white rounded-lg font-semibold hover:bg-sky-600 transition-colors flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base"
           >
-            <span className="text-base sm:text-lg">🐦</span> <span>Twitter</span>
+            <span className="text-base sm:text-lg">🐦</span> <span>X</span>
           </button>
           <button
             onClick={() => {
