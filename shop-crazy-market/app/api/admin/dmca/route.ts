@@ -83,7 +83,10 @@ export async function PATCH(req: NextRequest) {
     
     const complaint = await prisma.dMCAComplaint.findUnique({
       where: { id: complaintId },
-      include: { listing: true },
+      include: { 
+        listing: true,
+        counterNotice: true,
+      },
     });
     
     if (!complaint) {
