@@ -67,11 +67,17 @@ export async function POST(request: Request) {
       slug = `${baseSlug}-${i++}`;
     }
 
+    // Convert price (dollars) to priceCents (cents) if price is provided
+    // Otherwise use priceCents directly if provided (backward compatibility)
+    const priceCents = data.priceCents !== undefined 
+      ? data.priceCents 
+      : Math.round((data.price || 0) * 100);
+
     console.log("[API LISTINGS] Creating listing with data:", {
       sellerId,
       title: data.title,
       slug,
-      priceCents: data.priceCents,
+      priceCents: priceCents,
       imagesCount: data.images?.length || 0,
       digitalFilesCount: data.digitalFiles?.length || 0,
       isDigital: (data.digitalFiles?.length || 0) > 0,
@@ -84,7 +90,7 @@ export async function POST(request: Request) {
         title: data.title,
         description: data.description,
         slug: slug,
-        priceCents: data.priceCents,
+        priceCents: priceCents,
         currency: data.currency ?? "usd",
         category: data.category ?? null,
         images: data.images ?? [],

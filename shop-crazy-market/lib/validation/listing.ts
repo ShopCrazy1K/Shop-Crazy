@@ -28,8 +28,9 @@ export const createListingSchema = z.object({
   title: z.string().min(2, "Title is too short").max(120, "Title too long"),
   description: z.string().min(2, "Description is too short").max(5000, "Description too long"),
 
-  // Price is required
-  price: z.coerce.number().nonnegative("Price must be 0 or more").max(100000, "Price too high"),
+  // Price can be in dollars (price) or cents (priceCents) - accepts either for flexibility
+  price: z.coerce.number().nonnegative("Price must be 0 or more").max(100000, "Price too high").optional(),
+  priceCents: z.coerce.number().int().nonnegative("Price must be 0 or more").max(10000000, "Price too high").optional(),
 
   // Images array (can accept single imageUrl or array)
   imageUrl: imageString.optional(),
@@ -37,6 +38,9 @@ export const createListingSchema = z.object({
 
   // Slug is optional (will be generated from title if not provided)
   slug: z.string().optional(),
+}).refine((data) => data.price !== undefined || data.priceCents !== undefined, {
+  message: "Either price or priceCents must be provided",
+  path: ["price"],
 });
 
 export type CreateListingInput = z.infer<typeof createListingSchema>;
