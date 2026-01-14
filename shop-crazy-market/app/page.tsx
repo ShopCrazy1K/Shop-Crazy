@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { categories } from "@/lib/categories";
 import Logo from "@/components/Logo";
@@ -28,17 +29,22 @@ export default function HomePage() {
   const { user } = useAuth();
   const [featuredListings, setFeaturedListings] = useState<FeaturedListing[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [featuredError, setFeaturedError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchFeaturedListings() {
       try {
+        setFeaturedError(null);
         const response = await fetch("/api/listings/featured");
         if (response.ok) {
           const data = await response.json();
           setFeaturedListings(data.listings || []);
+        } else {
+          setFeaturedError("Unable to load featured listings");
         }
       } catch (error) {
         console.error("Error fetching featured listings:", error);
+        setFeaturedError("Failed to load featured listings. Please try again later.");
       } finally {
         setLoadingFeatured(false);
       }
@@ -46,10 +52,35 @@ export default function HomePage() {
     fetchFeaturedListings();
   }, []);
 
+  // Add structured data for SEO
+  useEffect(() => {
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Shop Crazy Market",
+      "url": "https://shopcrazymarket.com",
+      "description": "Where the deals get crazy - Your one-stop shop for unique items, digital products, and more",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://shopcrazymarket.com/marketplace?search={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    };
+
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.text = JSON.stringify(structuredData);
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+
   return (
     <main className="p-4 space-y-8 pb-24">
       {/* Logo Section */}
-      <section className="flex justify-center mb-4">
+      <section className="flex justify-center mb-4" aria-label="Shop Crazy Market Logo">
         <Logo className="w-full max-w-3xl" />
       </section>
 
@@ -59,35 +90,41 @@ export default function HomePage() {
       </section>
 
       {/* Hero Section */}
-      <section className="nick-hero relative overflow-hidden">
+      <section className="nick-hero relative overflow-hidden" aria-label="Hero section">
         <div className="relative z-10 text-center">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Shop Crazy Market</h1>
           <p className="text-lg md:text-xl font-semibold mb-4">Buy • Sell • Collect • Flex</p>
+          <p className="text-sm md:text-base text-gray-200 mb-6 max-w-2xl mx-auto">
+            Your one-stop marketplace for unique items, digital products, collectibles, and amazing deals
+          </p>
           {user ? (
             <div className="flex items-center justify-center gap-2">
-              <span className="text-2xl">👋</span>
+              <span className="text-2xl" aria-hidden="true">👋</span>
               <p className="text-base opacity-95">
                 Welcome back, <span className="font-bold">{user.username || user.email}</span>!
               </p>
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <div className="flex flex-col sm:flex-row gap-3 mt-4 justify-center">
               <Link
                 href="/signup"
-                className="bg-white text-purple-600 px-8 py-3 rounded-xl font-bold text-center hover:scale-105 transition-transform shadow-lg"
+                className="bg-white text-purple-600 px-8 py-3 rounded-xl font-bold text-center hover:scale-105 transition-transform shadow-lg focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-purple-600 min-h-[44px] flex items-center justify-center"
+                aria-label="Get started - Create your account"
               >
                 Get Started 🚀
               </Link>
               <Link
                 href="/marketplace"
-                className="bg-purple-600/20 backdrop-blur-sm text-white px-8 py-3 rounded-xl font-bold text-center hover:scale-105 transition-transform border-2 border-white/30"
+                className="bg-purple-600/20 backdrop-blur-sm text-white px-8 py-3 rounded-xl font-bold text-center hover:scale-105 transition-transform border-2 border-white/30 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-purple-600 min-h-[44px] flex items-center justify-center"
+                aria-label="Browse marketplace"
               >
                 Browse Now 🛒
               </Link>
             </div>
           )}
         </div>
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl -z-0"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-300/30 rounded-full blur-2xl -z-0"></div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl -z-0" aria-hidden="true"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-300/30 rounded-full blur-2xl -z-0" aria-hidden="true"></div>
       </section>
 
       {/* Stats Bar */}
@@ -98,36 +135,66 @@ export default function HomePage() {
       </div>
 
       {/* Categories Grid */}
-      <div>
-        <h2 className="text-2xl font-bold mb-4 text-center">Shop by Category</h2>
+      <section aria-labelledby="categories-heading">
+        <h2 id="categories-heading" className="text-2xl font-bold mb-4 text-center">Shop by Category</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {categories.slice(0, 8).map((category) => (
-            <Link key={category.slug} href={`/category/${category.slug}`}>
-              <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl p-4 hover:scale-105 transition-transform cursor-pointer border-2 border-transparent hover:border-purple-300">
-                <div className="text-4xl mb-2 text-center">{category.emoji}</div>
+            <Link 
+              key={category.slug} 
+              href={`/category/${category.slug}`}
+              className="focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-xl"
+              aria-label={`Browse ${category.name} category`}
+            >
+              <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl p-4 hover:scale-105 transition-transform cursor-pointer border-2 border-transparent hover:border-purple-300 min-h-[120px] flex flex-col justify-center">
+                <div className="text-4xl mb-2 text-center" aria-hidden="true">{category.emoji}</div>
                 <div className="font-bold text-sm text-center mb-1">{category.name}</div>
                 <div className="text-xs text-gray-600 text-center">{category.description}</div>
               </div>
             </Link>
           ))}
-          <Link href="/marketplace">
-            <div className="bg-gradient-to-br from-orange-400 to-red-500 rounded-xl p-4 hover:scale-105 transition-transform cursor-pointer text-white">
-              <div className="text-4xl mb-2 text-center">🔥</div>
+          <Link 
+            href="/marketplace"
+            className="focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-xl"
+            aria-label="View all categories"
+          >
+            <div className="bg-gradient-to-br from-orange-400 to-red-500 rounded-xl p-4 hover:scale-105 transition-transform cursor-pointer text-white min-h-[120px] flex flex-col justify-center">
+              <div className="text-4xl mb-2 text-center" aria-hidden="true">🔥</div>
               <div className="font-bold text-sm text-center mb-1">View All</div>
               <div className="text-xs opacity-90 text-center">Browse everything</div>
             </div>
           </Link>
         </div>
-      </div>
+      </section>
 
       {/* Featured Section */}
-      <section className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
-        <h2 className="text-2xl font-bold mb-4 text-center">✨ Featured This Week</h2>
+      <section className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl" aria-labelledby="featured-heading">
+        <div className="flex items-center justify-between mb-4">
+          <h2 id="featured-heading" className="text-2xl font-bold text-center flex-1">✨ Featured This Week</h2>
+          {featuredListings.length > 4 && (
+            <Link 
+              href="/marketplace?featured=true"
+              className="text-purple-600 hover:text-purple-700 font-semibold text-sm ml-4 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded px-2 py-1"
+              aria-label="View all featured listings"
+            >
+              View All →
+            </Link>
+          )}
+        </div>
         {loadingFeatured ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4" aria-label="Loading featured listings">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-gray-200 rounded-xl p-4 animate-pulse h-32"></div>
+              <div key={i} className="bg-gray-200 rounded-xl p-4 animate-pulse h-32" aria-hidden="true"></div>
             ))}
+          </div>
+        ) : featuredError ? (
+          <div className="text-center py-8 text-gray-600">
+            <p className="mb-4">{featuredError}</p>
+            <Link 
+              href="/marketplace"
+              className="text-purple-600 hover:text-purple-700 font-semibold underline focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded px-2 py-1"
+            >
+              Browse Marketplace →
+            </Link>
           </div>
         ) : featuredListings.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -140,18 +207,27 @@ export default function HomePage() {
               const discountedPrice = listing.priceCents - discountCents;
 
               return (
-                <Link key={listing.id} href={`/listings/${listing.id}`}>
+                <Link 
+                  key={listing.id} 
+                  href={`/listings/${listing.id}`}
+                  className="focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-xl"
+                  aria-label={`View ${listing.title} - $${(discountedPrice / 100).toFixed(2)}`}
+                >
                   <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 text-center hover:scale-105 transition-transform shadow-md cursor-pointer border-2 border-transparent hover:border-purple-300 relative overflow-hidden">
                     {/* Image Container with Badge */}
-                    <div className="relative mb-2">
+                    <div className="relative mb-2 aspect-square">
                       {listing.images && listing.images.length > 0 ? (
-                        <img
+                        <Image
                           src={listing.images[0]}
                           alt={listing.title}
-                          className="w-full h-24 object-cover rounded-lg"
+                          width={200}
+                          height={200}
+                          className="w-full h-full object-cover rounded-lg"
+                          loading="lazy"
+                          unoptimized={listing.images[0]?.startsWith('http')}
                         />
                       ) : (
-                        <div className="w-full h-24 bg-gray-200 rounded-lg flex items-center justify-center text-4xl">
+                        <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-4xl" aria-hidden="true">
                           📦
                         </div>
                       )}
@@ -261,8 +337,12 @@ export default function HomePage() {
 
 function StatCard({ number, label, emoji }: { number: string; label: string; emoji: string }) {
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg hover:scale-105 transition-transform">
-      <div className="text-3xl mb-1">{emoji}</div>
+    <div 
+      className="bg-white/90 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg hover:scale-105 transition-transform"
+      role="region"
+      aria-label={`${label}: ${number}`}
+    >
+      <div className="text-3xl mb-1" aria-hidden="true">{emoji}</div>
       <div className="text-2xl font-bold text-purple-600">{number}</div>
       <div className="text-xs text-gray-600 font-semibold">{label}</div>
     </div>
@@ -292,11 +372,18 @@ function QuickLinkCard({
   href: string; 
   color: string;
 }) {
+  const emoji = title.split(' ')[0];
+  const titleText = title.split(' ').slice(1).join(' ');
+  
   return (
-    <Link href={href}>
-      <div className={`${color} rounded-xl p-4 text-white shadow-lg hover:scale-105 transition-transform cursor-pointer`}>
-        <div className="text-2xl mb-1">{title.split(' ')[0]}</div>
-        <div className="font-bold text-sm mb-1">{title.split(' ').slice(1).join(' ')}</div>
+    <Link 
+      href={href}
+      className="focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 rounded-xl"
+      aria-label={`${titleText}: ${description}`}
+    >
+      <div className={`${color} rounded-xl p-4 text-white shadow-lg hover:scale-105 transition-transform cursor-pointer min-h-[100px] flex flex-col justify-center`}>
+        <div className="text-2xl mb-1" aria-hidden="true">{emoji}</div>
+        <div className="font-bold text-sm mb-1">{titleText}</div>
         <div className="text-xs opacity-90">{description}</div>
       </div>
     </Link>
