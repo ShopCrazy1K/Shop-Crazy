@@ -427,7 +427,7 @@ export default function NotificationBell() {
             </div>
 
             <div className="overflow-y-auto flex-1">
-              {error && (
+              {error ? (
                 <div className="p-4 text-center">
                   <p className="text-red-600 text-xs mb-2">{error}</p>
                   <button
@@ -441,16 +441,15 @@ export default function NotificationBell() {
                     Retry
                   </button>
                 </div>
-              )}
-              {loading && !error ? (
+              ) : loading ? (
                 <div className="p-4 sm:p-6 text-center text-gray-500 text-xs sm:text-sm">
                   Loading notifications...
                 </div>
-              ) : !error && notifications.length === 0 ? (
+              ) : notifications.length === 0 ? (
                 <div className="p-4 sm:p-6 text-center text-gray-500 text-xs sm:text-sm">
                   No notifications yet
                 </div>
-              ) : !error ? (
+              ) : (
                 <div className="divide-y divide-gray-100">
                   {notifications
                     .filter((n) => filter === "all" || n.type === filter)
