@@ -19,13 +19,12 @@ export default function CreateListingForm() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
-  const [thumbnail, setThumbnail] = useState<ImageItem | null>(null);
+  // Combined thumbnail + images - first image is the thumbnail/main image
   const [images, setImages] = useState<ImageItem[]>([]);
   const [digitalFiles, setDigitalFiles] = useState<ImageItem[]>([]);
-  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
-  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+  const imagesInputRef = useRef<HTMLInputElement>(null);
 
   async function handleImageUpload(file: File) {
     const formData = new FormData();
@@ -49,46 +48,15 @@ export default function CreateListingForm() {
     };
   }
 
-  const handleThumbnailUpload = useCallback(async (file: File) => {
-    setUploadingThumbnail(true);
-    try {
-      const imageItem = await handleImageUpload(file);
-      setThumbnail(imageItem);
-    } catch (error: any) {
-      alert(`Failed to upload thumbnail: ${error.message}`);
-    } finally {
-      setUploadingThumbnail(false);
-    }
-  }, []);
-
-  const handleThumbnailDrop = useCallback((files: File[]) => {
-    if (files.length > 0 && files[0].type.startsWith("image/")) {
-      handleThumbnailUpload(files[0]);
-    }
-  }, [handleThumbnailUpload]);
-
-  const handleThumbnailFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      handleThumbnailUpload(file);
-    }
-    if (e.target) {
-      e.target.value = "";
-    }
-  }, [handleThumbnailUpload]);
-
-  const handleThumbnailClick = useCallback(() => {
-    thumbnailInputRef.current?.click();
-  }, []);
-
-  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+  const handleImagesDrop = useCallback(async (files: File[]) => {
+    // Filter to only image files
+    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) return;
 
     setUploadingImages(true);
     const newImages: ImageItem[] = [];
 
-    for (const file of files) {
+    for (const file of imageFiles) {
       try {
         const imageItem = await handleImageUpload(file);
         newImages.push(imageItem);
@@ -99,8 +67,36 @@ export default function CreateListingForm() {
 
     setImages((prev) => [...prev, ...newImages]);
     setUploadingImages(false);
-    e.target.value = "";
-  }
+  }, []);
+
+  const handleImagesFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Filter to only image files
+    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) return;
+
+    setUploadingImages(true);
+    const newImages: ImageItem[] = [];
+
+    (async () => {
+      for (const file of imageFiles) {
+        try {
+          const imageItem = await handleImageUpload(file);
+          newImages.push(imageItem);
+        } catch (error: any) {
+          alert(`Failed to upload ${file.name}: ${error.message}`);
+        }
+      }
+
+      setImages((prev) => [...prev, ...newImages]);
+      setUploadingImages(false);
+      if (e.target) {
+        e.target.value = "";
+      }
+    })();
+  }, []);
 
   async function handleDigitalFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
@@ -109,7 +105,16 @@ export default function CreateListingForm() {
     setUploadingFiles(true);
     const newFiles: ImageItem[] = [];
 
-    for (const file of files) {
+    // Filter out image files - digital files should not be images
+    const nonImageFiles = files.filter(file => !file.type.startsWith("image/"));
+    if (nonImageFiles.length === 0) {
+      alert("Digital files cannot be images. Please upload document files (PDF, DOC, etc.)");
+      setUploadingFiles(false);
+      e.target.value = "";
+      return;
+    }
+
+    for (const file of nonImageFiles) {
       try {
         const fileItem = await handleImageUpload(file);
         newFiles.push(fileItem);
@@ -147,16 +152,15 @@ export default function CreateListingForm() {
       return;
     }
 
-    // Require thumbnail
-    if (!thumbnail) {
-      setError("Please upload a thumbnail image for your listing");
+    // Require at least one image (thumbnail)
+    if (images.length === 0) {
+      setError("Please upload at least one image for your listing");
       setLoading(false);
       return;
     }
 
-    // Combine thumbnail (first) with other images
-    const allImages = [thumbnail, ...images];
-    const imageUrls = allImages.map((img) => img.path ?? img.url);
+    // First image is the thumbnail/main image
+    const imageUrls = images.map((img) => img.path ?? img.url);
     const digitalFileUrls = digitalFiles.map((file) => file.path ?? file.url);
 
     try {
@@ -165,7 +169,7 @@ export default function CreateListingForm() {
         description,
         priceCents: priceInCents,
         category: category || undefined,
-        images: imageUrls.length > 0 ? imageUrls : [],
+        images: imageUrls,
         sellerId: user.id,
       };
       
@@ -243,65 +247,41 @@ export default function CreateListingForm() {
         </div>
       )}
 
-      {/* Thumbnail Upload Section - Etsy Style */}
+      {/* Images Upload Section - Combined thumbnail + images */}
       <div className="space-y-3">
         <label className="block text-sm font-semibold text-gray-700">
-          Listing Thumbnail (Cover Image) *
+          Listing Images *
         </label>
         <p className="text-xs text-gray-500 mb-3">
-          This is the main image that buyers will see first. Choose a high-quality image that showcases your product.
+          Upload your product images. The first image will be used as the main/cover image. Drag images to reorder them.
         </p>
         
-        {thumbnail ? (
-          <div className="relative border-2 border-purple-300 rounded-xl overflow-hidden bg-gray-50">
-            <div className="relative aspect-square max-w-md mx-auto">
-              <img
-                src={thumbnail.url}
-                alt="Listing thumbnail"
-                className="w-full h-full object-contain"
-              />
-              {/* Overlay with change button */}
-              <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center group">
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    type="button"
-                    onClick={handleThumbnailClick}
-                    disabled={uploadingThumbnail}
-                    className="bg-white/90 hover:bg-white px-4 py-2 rounded-lg font-semibold text-sm text-gray-700 shadow-lg transition-colors disabled:opacity-50"
-                  >
-                    Change Thumbnail
-                  </button>
-                </div>
-              </div>
-              {/* Remove button */}
-              <button
-                type="button"
-                onClick={() => setThumbnail(null)}
-                disabled={uploadingThumbnail}
-                className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg shadow-lg transition-colors disabled:opacity-50"
-                title="Remove thumbnail"
-              >
-                ×
-              </button>
-              {/* Primary badge */}
-              <div className="absolute top-2 left-2 bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
-                Main Image
-              </div>
-            </div>
+        {images.length > 0 ? (
+          <div className="space-y-4">
+            <ImageReorderGrid items={images} onChange={setImages} maxImages={10} />
             <input
-              ref={thumbnailInputRef}
+              ref={imagesInputRef}
               type="file"
               accept="image/*"
-              onChange={handleThumbnailFileInput}
+              multiple
+              onChange={handleImagesFileInput}
               className="hidden"
             />
+            <button
+              type="button"
+              onClick={() => imagesInputRef.current?.click()}
+              disabled={uploadingImages || images.length >= 10}
+              className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-gray-700"
+            >
+              {uploadingImages ? "Uploading..." : `Add More Images (${images.length}/10)`}
+            </button>
           </div>
         ) : (
           <DragAndDropUpload
-            onFilesSelected={handleThumbnailDrop}
+            onFilesSelected={handleImagesDrop}
             accept="image/*"
-            multiple={false}
-            maxFiles={1}
+            multiple={true}
+            maxFiles={10}
             maxSize={10 * 1024 * 1024} // 10MB
             isImage={true}
             className="w-full"
@@ -310,16 +290,16 @@ export default function CreateListingForm() {
               <div className="text-5xl">📷</div>
               <div>
                 <p className="text-lg font-semibold text-gray-700">
-                  Upload your listing thumbnail
+                  Upload your listing images
                 </p>
                 <p className="text-sm text-gray-500 mt-2">
-                  Drag and drop an image here, or click to browse
+                  Drag and drop images here, or click to browse
                 </p>
                 <p className="text-xs text-gray-400 mt-3">
-                  Recommended: Square image (1:1 ratio), at least 1000x1000px
+                  First image will be used as the cover. You can upload up to 10 images.
                 </p>
               </div>
-              {uploadingThumbnail && (
+              {uploadingImages && (
                 <div className="flex items-center justify-center gap-2 text-purple-600">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
                   <span className="text-sm">Uploading...</span>
@@ -328,12 +308,13 @@ export default function CreateListingForm() {
             </div>
           </DragAndDropUpload>
         )}
-        {/* Hidden input for "Change Thumbnail" button */}
+        {/* Hidden input for adding more images */}
         <input
-          ref={thumbnailInputRef}
+          ref={imagesInputRef}
           type="file"
           accept="image/*"
-          onChange={handleThumbnailFileInput}
+          multiple
+          onChange={handleImagesFileInput}
           className="hidden"
         />
       </div>
@@ -399,36 +380,11 @@ export default function CreateListingForm() {
 
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Additional Images (Optional)
-        </label>
-        <p className="text-xs text-gray-500 mb-3">
-          Add more images to show different angles, details, or variations of your product. You can upload up to 10 images total (including thumbnail).
-        </p>
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleImageChange}
-          disabled={uploadingImages}
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 disabled:opacity-50"
-        />
-        {uploadingImages && (
-          <p className="text-sm text-gray-500 mt-2">Uploading images...</p>
-        )}
-        {images.length > 0 && (
-          <div className="mt-4">
-            <ImageReorderGrid items={images} onChange={setImages} maxImages={9} />
-            <p className="text-xs text-gray-500 mt-2">
-              Note: Your thumbnail is already set above. These additional images will appear after it.
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
           Digital Files
         </label>
+        <p className="text-xs text-gray-500 mb-3">
+          Upload downloadable files for your product (PDFs, documents, etc.). Images cannot be uploaded as digital files.
+        </p>
         <input
           type="file"
           multiple
@@ -472,4 +428,3 @@ export default function CreateListingForm() {
     </form>
   );
 }
-

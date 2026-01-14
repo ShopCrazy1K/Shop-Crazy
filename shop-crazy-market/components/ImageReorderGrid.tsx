@@ -29,9 +29,11 @@ type ImageItem = {
 function SortableImageCard({
   item,
   onRemove,
+  isFirst = false,
 }: {
   item: ImageItem;
   onRemove: (id: string) => void;
+  isFirst?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
@@ -60,15 +62,20 @@ function SortableImageCard({
         draggable={false}
       />
 
-      {/* Primary badge (first image) */}
-      <div className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-1 text-xs text-white">
-        Drag
-      </div>
+      {/* Main/Cover badge for first image */}
+      {isFirst && (
+        <div className="absolute left-2 top-2 rounded-full bg-purple-600 px-2 py-1 text-xs font-semibold text-white shadow-lg">
+          Main
+        </div>
+      )}
 
       <button
         type="button"
-        onClick={() => onRemove(item.id)}
-        className="absolute right-2 top-2 rounded-full bg-white/90 px-2 py-1 text-xs border"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(item.id);
+        }}
+        className="absolute right-2 top-2 rounded-full bg-white/90 hover:bg-white px-2 py-1 text-xs border shadow-sm"
       >
         Remove
       </button>
@@ -112,8 +119,8 @@ export default function ImageReorderGrid({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={items.map((i) => i.id)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {items.map((item) => (
-              <SortableImageCard key={item.id} item={item} onRemove={remove} />
+            {items.map((item, index) => (
+              <SortableImageCard key={item.id} item={item} onRemove={remove} isFirst={index === 0} />
             ))}
           </div>
         </SortableContext>
