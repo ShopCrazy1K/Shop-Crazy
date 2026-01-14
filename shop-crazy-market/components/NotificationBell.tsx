@@ -69,6 +69,8 @@ export default function NotificationBell() {
     try {
       console.log("[NOTIFICATION BELL] Fetching notifications for user:", user.id);
       setLoading(true);
+      setError(null);
+      
       const response = await fetch(`/api/notifications?userId=${user.id}`, {
         method: 'GET',
         headers: {
@@ -90,7 +92,7 @@ export default function NotificationBell() {
           });
         } catch (jsonError) {
           console.error("[NOTIFICATION BELL] Failed to parse notifications JSON:", jsonError);
-          // Don't clear notifications on JSON parse error, keep existing ones
+          setError("Failed to load notifications");
           return;
         }
         
@@ -105,12 +107,12 @@ export default function NotificationBell() {
           setError(null); // Clear error on success
         } else {
           console.error("[NOTIFICATION BELL] Invalid notifications data format:", data);
-          // Don't clear notifications on invalid data, keep existing ones
+          setError("Invalid notification data");
         }
       } else {
         const errorText = await response.text().catch(() => 'Unknown error');
         console.error("[NOTIFICATION BELL] Failed to fetch notifications:", response.status, response.statusText, errorText);
-        // Don't clear notifications on error, keep existing ones
+        setError(`Failed to load: ${response.status}`);
       }
     } catch (error: any) {
       console.error("[NOTIFICATION BELL] Error fetching notifications:", error);
@@ -119,7 +121,7 @@ export default function NotificationBell() {
         message: error?.message,
         stack: error?.stack,
       });
-      // Don't clear notifications on error, keep existing ones
+      setError("Connection error");
     } finally {
       setLoading(false);
     }
@@ -278,7 +280,7 @@ export default function NotificationBell() {
   }
 
   return (
-    <div className="relative inline-flex items-center" style={{ zIndex: 100 }}>
+    <div className="relative inline-flex items-center">
       <button
         onClick={(e) => {
           e.preventDefault();
@@ -287,14 +289,18 @@ export default function NotificationBell() {
           setIsOpen((prev) => {
             const newState = !prev;
             console.log("[NOTIFICATION BELL] Setting isOpen to:", newState);
+            if (newState && notifications.length === 0 && !loading) {
+              // Fetch notifications when opening if we don't have any
+              fetchNotifications();
+            }
             return newState;
           });
         }}
         className="relative p-2 text-gray-600 hover:text-purple-600 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md flex items-center justify-center"
-        aria-label="Notifications"
+        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
         aria-expanded={isOpen}
         type="button"
-        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 101 }}
+        disabled={loading}
       >
         <svg
           className="w-6 h-6"
@@ -311,7 +317,7 @@ export default function NotificationBell() {
           />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] sm:text-xs" style={{ zIndex: 102 }}>
+          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] sm:text-xs">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -421,15 +427,30 @@ export default function NotificationBell() {
             </div>
 
             <div className="overflow-y-auto flex-1">
-              {loading ? (
+              {error && (
+                <div className="p-4 text-center">
+                  <p className="text-red-600 text-xs mb-2">{error}</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fetchNotifications();
+                    }}
+                    className="text-xs text-purple-600 hover:text-purple-700 underline"
+                    type="button"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+              {loading && !error ? (
                 <div className="p-4 sm:p-6 text-center text-gray-500 text-xs sm:text-sm">
                   Loading notifications...
                 </div>
-              ) : notifications.length === 0 ? (
+              ) : !error && notifications.length === 0 ? (
                 <div className="p-4 sm:p-6 text-center text-gray-500 text-xs sm:text-sm">
                   No notifications yet
                 </div>
-              ) : (
+              ) : !error ? (
                 <div className="divide-y divide-gray-100">
                   {notifications
                     .filter((n) => filter === "all" || n.type === filter)
@@ -546,10 +567,9 @@ export default function NotificationBell() {
                                   e.preventDefault();
                                   e.stopPropagation();
                                 }}
-                                className="text-gray-400 hover:text-red-600 text-xs font-bold text-lg leading-none w-5 h-5 flex items-center justify-center rounded hover:bg-red-50 transition-colors"
+                                className="text-gray-400 hover:text-red-600 text-xs font-bold text-lg leading-none w-5 h-5 flex items-center justify-center rounded hover:bg-red-50 transition-colors relative z-10"
                                 type="button"
                                 title="Delete notification"
-                                style={{ pointerEvents: 'auto', zIndex: 10 }}
                               >
                                 ×
                               </button>
@@ -598,10 +618,9 @@ export default function NotificationBell() {
                                 e.preventDefault();
                                 e.stopPropagation();
                               }}
-                              className="text-gray-400 hover:text-red-600 text-xs font-bold text-lg leading-none w-5 h-5 flex items-center justify-center rounded hover:bg-red-50 transition-colors"
+                              className="text-gray-400 hover:text-red-600 text-xs font-bold text-lg leading-none w-5 h-5 flex items-center justify-center rounded hover:bg-red-50 transition-colors relative z-10"
                               type="button"
                               title="Delete notification"
-                              style={{ pointerEvents: 'auto', zIndex: 10 }}
                             >
                               ×
                             </button>
