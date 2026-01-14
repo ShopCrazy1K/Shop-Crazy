@@ -72,6 +72,7 @@ export default function ProfilePage() {
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [profileCompletion, setProfileCompletion] = useState(0);
+  const [actualCompletion, setActualCompletion] = useState(0);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverPhotoInputRef = useRef<HTMLInputElement>(null);
 
@@ -852,6 +853,8 @@ export default function ProfilePage() {
             avatar={avatar}
             coverPhoto={coverPhoto}
             listingsCount={myListings.length}
+            profileCompletion={actualCompletion}
+            onCompletionChange={setActualCompletion}
           />
         )}
 
@@ -957,19 +960,24 @@ function OverviewTab({
   avatar,
   coverPhoto,
   listingsCount,
+  profileCompletion,
+  onCompletionChange,
 }: any) {
   return (
     <div className="space-y-6">
-      {/* Profile Completion */}
-      <ProfileCompletion
-        user={user}
-        avatar={avatar}
-        coverPhoto={coverPhoto}
-        about={about}
-        shopPolicies={shopPolicies}
-        listingsCount={listingsCount}
-        referralCount={referralCount}
-      />
+      {/* Profile Completion - Only show if not 100% complete */}
+      {profileCompletion < 100 && (
+        <ProfileCompletion
+          user={user}
+          avatar={avatar}
+          coverPhoto={coverPhoto}
+          about={about}
+          shopPolicies={shopPolicies}
+          listingsCount={listingsCount}
+          referralCount={referralCount}
+          onCompletionChange={onCompletionChange}
+        />
+      )}
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">

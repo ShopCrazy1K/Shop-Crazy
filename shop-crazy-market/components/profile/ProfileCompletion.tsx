@@ -33,6 +33,7 @@ export default function ProfileCompletion({
   shopPolicies,
   listingsCount,
   referralCount,
+  onCompletionChange,
 }: Props) {
   const [items, setItems] = useState<CompletionItem[]>([]);
   const [completion, setCompletion] = useState(0);
@@ -189,6 +190,10 @@ export default function ProfileCompletion({
 
     const percentage = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0;
     setCompletion(percentage);
+    // Notify parent component of completion change
+    if (onCompletionChange) {
+      onCompletionChange(percentage);
+    }
   }
 
   const incompleteItems = items.filter((item) => !item.completed && !item.skipped);
