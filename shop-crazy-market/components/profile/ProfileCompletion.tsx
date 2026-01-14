@@ -38,6 +38,17 @@ export default function ProfileCompletion({
   const [completion, setCompletion] = useState(0);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [editingAbout, setEditingAbout] = useState(false);
+  const [editingPolicies, setEditingPolicies] = useState(false);
+  const [aboutText, setAboutText] = useState(about);
+  const [policiesData, setPoliciesData] = useState(shopPolicies || {
+    shopAbout: "",
+    shippingPolicy: "",
+    returnsPolicy: "",
+  });
+  const [savingAbout, setSavingAbout] = useState(false);
+  const [savingPolicies, setSavingPolicies] = useState(false);
+  const [skippedItems, setSkippedItems] = useState<Set<string>>(new Set());
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverPhotoInputRef = useRef<HTMLInputElement>(null);
 
