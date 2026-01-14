@@ -538,12 +538,18 @@ export default function NotificationBell() {
                               )}
                               <button
                                 onClick={(e) => {
+                                  e.preventDefault();
                                   e.stopPropagation();
                                   deleteNotification(notification.id);
                                 }}
-                                className="text-gray-400 hover:text-red-600 text-xs"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                                className="text-gray-400 hover:text-red-600 text-xs font-bold text-lg leading-none w-5 h-5 flex items-center justify-center rounded hover:bg-red-50 transition-colors"
                                 type="button"
-                                title="Delete"
+                                title="Delete notification"
+                                style={{ pointerEvents: 'auto', zIndex: 10 }}
                               >
                                 ×
                               </button>
@@ -568,18 +574,38 @@ export default function NotificationBell() {
                               {formatTime(notification.createdAt)}
                             </p>
                           </div>
-                          {!notification.read && (
+                          <div className="flex-shrink-0 flex items-center gap-2">
+                            {!notification.read && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  markAsRead(notification.id);
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-700"
+                                type="button"
+                              >
+                                Mark read
+                              </button>
+                            )}
                             <button
                               onClick={(e) => {
+                                e.preventDefault();
                                 e.stopPropagation();
-                                markAsRead(notification.id);
+                                deleteNotification(notification.id);
                               }}
-                              className="flex-shrink-0 text-xs text-blue-600 hover:text-blue-700"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              className="text-gray-400 hover:text-red-600 text-xs font-bold text-lg leading-none w-5 h-5 flex items-center justify-center rounded hover:bg-red-50 transition-colors"
                               type="button"
+                              title="Delete notification"
+                              style={{ pointerEvents: 'auto', zIndex: 10 }}
                             >
-                              Mark read
+                              ×
                             </button>
-                          )}
+                          </div>
                         </div>
                       )}
                     </div>
