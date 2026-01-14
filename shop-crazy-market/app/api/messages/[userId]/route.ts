@@ -55,13 +55,14 @@ export async function GET(
       },
     });
 
-    // Transform messages to include fromMe flag
+    // Transform messages to include fromMe flag and attachments
     const transformedMessages = messages.map((msg) => ({
       id: msg.id,
       text: msg.content,
       fromMe: msg.senderId === currentUserId,
       createdAt: msg.createdAt,
       sender: msg.sender,
+      attachments: msg.attachments || [],
     }));
 
     return NextResponse.json(transformedMessages);

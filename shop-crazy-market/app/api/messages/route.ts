@@ -127,11 +127,19 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { senderId, receiverId, content } = body;
+    const { senderId, receiverId, content, attachments } = body;
 
-    if (!senderId || !receiverId || !content) {
+    if (!senderId || !receiverId) {
       return NextResponse.json(
-        { error: "senderId, receiverId, and content are required" },
+        { error: "senderId and receiverId are required" },
+        { status: 400 }
+      );
+    }
+
+    // Content or attachments must be provided
+    if (!content && (!attachments || attachments.length === 0)) {
+      return NextResponse.json(
+        { error: "Either content or attachments must be provided" },
         { status: 400 }
       );
     }
@@ -140,7 +148,8 @@ export async function POST(request: Request) {
       data: {
         senderId,
         receiverId,
-        content,
+        content: content || "",
+        attachments: attachments || [],
       },
       include: {
         sender: {

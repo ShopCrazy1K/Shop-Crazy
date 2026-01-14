@@ -551,6 +551,7 @@ model Favorite {
 model Message {
   id      String @id @default(uuid())
   content String
+  attachments String[] @default([]) // Array of attachment URLs (images, files, etc.)
 
   senderId   String
   receiverId String
