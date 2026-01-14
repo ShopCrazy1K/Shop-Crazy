@@ -106,12 +106,26 @@ export default function CreateListingForm() {
     const newFiles: ImageItem[] = [];
 
     // Filter out image files - digital files should not be images
-    const nonImageFiles = files.filter(file => !file.type.startsWith("image/"));
+    // Check both MIME type and file extension
+    const nonImageFiles = files.filter(file => {
+      const isImageMime = file.type.startsWith("image/");
+      const fileName = file.name.toLowerCase();
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif'];
+      const isImageExtension = imageExtensions.some(ext => fileName.endsWith(ext));
+      return !isImageMime && !isImageExtension;
+    });
+
     if (nonImageFiles.length === 0) {
-      alert("Digital files cannot be images. Please upload document files (PDF, DOC, etc.)");
+      alert("Digital files cannot be images. Please upload document files (PDF, DOC, ZIP, etc.)");
       setUploadingFiles(false);
       e.target.value = "";
       return;
+    }
+
+    // Show warning if some files were filtered out
+    if (nonImageFiles.length < files.length) {
+      const filteredCount = files.length - nonImageFiles.length;
+      alert(`${filteredCount} image file(s) were skipped. Digital files cannot be images.`);
     }
 
     for (const file of nonImageFiles) {
@@ -388,6 +402,7 @@ export default function CreateListingForm() {
         <input
           type="file"
           multiple
+          accept=".pdf,.doc,.docx,.zip,.rar,.txt,.csv,.xls,.xlsx,.ppt,.pptx"
           onChange={handleDigitalFileChange}
           disabled={uploadingFiles}
           className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 disabled:opacity-50"
