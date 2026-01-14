@@ -225,18 +225,36 @@ export async function GET(req: NextRequest, context: Ctx) {
     }
     
     // Ensure arrays are properly formatted
+    // First, normalize both arrays
+    const normalizedDigitalFiles = Array.isArray(listing.digitalFiles) 
+      ? listing.digitalFiles.filter((file: any) => file && typeof file === 'string' && file.trim())
+      : (listing.digitalFiles && typeof listing.digitalFiles === 'string' && listing.digitalFiles.trim()
+        ? [listing.digitalFiles]
+        : []);
+    
+    const normalizedImages = Array.isArray(listing.images) 
+      ? listing.images.filter((img: any) => img && typeof img === 'string' && img.trim())
+      : (listing.images && typeof listing.images === 'string' && listing.images.trim() 
+        ? [listing.images] 
+        : []);
+    
+    // CRITICAL: Remove any digital files from the images array
+    // Digital files should NEVER appear in thumbnails
+    const digitalFilesSet = new Set(normalizedDigitalFiles.map((f: string) => f.toLowerCase()));
+    const filteredImages = normalizedImages.filter((img: string) => {
+      const imgLower = img.toLowerCase();
+      // Exclude if this URL exists in digitalFiles
+      if (digitalFilesSet.has(imgLower)) {
+        console.warn("[API LISTINGS ID] Removed digital file from images array:", img);
+        return false;
+      }
+      return true;
+    });
+    
     const responseData: any = {
       ...listing,
-      images: Array.isArray(listing.images) 
-        ? listing.images.filter((img: any) => img && typeof img === 'string' && img.trim())
-        : (listing.images && typeof listing.images === 'string' && listing.images.trim() 
-          ? [listing.images] 
-          : []),
-      digitalFiles: Array.isArray(listing.digitalFiles) 
-        ? listing.digitalFiles.filter((file: any) => file && typeof file === 'string' && file.trim())
-        : (listing.digitalFiles && typeof listing.digitalFiles === 'string' && listing.digitalFiles.trim()
-          ? [listing.digitalFiles]
-          : []),
+      images: filteredImages,
+      digitalFiles: normalizedDigitalFiles,
     };
     
     // Ensure seller data is ALWAYS present and complete

@@ -136,6 +136,18 @@ function ShopContent() {
       }
 
       const transformed: Product[] = userListings.map(listing => {
+        // Normalize digital files array
+        const digitalFilesValue = listing.digitalFiles as any;
+        const normalizedDigitalFiles = Array.isArray(digitalFilesValue)
+          ? digitalFilesValue.filter((f: any) => f && typeof f === 'string' && f.trim())
+          : (digitalFilesValue && typeof digitalFilesValue === 'string' && digitalFilesValue.trim()
+            ? [digitalFilesValue]
+            : []);
+        
+        // Create a set of digital file URLs (case-insensitive) for filtering
+        const digitalFilesSet = new Set(normalizedDigitalFiles.map((f: string) => f.toLowerCase()));
+        
+        // Normalize images array
         let images: string[] = [];
         if (listing.images) {
           if (Array.isArray(listing.images)) {
@@ -148,18 +160,18 @@ function ShopContent() {
           }
         }
 
-        if (images.length === 0 && listing.digitalFiles) {
-          const imageDigitalFiles = listing.digitalFiles.filter((url: string) => {
-            const ext = url.split('.').pop()?.toLowerCase();
-            return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
-          });
-          images = imageDigitalFiles;
-        }
+        // CRITICAL: Remove any digital files from the images array
+        // Digital files should NEVER appear in thumbnails, even if they are image files
+        images = images.filter((img: string) => {
+          const imgLower = img.toLowerCase();
+          if (digitalFilesSet.has(imgLower)) {
+            console.warn("[SHOP PAGE] Removed digital file from images array:", img);
+            return false;
+          }
+          return true;
+        });
 
-        const digitalFilesValue = listing.digitalFiles as any;
-        const hasDigitalFiles = digitalFilesValue &&
-          ((Array.isArray(digitalFilesValue) && digitalFilesValue.length > 0) ||
-           (typeof digitalFilesValue === 'string' && digitalFilesValue.trim().length > 0));
+        const hasDigitalFiles = normalizedDigitalFiles.length > 0;
 
         return {
           id: listing.id,

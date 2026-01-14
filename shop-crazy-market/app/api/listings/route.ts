@@ -248,6 +248,33 @@ export async function GET(request: Request) {
       console.log("[API LISTINGS] After excluding user listings:", listings.length, "(removed", beforeExclude - listings.length, ")");
     }
     
+    // CRITICAL: Remove digital files from images arrays for all listings
+    // Digital files should NEVER appear in thumbnails
+    listings = listings.map((listing: any) => {
+      const digitalFiles = Array.isArray(listing.digitalFiles) ? listing.digitalFiles : [];
+      const images = Array.isArray(listing.images) ? listing.images : [];
+      
+      // Create a set of digital file URLs (case-insensitive)
+      const digitalFilesSet = new Set(digitalFiles.map((f: string) => f.toLowerCase()));
+      
+      // Filter out any images that are actually digital files
+      const filteredImages = images.filter((img: string) => {
+        if (!img || typeof img !== 'string') return false;
+        const imgLower = img.toLowerCase();
+        if (digitalFilesSet.has(imgLower)) {
+          console.warn("[API LISTINGS] Removed digital file from images array:", img);
+          return false;
+        }
+        return true;
+      });
+      
+      return {
+        ...listing,
+        images: filteredImages,
+        digitalFiles: digitalFiles,
+      };
+    });
+    
     // If user is authenticated, filter out inactive listings that don't belong to them
     if (userId) {
       const beforeActiveFilter = listings.length;

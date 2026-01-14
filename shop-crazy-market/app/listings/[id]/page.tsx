@@ -70,10 +70,26 @@ function ListingPageContent() {
     if (!listing) return [];
     // Only use actual listing images - filter out any invalid entries
     const normalizedImages = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
+    
+    // CRITICAL: Remove any digital files from the images array
+    // Digital files should NEVER appear in thumbnails, even if they were incorrectly stored
+    const digitalFilesSet = new Set(
+      (listing.digitalFiles || []).map((f: string) => f.toLowerCase())
+    );
+    const filteredImages = normalizedImages.filter((img: string) => {
+      const imgLower = img.toLowerCase();
+      // Exclude if this URL exists in digitalFiles
+      if (digitalFilesSet.has(imgLower)) {
+        console.warn("[LISTING PAGE] Removed digital file from images array:", img);
+        return false;
+      }
+      return true;
+    });
+    
     // Digital files should NOT be included in the thumbnail/images gallery
     // They are displayed separately in the "Digital Files" section below
-    return normalizedImages;
-  }, [listing?.images]);
+    return filteredImages;
+  }, [listing?.images, listing?.digitalFiles]);
   
   // Keyboard navigation for image modal
   useEffect(() => {
