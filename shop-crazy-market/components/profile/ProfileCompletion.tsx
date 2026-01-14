@@ -23,6 +23,7 @@ interface Props {
   shopPolicies: any;
   listingsCount: number;
   referralCount: number;
+  onCompletionChange?: (completion: number) => void;
 }
 
 export default function ProfileCompletion({
