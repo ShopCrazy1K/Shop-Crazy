@@ -67,11 +67,8 @@ export async function POST(request: Request) {
       slug = `${baseSlug}-${i++}`;
     }
 
-    // Convert price (dollars) to priceCents (cents) if price is provided
-    // Otherwise use priceCents directly if provided (backward compatibility)
-    const priceCents = data.priceCents !== undefined 
-      ? data.priceCents 
-      : Math.round((data.price || 0) * 100);
+    // Use priceCents directly (form sends priceCents, validation ensures it exists)
+    const priceCents = data.priceCents;
 
     console.log("[API LISTINGS] Creating listing with data:", {
       sellerId,
