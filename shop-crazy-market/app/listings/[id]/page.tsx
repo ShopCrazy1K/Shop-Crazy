@@ -65,15 +65,15 @@ function ListingPageContent() {
   const thumbnailScrollRef = useRef<HTMLDivElement>(null);
   
   // Compute allImages using useMemo so it's available for hooks
+  // IMPORTANT: Only use listing.images - digital files should NEVER appear in thumbnails
   const allImagesMemo = useMemo(() => {
     if (!listing) return [];
+    // Only use actual listing images - filter out any invalid entries
     const normalizedImages = listing.images.filter((img: any) => img && typeof img === 'string' && img.trim());
-    const imageDigitalFiles = listing.digitalFiles.filter((url: string) => {
-      const ext = url.split('.').pop()?.toLowerCase();
-      return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '');
-    });
-    return Array.from(new Set([...normalizedImages, ...imageDigitalFiles]));
-  }, [listing?.images, listing?.digitalFiles]);
+    // Digital files should NOT be included in the thumbnail/images gallery
+    // They are displayed separately in the "Digital Files" section below
+    return normalizedImages;
+  }, [listing?.images]);
   
   // Keyboard navigation for image modal
   useEffect(() => {
