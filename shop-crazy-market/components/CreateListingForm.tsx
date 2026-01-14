@@ -26,7 +26,27 @@ export default function CreateListingForm() {
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const imagesInputRef = useRef<HTMLInputElement>(null);
 
+  // Helper function to check if a file is a valid image
+  function isImageFile(file: File): boolean {
+    if (file.type.startsWith("image/")) return true;
+    const fileName = file.name.toLowerCase();
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico'];
+    return imageExtensions.some(ext => fileName.endsWith(ext));
+  }
+
+  // Helper function to check if a URL is an image URL
+  function isImageUrl(url: string): boolean {
+    const urlLower = url.toLowerCase();
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico'];
+    return imageExtensions.some(ext => urlLower.includes(ext)) || urlLower.includes('/image');
+  }
+
   async function handleImageUpload(file: File) {
+    // Double-check that only image files are uploaded
+    if (!isImageFile(file)) {
+      throw new Error(`${file.name} is not a valid image file`);
+    }
+
     const formData = new FormData();
     formData.append("file", file);
 
@@ -41,6 +61,12 @@ export default function CreateListingForm() {
     }
 
     const uploaded = await response.json();
+    
+    // Validate the uploaded URL is an image
+    if (!isImageUrl(uploaded.url) && !isImageUrl(uploaded.path || '')) {
+      throw new Error(`Uploaded file ${file.name} is not a valid image`);
+    }
+    
     return {
       id: crypto.randomUUID(),
       url: uploaded.url,
@@ -49,9 +75,12 @@ export default function CreateListingForm() {
   }
 
   const handleImagesDrop = useCallback(async (files: File[]) => {
-    // Filter to only image files
-    const imageFiles = files.filter(file => file.type.startsWith("image/"));
-    if (imageFiles.length === 0) return;
+    // Filter to only image files - use helper function for better validation
+    const imageFiles = files.filter(file => isImageFile(file));
+    if (imageFiles.length === 0) {
+      alert("Please upload only image files (JPG, PNG, GIF, etc.)");
+      return;
+    }
 
     setUploadingImages(true);
     const newImages: ImageItem[] = [];
@@ -59,13 +88,24 @@ export default function CreateListingForm() {
     for (const file of imageFiles) {
       try {
         const imageItem = await handleImageUpload(file);
-        newImages.push(imageItem);
+        // Additional validation - ensure URL is actually an image
+        if (isImageUrl(imageItem.url) || isImageUrl(imageItem.path || '')) {
+          newImages.push(imageItem);
+        } else {
+          alert(`Skipped ${file.name}: File is not a valid image`);
+        }
       } catch (error: any) {
         alert(`Failed to upload ${file.name}: ${error.message}`);
       }
     }
 
-    setImages((prev) => [...prev, ...newImages]);
+    // Filter out any non-image items that might have slipped through
+    const validImages = newImages.filter(img => isImageUrl(img.url) || isImageUrl(img.path || ''));
+    setImages((prev) => {
+      // Also filter existing images to remove any non-image URLs
+      const filteredPrev = prev.filter(img => isImageUrl(img.url) || isImageUrl(img.path || ''));
+      return [...filteredPrev, ...validImages];
+    });
     setUploadingImages(false);
   }, []);
 
@@ -73,9 +113,15 @@ export default function CreateListingForm() {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    // Filter to only image files
-    const imageFiles = files.filter(file => file.type.startsWith("image/"));
-    if (imageFiles.length === 0) return;
+    // Filter to only image files - use helper function for better validation
+    const imageFiles = files.filter(file => isImageFile(file));
+    if (imageFiles.length === 0) {
+      alert("Please upload only image files (JPG, PNG, GIF, etc.)");
+      if (e.target) {
+        e.target.value = "";
+      }
+      return;
+    }
 
     setUploadingImages(true);
     const newImages: ImageItem[] = [];
@@ -84,13 +130,24 @@ export default function CreateListingForm() {
       for (const file of imageFiles) {
         try {
           const imageItem = await handleImageUpload(file);
-          newImages.push(imageItem);
+          // Additional validation - ensure URL is actually an image
+          if (isImageUrl(imageItem.url) || isImageUrl(imageItem.path || '')) {
+            newImages.push(imageItem);
+          } else {
+            alert(`Skipped ${file.name}: File is not a valid image`);
+          }
         } catch (error: any) {
           alert(`Failed to upload ${file.name}: ${error.message}`);
         }
       }
 
-      setImages((prev) => [...prev, ...newImages]);
+      // Filter out any non-image items that might have slipped through
+      const validImages = newImages.filter(img => isImageUrl(img.url) || isImageUrl(img.path || ''));
+      setImages((prev) => {
+        // Also filter existing images to remove any non-image URLs
+        const filteredPrev = prev.filter(img => isImageUrl(img.url) || isImageUrl(img.path || ''));
+        return [...filteredPrev, ...validImages];
+      });
       setUploadingImages(false);
       if (e.target) {
         e.target.value = "";
@@ -272,7 +329,15 @@ export default function CreateListingForm() {
         
         {images.length > 0 ? (
           <div className="space-y-4">
-            <ImageReorderGrid items={images} onChange={setImages} maxImages={10} />
+            <ImageReorderGrid 
+              items={images.filter(img => isImageUrl(img.url) || isImageUrl(img.path || ''))} 
+              onChange={(newImages) => {
+                // Filter to only allow valid image URLs
+                const validImages = newImages.filter(img => isImageUrl(img.url) || isImageUrl(img.path || ''));
+                setImages(validImages);
+              }} 
+              maxImages={10} 
+            />
             <input
               ref={imagesInputRef}
               type="file"
