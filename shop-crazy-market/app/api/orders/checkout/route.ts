@@ -178,13 +178,17 @@ export async function POST(req: Request) {
       });
     }
     
+    // Check if this is a physical product (has shipping)
+    // For now, we'll collect shipping for all products. In the future, you can check listing.digitalFiles.length === 0
+    const requiresShipping = true; // You can make this dynamic based on listing type
+    
     // Charge buyer the remaining amount after store credit
     // Enable Apple Pay and Google Pay in addition to card payments
     // Note: Apple Pay and Google Pay are automatically enabled by Stripe when:
     // - payment_method_types includes "card"
     // - The customer's device/browser supports them
     // - The session is properly configured
-    const session = await stripe.checkout.sessions.create({
+    const sessionConfig: any = {
       mode: "payment",
       payment_method_types: ["card"], // Card enables Apple Pay/Google Pay automatically on supported devices
       customer_email: buyerEmail,
@@ -211,9 +215,16 @@ export async function POST(req: Request) {
         userId: buyerId || "",
         storeCreditUsedCents: storeCreditUsedCents.toString(), // Store in metadata for webhook
       },
-      // Enable automatic payment methods (Apple Pay, Google Pay) - Stripe handles this automatically
-      // No additional configuration needed - they appear when device/browser supports them
-    });
+    };
+
+    // Enable shipping address collection for physical products
+    if (requiresShipping) {
+      sessionConfig.shipping_address_collection = {
+        allowed_countries: ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'CH', 'SE', 'NO', 'DK', 'FI', 'PL', 'CZ', 'IE', 'PT', 'GR', 'NZ', 'SG', 'HK', 'JP', 'KR', 'MX', 'BR', 'AR', 'CL', 'CO', 'PE', 'ZA', 'AE', 'IL', 'TR', 'IN', 'TH', 'MY', 'PH', 'ID', 'VN'],
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     console.log("[CHECKOUT] Created Stripe session:", {
       sessionId: session.id,

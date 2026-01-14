@@ -494,6 +494,44 @@ function OrderContent() {
             </div>
           )}
 
+          {/* Shipping Address - Only visible to seller */}
+          {order.paymentStatus === "paid" && user?.id === order.sellerId && (
+            <div className="border-t pt-4 mt-4">
+              <h3 className="font-semibold text-gray-900 mb-3">📦 Shipping Address</h3>
+              {order.shippingName || order.shippingAddressLine1 ? (
+                <div className="bg-gray-50 p-4 rounded-lg space-y-1">
+                  {order.shippingName && (
+                    <p className="font-semibold text-gray-900">{order.shippingName}</p>
+                  )}
+                  {order.shippingAddressLine1 && (
+                    <p className="text-gray-700">{order.shippingAddressLine1}</p>
+                  )}
+                  {order.shippingAddressLine2 && (
+                    <p className="text-gray-700">{order.shippingAddressLine2}</p>
+                  )}
+                  <p className="text-gray-700">
+                    {[
+                      order.shippingCity,
+                      order.shippingState,
+                      order.shippingPostalCode,
+                    ].filter(Boolean).join(", ")}
+                  </p>
+                  {order.shippingCountry && (
+                    <p className="text-gray-700 font-semibold mt-1">
+                      {order.shippingCountry.toUpperCase()}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-yellow-800 text-sm">
+                    ⚠️ Shipping address not provided. Please contact the buyer for shipping information.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Tracking Information */}
           {order.paymentStatus === "paid" && (
             <div className="border-t pt-4 mt-4">

@@ -87,13 +87,28 @@ export async function POST(req: Request) {
             }
           }
           
-          // Update order status
+          // Extract shipping address from Stripe session
+          const shippingDetails = session.shipping_details;
+          const shippingData: any = {
+            stripePaymentIntent: paymentIntent ?? null,
+            paymentStatus: "paid",
+          };
+
+          // Save shipping address if provided
+          if (shippingDetails?.address) {
+            shippingData.shippingName = shippingDetails.name || null;
+            shippingData.shippingAddressLine1 = shippingDetails.address.line1 || null;
+            shippingData.shippingAddressLine2 = shippingDetails.address.line2 || null;
+            shippingData.shippingCity = shippingDetails.address.city || null;
+            shippingData.shippingState = shippingDetails.address.state || null;
+            shippingData.shippingPostalCode = shippingDetails.address.postal_code || null;
+            shippingData.shippingCountry = shippingDetails.address.country || null;
+          }
+
+          // Update order status and shipping address
           const updatedOrder = await prisma.order.update({
             where: { id: orderId },
-            data: {
-              stripePaymentIntent: paymentIntent ?? null,
-              paymentStatus: "paid",
-            },
+            data: shippingData,
             include: {
               listing: {
                 select: {

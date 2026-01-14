@@ -465,6 +465,15 @@ model Order {
   refundReason String?
   refundedAt   DateTime?
 
+  // Shipping Address (for physical products)
+  shippingName         String? // Recipient name
+  shippingAddressLine1 String? // Street address
+  shippingAddressLine2 String? // Apartment, suite, etc.
+  shippingCity         String? // City
+  shippingState        String? // State/Province
+  shippingPostalCode   String? // ZIP/Postal code
+  shippingCountry      String? // Country code (ISO 3166-1 alpha-2)
+
   // Shipping & Tracking
   shippingStatus  String? // processing, shipped, delivered
   trackingCarrier String? // USPS, UPS, FedEx, DHL, Other
