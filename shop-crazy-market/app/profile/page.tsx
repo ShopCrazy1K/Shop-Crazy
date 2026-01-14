@@ -703,71 +703,71 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Avatar - positioned outside cover photo container to ensure proper layering */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 z-30" style={{ bottom: '-48px' }}>
-          <div className="relative">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
-                {avatar ? (
-                  <img 
-                    src={avatar}
-                    alt="Avatar" 
-                    className="w-full h-full object-cover" 
-                    key={avatar} // Force re-render when avatar changes
-                    onError={(e) => {
-                      console.error("[AVATAR] Failed to load image. URL:", avatar);
-                      console.error("[AVATAR] Error details:", e);
-                      // Don't clear avatar immediately - might be temporary network issue
-                      // Try to fetch fresh avatar from API
-                      setTimeout(() => {
-                        if (user?.id) {
-                          console.log("[AVATAR] Retrying avatar fetch after load error");
-                          fetchAvatar();
-                        }
-                      }, 2000);
-                    }}
-                    onLoad={() => {
-                      console.log("[AVATAR] Image loaded successfully. URL:", avatar);
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400 text-white text-3xl sm:text-4xl font-bold">
-                    {user.username?.[0]?.toUpperCase() || user.email[0]?.toUpperCase() || "?"}
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  if (!uploadingAvatar && avatarInputRef.current) {
-                    avatarInputRef.current.click();
-                  }
-                }}
-                disabled={uploadingAvatar}
-                className="absolute bottom-0 right-0 bg-purple-600 text-white p-1.5 sm:p-2 rounded-full cursor-pointer hover:bg-purple-700 transition-colors shadow-lg z-40 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {uploadingAvatar ? (
-                  <span className="text-xs">⏳</span>
-                ) : (
-                  <span className="text-xs sm:text-sm">📷</span>
-                )}
-              </button>
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarUpload}
-                disabled={uploadingAvatar}
-                className="hidden"
-              />
-            </div>
-          </div>
-
         {/* Profile Info Section */}
-        <div className="pt-20 sm:pt-24 md:pt-28 pb-4 bg-white">
+        <div className="pt-6 pb-4 bg-white">
           <div className="max-w-4xl mx-auto px-4 text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+            {/* Avatar - positioned below cover photo and above username */}
+            <div className="flex justify-center -mt-16 mb-4">
+              <div className="relative">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
+                  {avatar ? (
+                    <img 
+                      src={avatar}
+                      alt="Avatar" 
+                      className="w-full h-full object-cover" 
+                      key={avatar} // Force re-render when avatar changes
+                      onError={(e) => {
+                        console.error("[AVATAR] Failed to load image. URL:", avatar);
+                        console.error("[AVATAR] Error details:", e);
+                        // Don't clear avatar immediately - might be temporary network issue
+                        // Try to fetch fresh avatar from API
+                        setTimeout(() => {
+                          if (user?.id) {
+                            console.log("[AVATAR] Retrying avatar fetch after load error");
+                            fetchAvatar();
+                          }
+                        }, 2000);
+                      }}
+                      onLoad={() => {
+                        console.log("[AVATAR] Image loaded successfully. URL:", avatar);
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400 text-white text-3xl sm:text-4xl font-bold">
+                      {user.username?.[0]?.toUpperCase() || user.email[0]?.toUpperCase() || "?"}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (!uploadingAvatar && avatarInputRef.current) {
+                      avatarInputRef.current.click();
+                    }
+                  }}
+                  disabled={uploadingAvatar}
+                  className="absolute bottom-0 right-0 bg-purple-600 text-white p-1.5 sm:p-2 rounded-full cursor-pointer hover:bg-purple-700 transition-colors shadow-lg z-40 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploadingAvatar ? (
+                    <span className="text-xs">⏳</span>
+                  ) : (
+                    <span className="text-xs sm:text-sm">📷</span>
+                  )}
+                </button>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  disabled={uploadingAvatar}
+                  className="hidden"
+                />
+              </div>
+            </div>
+            
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 mt-4">
               {user.username || "User"}
             </h1>
             <p className="text-gray-600 mb-4">{user.email}</p>
