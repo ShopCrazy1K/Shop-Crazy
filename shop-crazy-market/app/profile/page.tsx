@@ -1631,7 +1631,7 @@ function UsernameEditor({ newUsername, setNewUsername, setEditingUsername, setSa
   );
 }
 
-function EmailEditor({ newEmail, setNewEmail, emailPassword, setEmailPassword, setEditingEmail, setSavingEmail, emailError, setEmailError, user }: any) {
+function EmailEditor({ newEmail, setNewEmail, emailPassword, setEmailPassword, setEditingEmail, savingEmail, setSavingEmail, emailError, setEmailError, user }: any) {
   return (
     <div className="space-y-2">
       <label className="block text-sm font-semibold text-gray-700">New Email Address</label>
