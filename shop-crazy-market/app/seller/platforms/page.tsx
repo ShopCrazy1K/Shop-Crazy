@@ -56,10 +56,24 @@ function PlatformsPageContent() {
       router.replace("/seller/platforms");
     } else if (error) {
       let errorMessage = "Failed to connect platform";
-      if (error === "invalid_hmac") errorMessage = "Invalid security verification. Please try again.";
-      else if (error === "missing_params") errorMessage = "Missing required parameters.";
-      else if (error === "invalid_state") errorMessage = "Invalid session. Please try again.";
-      else if (error === "oauth_failed") errorMessage = "OAuth authentication failed. Please try again.";
+      if (error === "invalid_hmac") {
+        errorMessage = "Invalid security verification. Please try again.";
+      } else if (error === "missing_params") {
+        errorMessage = "Missing required parameters. Please ensure all OAuth parameters are present.";
+      } else if (error === "invalid_state") {
+        errorMessage = "Invalid session. Please try again.";
+      } else if (error === "redirect_uri_mismatch") {
+        errorMessage = "Redirect URI mismatch. Please ensure the redirect URI in Shopify Partners Dashboard matches: https://shopcrazymarket.com/api/shopify/oauth/callback";
+      } else if (error === "invalid_request") {
+        errorMessage = "Invalid request. Please check your Shopify app configuration.";
+      } else if (error === "access_denied") {
+        errorMessage = "Access denied. You declined to authorize the app.";
+      } else if (error === "oauth_failed") {
+        errorMessage = "OAuth authentication failed. Please try again.";
+      } else {
+        // Show the actual error message if available
+        errorMessage = decodeURIComponent(error) || "Failed to connect platform. Please check the console for details.";
+      }
       
       setMessage({ type: "error", text: errorMessage });
       router.replace("/seller/platforms");

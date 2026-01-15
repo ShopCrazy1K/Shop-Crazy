@@ -100,8 +100,27 @@ export async function GET(req: Request) {
     );
   } catch (error: any) {
     console.error("Shopify OAuth callback error:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      statusCode: error.statusCode,
+    });
+    
+    // Provide more detailed error messages
+    let errorMessage = 'oauth_failed';
+    if (error.message?.includes('redirect_uri_mismatch')) {
+      errorMessage = 'redirect_uri_mismatch';
+    } else if (error.message?.includes('invalid_request')) {
+      errorMessage = 'invalid_request';
+    } else if (error.message?.includes('access_denied')) {
+      errorMessage = 'access_denied';
+    } else if (error.message) {
+      errorMessage = encodeURIComponent(error.message.substring(0, 100));
+    }
+    
     return NextResponse.redirect(
-      `${appUrl}/seller/platforms?error=${encodeURIComponent(error.message || 'oauth_failed')}`
+      `${appUrl}/seller/platforms?error=${errorMessage}`
     );
   }
 }
