@@ -67,6 +67,11 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailPassword, setEmailPassword] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
@@ -893,6 +898,16 @@ export default function ProfilePage() {
             setPasswordError={setPasswordError}
             passwordSuccess={passwordSuccess}
             setPasswordSuccess={setPasswordSuccess}
+            editingEmail={editingEmail}
+            setEditingEmail={setEditingEmail}
+            newEmail={newEmail}
+            setNewEmail={setNewEmail}
+            emailPassword={emailPassword}
+            setEmailPassword={setEmailPassword}
+            savingEmail={savingEmail}
+            setSavingEmail={setSavingEmail}
+            emailError={emailError}
+            setEmailError={setEmailError}
             logout={logout}
             router={router}
           />
@@ -1395,6 +1410,16 @@ function SettingsTab({
   setPasswordError,
   passwordSuccess,
   setPasswordSuccess,
+  editingEmail,
+  setEditingEmail,
+  newEmail,
+  setNewEmail,
+  emailPassword,
+  setEmailPassword,
+  savingEmail,
+  setSavingEmail,
+  emailError,
+  setEmailError,
   logout,
   router,
 }: any) {
@@ -1404,12 +1429,40 @@ function SettingsTab({
       <div className="bg-white rounded-xl p-6 shadow-md">
         <h2 className="text-xl font-bold mb-4">Account Information</h2>
         <div className="space-y-4">
-          <div className="flex justify-between items-center p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
-            <div>
-              <p className="text-gray-500 text-sm">Email</p>
-              <p className="font-semibold">{user.email}</p>
-            </div>
-            <span className="text-2xl">📧</span>
+          {/* Email */}
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4">
+            {!editingEmail ? (
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-gray-500 text-sm">Email</p>
+                  <p className="font-semibold">{user.email}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setNewEmail(user.email);
+                    setEmailPassword("");
+                    setEditingEmail(true);
+                    setEmailError("");
+                  }}
+                  className="text-purple-600 hover:text-purple-700 text-sm font-semibold"
+                >
+                  Edit
+                </button>
+              </div>
+            ) : (
+              <EmailEditor
+                newEmail={newEmail}
+                setNewEmail={setNewEmail}
+                emailPassword={emailPassword}
+                setEmailPassword={setEmailPassword}
+                setEditingEmail={setEditingEmail}
+                savingEmail={savingEmail}
+                setSavingEmail={setSavingEmail}
+                emailError={emailError}
+                setEmailError={setEmailError}
+                user={user}
+              />
+            )}
           </div>
 
           {/* Username */}
@@ -1568,6 +1621,112 @@ function UsernameEditor({ newUsername, setNewUsername, setEditingUsername, setSa
             setEditingUsername(false);
             setNewUsername("");
             setUsernameError("");
+          }}
+          className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EmailEditor({ newEmail, setNewEmail, emailPassword, setEmailPassword, setEditingEmail, setSavingEmail, emailError, setEmailError, user }: any) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-semibold text-gray-700">New Email Address</label>
+      <input
+        type="email"
+        value={newEmail}
+        onChange={(e) => {
+          setNewEmail(e.target.value);
+          setEmailError("");
+        }}
+        placeholder="Enter new email"
+        className="w-full px-4 py-2 border-2 border-purple-300 rounded-lg"
+      />
+      <label className="block text-sm font-semibold text-gray-700 mt-2">Current Password</label>
+      <input
+        type="password"
+        value={emailPassword}
+        onChange={(e) => {
+          setEmailPassword(e.target.value);
+          setEmailError("");
+        }}
+        placeholder="Enter your password to confirm"
+        className="w-full px-4 py-2 border-2 border-purple-300 rounded-lg"
+      />
+      {emailError && <p className="text-xs text-red-600">{emailError}</p>}
+      <p className="text-xs text-gray-500">Your password is required to change your email address</p>
+      <div className="flex gap-2">
+        <button
+          onClick={async () => {
+            if (!newEmail.trim()) {
+              setEmailError("Email cannot be empty");
+              return;
+            }
+
+            if (!emailPassword.trim()) {
+              setEmailError("Password is required");
+              return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(newEmail.trim())) {
+              setEmailError("Invalid email format");
+              return;
+            }
+
+            if (newEmail.toLowerCase() === user.email.toLowerCase()) {
+              setEmailError("New email must be different from current email");
+              return;
+            }
+
+            setSavingEmail(true);
+            setEmailError("");
+            try {
+              const response = await fetch(`/api/users/${user.id}/change-email`, {
+                method: "POST",
+                headers: { 
+                  "Content-Type": "application/json",
+                  "x-user-id": user.id,
+                },
+                body: JSON.stringify({ 
+                  newEmail: newEmail.trim(),
+                  password: emailPassword,
+                }),
+              });
+
+              const data = await response.json();
+              if (response.ok) {
+                const updatedUser = { ...user, email: newEmail.trim() };
+                const storedUser = localStorage.getItem("user");
+                if (storedUser) {
+                  localStorage.setItem("user", JSON.stringify(updatedUser));
+                }
+                alert("Email address updated successfully!");
+                window.location.reload();
+              } else {
+                setEmailError(data.error || "Failed to update email address");
+              }
+            } catch (error) {
+              console.error("Error updating email:", error);
+              setEmailError("An error occurred while updating email address");
+            } finally {
+              setSavingEmail(false);
+            }
+          }}
+          disabled={savingEmail}
+          className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50"
+        >
+          {savingEmail ? "Saving..." : "Save"}
+        </button>
+        <button
+          onClick={() => {
+            setEditingEmail(false);
+            setNewEmail("");
+            setEmailPassword("");
+            setEmailError("");
           }}
           className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300"
         >
