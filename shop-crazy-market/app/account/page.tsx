@@ -217,23 +217,25 @@ export default function AccountPage() {
             {/* Email Section */}
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-3 sm:p-4">
               {!editingEmail ? (
-                <div className="flex justify-between items-center">
-                  <div className="flex-1 min-w-0 pr-2">
-                    <p className="text-gray-500 text-xs sm:text-sm">Email</p>
-                    <p className="font-semibold text-sm sm:text-lg truncate">{user.email}</p>
+                <div className="flex justify-between items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-gray-500 text-xs sm:text-sm mb-1">Email</p>
+                    <p className="font-semibold text-sm sm:text-base truncate">{user.email}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl sm:text-2xl flex-shrink-0">📧</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         setNewEmail(user.email);
                         setEmailPassword("");
                         setEditingEmail(true);
                         setEmailError("");
                       }}
-                      className="text-purple-600 hover:text-purple-700 text-xs sm:text-sm font-semibold px-2 py-1"
+                      className="bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg border-2 border-purple-600 transition-colors whitespace-nowrap shadow-sm"
+                      type="button"
                     >
-                      Edit
+                      Edit Email
                     </button>
                   </div>
                 </div>
@@ -460,7 +462,7 @@ export default function AccountPage() {
             {/* Password Section */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-3 sm:p-4">
               {!editingPassword ? (
-                <div className="flex justify-between items-center gap-2">
+                <div className="flex justify-between items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-gray-500 text-xs sm:text-sm mb-1">Password</p>
                     <p className="font-semibold text-sm sm:text-base">••••••••</p>
@@ -476,12 +478,11 @@ export default function AccountPage() {
                         setEditingPassword(true);
                         setPasswordError("");
                       }}
-                      className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-md border border-purple-300 transition-colors whitespace-nowrap"
+                      className="bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg border-2 border-purple-600 transition-colors whitespace-nowrap shadow-sm"
                       type="button"
                     >
-                      Change
+                      Change Password
                     </button>
-                    <span className="text-xl sm:text-2xl" aria-hidden="true">🔒</span>
                   </div>
                 </div>
               ) : (
