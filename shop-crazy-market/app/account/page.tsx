@@ -24,6 +24,17 @@ export default function AccountPage() {
   const [creditHistory, setCreditHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailPassword, setEmailPassword] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [editingPassword, setEditingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -203,12 +214,139 @@ export default function AccountPage() {
 
           {/* User Info */}
           <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg sm:rounded-xl">
-              <div className="flex-1 min-w-0 pr-2">
-                <p className="text-gray-500 text-xs sm:text-sm">Email</p>
-                <p className="font-semibold text-sm sm:text-lg truncate">{user.email}</p>
-              </div>
-              <span className="text-xl sm:text-2xl flex-shrink-0">📧</span>
+            {/* Email Section */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-3 sm:p-4">
+              {!editingEmail ? (
+                <div className="flex justify-between items-center">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <p className="text-gray-500 text-xs sm:text-sm">Email</p>
+                    <p className="font-semibold text-sm sm:text-lg truncate">{user.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl sm:text-2xl flex-shrink-0">📧</span>
+                    <button
+                      onClick={() => {
+                        setNewEmail(user.email);
+                        setEmailPassword("");
+                        setEditingEmail(true);
+                        setEmailError("");
+                      }}
+                      className="text-purple-600 hover:text-purple-700 text-xs sm:text-sm font-semibold px-2 py-1"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700">New Email Address</label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => {
+                      setNewEmail(e.target.value);
+                      setEmailError("");
+                    }}
+                    placeholder="Enter new email"
+                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
+                  />
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mt-2">Current Password</label>
+                  <input
+                    type="password"
+                    value={emailPassword}
+                    onChange={(e) => {
+                      setEmailPassword(e.target.value);
+                      setEmailError("");
+                    }}
+                    placeholder="Enter your password to confirm"
+                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
+                  />
+                  {emailError && (
+                    <p className="text-xs text-red-600">{emailError}</p>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    Your password is required to change your email address
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        if (!newEmail.trim()) {
+                          setEmailError("Email cannot be empty");
+                          return;
+                        }
+
+                        if (!emailPassword.trim()) {
+                          setEmailError("Password is required");
+                          return;
+                        }
+
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailRegex.test(newEmail.trim())) {
+                          setEmailError("Invalid email format");
+                          return;
+                        }
+
+                        if (newEmail.toLowerCase() === user.email.toLowerCase()) {
+                          setEmailError("New email must be different from current email");
+                          return;
+                        }
+
+                        setSavingEmail(true);
+                        setEmailError("");
+                        try {
+                          const response = await fetch(`/api/users/${user.id}/change-email`, {
+                            method: "POST",
+                            headers: { 
+                              "Content-Type": "application/json",
+                              "x-user-id": user.id,
+                            },
+                            body: JSON.stringify({ 
+                              newEmail: newEmail.trim(),
+                              password: emailPassword,
+                            }),
+                          });
+
+                          const data = await response.json();
+                          if (response.ok) {
+                            // Update local user state
+                            const updatedUser = { ...user, email: newEmail.trim() };
+                            // Update in localStorage if it exists
+                            const storedUser = localStorage.getItem("user");
+                            if (storedUser) {
+                              localStorage.setItem("user", JSON.stringify(updatedUser));
+                            }
+                            alert("Email address updated successfully!");
+                            // Force page reload to update auth context
+                            window.location.reload();
+                          } else {
+                            setEmailError(data.error || "Failed to update email address");
+                          }
+                        } catch (error) {
+                          console.error("Error updating email:", error);
+                          setEmailError("An error occurred while updating email address");
+                        } finally {
+                          setSavingEmail(false);
+                        }
+                      }}
+                      disabled={savingEmail}
+                      className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 text-sm sm:text-base"
+                    >
+                      {savingEmail ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingEmail(false);
+                        setNewEmail("");
+                        setEmailPassword("");
+                        setEmailError("");
+                      }}
+                      className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-sm sm:text-base"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Username Section */}
@@ -309,6 +447,148 @@ export default function AccountPage() {
                         setEditingUsername(false);
                         setNewUsername("");
                         setUsernameError("");
+                      }}
+                      className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-sm sm:text-base"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Password Section */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-3 sm:p-4">
+              {!editingPassword ? (
+                <div className="flex justify-between items-center">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <p className="text-gray-500 text-xs sm:text-sm">Password</p>
+                    <p className="font-semibold text-sm sm:text-lg">••••••••</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl sm:text-2xl flex-shrink-0">🔒</span>
+                    <button
+                      onClick={() => {
+                        setCurrentPassword("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                        setEditingPassword(true);
+                        setPasswordError("");
+                      }}
+                      className="text-purple-600 hover:text-purple-700 text-xs sm:text-sm font-semibold px-2 py-1"
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700">Current Password</label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => {
+                      setCurrentPassword(e.target.value);
+                      setPasswordError("");
+                    }}
+                    placeholder="Enter current password"
+                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
+                  />
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mt-2">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      setPasswordError("");
+                    }}
+                    placeholder="Enter new password"
+                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
+                  />
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mt-2">Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      setPasswordError("");
+                    }}
+                    placeholder="Confirm new password"
+                    className="w-full px-3 sm:px-4 py-2 border-2 border-purple-300 rounded-lg text-sm sm:text-base"
+                  />
+                  {passwordError && (
+                    <p className="text-xs text-red-600">{passwordError}</p>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    Password must be at least 8 characters long
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        if (!currentPassword.trim()) {
+                          setPasswordError("Current password is required");
+                          return;
+                        }
+
+                        if (!newPassword.trim()) {
+                          setPasswordError("New password is required");
+                          return;
+                        }
+
+                        if (newPassword.length < 8) {
+                          setPasswordError("New password must be at least 8 characters long");
+                          return;
+                        }
+
+                        if (newPassword !== confirmPassword) {
+                          setPasswordError("New passwords do not match");
+                          return;
+                        }
+
+                        setSavingPassword(true);
+                        setPasswordError("");
+                        try {
+                          const response = await fetch(`/api/users/${user.id}/change-password`, {
+                            method: "POST",
+                            headers: { 
+                              "Content-Type": "application/json",
+                              "x-user-id": user.id,
+                            },
+                            body: JSON.stringify({ 
+                              currentPassword: currentPassword,
+                              newPassword: newPassword,
+                            }),
+                          });
+
+                          const data = await response.json();
+                          if (response.ok) {
+                            alert("Password changed successfully!");
+                            setEditingPassword(false);
+                            setCurrentPassword("");
+                            setNewPassword("");
+                            setConfirmPassword("");
+                          } else {
+                            setPasswordError(data.error || "Failed to change password");
+                          }
+                        } catch (error) {
+                          console.error("Error changing password:", error);
+                          setPasswordError("An error occurred while changing password");
+                        } finally {
+                          setSavingPassword(false);
+                        }
+                      }}
+                      disabled={savingPassword}
+                      className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 text-sm sm:text-base"
+                    >
+                      {savingPassword ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingPassword(false);
+                        setCurrentPassword("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                        setPasswordError("");
                       }}
                       className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-sm sm:text-base"
                     >
