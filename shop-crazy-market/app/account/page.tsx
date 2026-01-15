@@ -603,14 +603,15 @@ export default function AccountPage() {
               )}
             </div>
 
-            <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg sm:rounded-xl">
-              <div className="flex-1 min-w-0 pr-2">
-                <p className="text-gray-500 text-xs sm:text-sm">Account Type</p>
-                <p className="font-semibold text-sm sm:text-lg capitalize">{user.role?.toLowerCase() || "user"}</p>
+              <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg sm:rounded-xl">
+                <div className="flex-1 min-w-0 pr-2">
+                  <p className="text-gray-500 text-xs sm:text-sm">Account Type</p>
+                  <p className="font-semibold text-sm sm:text-lg capitalize">{user.role?.toLowerCase() || "user"}</p>
+                </div>
+                <span className="text-xl sm:text-2xl flex-shrink-0">
+                  {user.role === "ADMIN" ? "👑" : "⭐"}
+                </span>
               </div>
-              <span className="text-xl sm:text-2xl flex-shrink-0">
-                {user.role === "ADMIN" ? "👑" : "⭐"}
-              </span>
             </div>
           </div>
         </div>
