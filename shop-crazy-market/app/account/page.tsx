@@ -212,9 +212,11 @@ export default function AccountPage() {
             </div>
           )}
 
-          {/* User Info */}
-          <div className="space-y-3">
-            {/* Email Section */}
+          {/* Account Information Section */}
+          <div className="mt-6">
+            <h3 className="text-lg sm:text-xl font-bold mb-4 text-gray-800">Account Information</h3>
+            <div className="space-y-3">
+              {/* Email Section */}
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-3 sm:p-4">
               {!editingEmail ? (
                 <div className="flex justify-between items-center gap-3">
