@@ -15,7 +15,24 @@ export const GET = createGetHandler(
   async () => {
     const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY || '';
     const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || '';
-    const SHOPIFY_SCOPES = process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,write_orders';
+    const SHOPIFY_SCOPES_ENV = process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,write_orders';
+    
+    // Get the actual scopes that will be used (includes auto-added read_products)
+    // We'll extract it from a sample auth URL
+    let actualScopes = SHOPIFY_SCOPES_ENV;
+    try {
+      if (SHOPIFY_API_KEY) {
+        const sampleUrl = getShopifyAuthUrl('example.myshopify.com', 'test');
+        const urlObj = new URL(sampleUrl);
+        actualScopes = urlObj.searchParams.get('scope') || SHOPIFY_SCOPES_ENV;
+      }
+    } catch (e) {
+      // If we can't generate URL, use env value
+      actualScopes = SHOPIFY_SCOPES_ENV;
+    }
+    
+    // Check if read_products is in the scopes
+    const hasReadProducts = actualScopes.includes('read_products');
     
     const APP_URL = getAppUrl();
     const redirectUri = `${APP_URL}/api/shopify/oauth/callback`;
@@ -27,7 +44,9 @@ export const GET = createGetHandler(
         hasApiSecret: !!SHOPIFY_API_SECRET,
         apiKeyLength: SHOPIFY_API_KEY.length,
         apiSecretLength: SHOPIFY_API_SECRET.length,
-        scopes: SHOPIFY_SCOPES,
+        scopesFromEnv: SHOPIFY_SCOPES_ENV,
+        scopesActual: actualScopes,
+        hasReadProducts: hasReadProducts,
         appUrl: APP_URL,
         redirectUri: redirectUri,
         vercelUrl: process.env.VERCEL_URL || 'not set',
