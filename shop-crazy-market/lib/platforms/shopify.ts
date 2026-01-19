@@ -41,7 +41,10 @@ export class ShopifyClient {
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const url = `${this.baseUrl}${endpoint}`;
+    console.log(`Shopify API request: ${options.method || 'GET'} ${url}`);
+    
+    const response = await fetch(url, {
       ...options,
       headers: {
         "X-Shopify-Access-Token": this.accessToken,
@@ -52,13 +55,33 @@ export class ShopifyClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      let errorMessage = `Shopify API error: ${response.statusText}`;
+      let errorMessage = `Shopify API error: ${response.status} ${response.statusText}`;
       try {
         const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.errors?.message || errorJson.error || errorMessage;
+        if (errorJson.errors) {
+          if (typeof errorJson.errors === 'string') {
+            errorMessage = errorJson.errors;
+          } else if (Array.isArray(errorJson.errors)) {
+            errorMessage = errorJson.errors.join(', ');
+          } else if (errorJson.errors.message) {
+            errorMessage = errorJson.errors.message;
+          } else {
+            errorMessage = JSON.stringify(errorJson.errors);
+          }
+        } else if (errorJson.error) {
+          errorMessage = errorJson.error;
+        }
       } catch {
-        errorMessage = errorText || errorMessage;
+        if (errorText) {
+          errorMessage = errorText.substring(0, 500);
+        }
       }
+      console.error(`Shopify API error: ${errorMessage}`, {
+        status: response.status,
+        statusText: response.statusText,
+        endpoint,
+        url,
+      });
       throw new Error(errorMessage);
     }
 

@@ -127,16 +127,19 @@ function PlatformsPageContent() {
         body: JSON.stringify({ zone: "SHOP_4_US" }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        const data = await res.json();
-        alert(`Sync complete! ${data.message}`);
+        alert(`Sync complete! ${data.message || `Synced ${data.results?.created || 0} new products, updated ${data.results?.updated || 0} existing products`}`);
         fetchConnections();
       } else {
-        alert("Sync failed. Please try again.");
+        const errorMessage = data.error || "Sync failed. Please try again.";
+        console.error("Sync error:", errorMessage, data);
+        alert(`Sync failed: ${errorMessage}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error syncing products:", error);
-      alert("Error syncing products");
+      alert(`Error syncing products: ${error.message || "Unknown error"}`);
     } finally {
       setSyncing(null);
     }

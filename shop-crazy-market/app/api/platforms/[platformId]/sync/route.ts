@@ -35,12 +35,34 @@ export async function POST(
     };
 
     if (connection.platform === "SHOPIFY") {
+      // Extract store name from storeUrl or use storeName
+      let storeName = connection.storeName || "";
+      
+      // If storeName is not set, try to extract from storeUrl
+      if (!storeName && connection.storeUrl) {
+        try {
+          const url = new URL(connection.storeUrl);
+          storeName = url.hostname.replace('.myshopify.com', '').replace('https://', '').replace('http://', '');
+        } catch (e) {
+          console.error("Error parsing storeUrl:", e);
+        }
+      }
+      
+      // If still no storeName, we can't proceed
+      if (!storeName) {
+        throw new Error("Store name is required for Shopify sync. Please reconnect your Shopify store.");
+      }
+
+      console.log(`Starting Shopify sync for store: ${storeName}`);
+      
       const client = new ShopifyClient({
         accessToken: connection.accessToken,
-        storeName: connection.storeName || "",
+        storeName: storeName,
       });
 
+      console.log(`Fetching products from Shopify...`);
       const shopifyProducts = await client.getProducts(250); // Get up to 250 products
+      console.log(`Fetched ${shopifyProducts.length} products from Shopify`);
 
       for (const shopifyProduct of shopifyProducts) {
         try {
@@ -181,8 +203,19 @@ export async function POST(
     });
   } catch (error: any) {
     console.error("Product sync error:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      connectionId: platformId,
+      platform: connection?.platform,
+      storeName: connection?.storeName,
+      hasStoreUrl: !!connection?.storeUrl,
+    });
     return NextResponse.json(
-      { error: error.message || "Failed to sync products" },
+      { 
+        error: error.message || "Failed to sync products",
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
