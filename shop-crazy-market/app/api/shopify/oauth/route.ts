@@ -46,6 +46,11 @@ export const GET = createGetHandler(
 
     // Generate authorization URL
     const authUrl = getShopifyAuthUrl(shopDomain, state);
+    
+    // Log requested scopes for debugging
+    const requestedScopes = process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,write_orders';
+    console.log('Shopify OAuth - Requested scopes:', requestedScopes);
+    console.log('Shopify OAuth - Authorization URL:', authUrl);
 
     // Redirect to Shopify OAuth
     return NextResponse.redirect(authUrl);
