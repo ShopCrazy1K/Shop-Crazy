@@ -72,6 +72,10 @@ function PlatformsPageContent() {
         errorMessage = "Access denied. You need to click 'Install' or 'Authorize' on the Shopify authorization page.";
       } else if (error === "unauthorized_client" || error.includes("unauthorized")) {
         errorMessage = "Unauthorized. Please verify your Shopify app API key and secret in Vercel match your Shopify Partners Dashboard. Also check that the redirect URI in Shopify matches exactly: https://shopcrazymarket.com/api/shopify/oauth/callback";
+      } else if (error === "missing_scopes") {
+        const scopes = searchParams?.get("scopes");
+        const granted = searchParams?.get("granted");
+        errorMessage = `Missing required scopes: ${scopes || 'read_products'}. Please check your Shopify Partners Dashboard → App setup → Permissions to ensure 'read_products' is enabled. Granted scopes: ${granted || 'none'}`;
       } else if (error === "oauth_failed") {
         errorMessage = "OAuth authentication failed. Please try again.";
       } else {

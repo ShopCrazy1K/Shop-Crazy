@@ -82,6 +82,22 @@ export async function GET(req: Request) {
     // Exchange code for access token
     const tokenData = await exchangeCodeForToken(shop, code);
     const accessToken = tokenData.access_token;
+    const grantedScopes = tokenData.scope || '';
+
+    // Log the granted scopes for debugging
+    console.log('Shopify OAuth granted scopes:', grantedScopes);
+    
+    // Check if required scopes are present
+    const requiredScopes = ['read_products'];
+    const missingScopes = requiredScopes.filter(scope => !grantedScopes.includes(scope));
+    
+    if (missingScopes.length > 0) {
+      console.error('Missing required scopes:', missingScopes);
+      console.error('Granted scopes:', grantedScopes);
+      return NextResponse.redirect(
+        `${appUrl}/seller/platforms?error=missing_scopes&scopes=${encodeURIComponent(missingScopes.join(','))}&granted=${encodeURIComponent(grantedScopes)}`
+      );
+    }
 
     // Get shop information
     const shopInfo = await getShopInfo(shop, accessToken);
