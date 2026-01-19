@@ -12,8 +12,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ platformId: string }> }
 ) {
+  const { platformId } = await params;
+  
   try {
-    const { platformId } = await params;
     const { zone } = await req.json().catch(() => ({}));
 
     const connection = await prisma.platformConnection.findUnique({
@@ -203,14 +204,28 @@ export async function POST(
     });
   } catch (error: any) {
     console.error("Product sync error:", error);
+    
+    // Try to get connection info for better error logging
+    let connectionInfo = null;
+    try {
+      const connection = await prisma.platformConnection.findUnique({
+        where: { id: platformId },
+        select: { platform: true, storeName: true, storeUrl: true },
+      });
+      connectionInfo = connection;
+    } catch (e) {
+      // Ignore errors fetching connection info
+    }
+    
     console.error("Error details:", {
       message: error.message,
       stack: error.stack,
       connectionId: platformId,
-      platform: connection?.platform,
-      storeName: connection?.storeName,
-      hasStoreUrl: !!connection?.storeUrl,
+      platform: connectionInfo?.platform,
+      storeName: connectionInfo?.storeName,
+      hasStoreUrl: !!connectionInfo?.storeUrl,
     });
+    
     return NextResponse.json(
       { 
         error: error.message || "Failed to sync products",
