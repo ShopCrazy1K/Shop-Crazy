@@ -23,8 +23,22 @@ export const GET = createGetHandler(
     const { searchParams } = new URL(req.url);
     const { shop, shopId } = await validateQuery(querySchema, searchParams);
 
-    // Normalize shop name (add .myshopify.com if not present)
-    const normalizedShop = shop.includes('.') ? shop.split('.')[0] : shop;
+    // Normalize shop name - remove any protocol, www, or trailing slashes
+    let normalizedShop = shop.trim();
+    // Remove https:// or http:// if present
+    normalizedShop = normalizedShop.replace(/^https?:\/\//, '');
+    // Remove www. if present
+    normalizedShop = normalizedShop.replace(/^www\./, '');
+    // Remove trailing slash
+    normalizedShop = normalizedShop.replace(/\/$/, '');
+    // Extract just the shop name (before first dot if .myshopify.com is present)
+    if (normalizedShop.includes('.myshopify.com')) {
+      normalizedShop = normalizedShop.split('.myshopify.com')[0];
+    } else if (normalizedShop.includes('.')) {
+      // If it has dots but not .myshopify.com, take the first part
+      normalizedShop = normalizedShop.split('.')[0];
+    }
+    // Create the full shop domain
     const shopDomain = `${normalizedShop}.myshopify.com`;
 
     // Generate state with shopId for verification
