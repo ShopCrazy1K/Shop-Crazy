@@ -55,15 +55,18 @@ export async function POST(
       }
 
       console.log(`Starting Shopify sync for store: ${storeName}`);
+      console.log(`Access token present: ${!!connection.accessToken}`);
+      console.log(`Access token length: ${connection.accessToken?.length || 0}`);
       
-      const client = new ShopifyClient({
-        accessToken: connection.accessToken,
-        storeName: storeName,
-      });
+      try {
+        const client = new ShopifyClient({
+          accessToken: connection.accessToken,
+          storeName: storeName,
+        });
 
-      console.log(`Fetching products from Shopify...`);
-      const shopifyProducts = await client.getProducts(250); // Get up to 250 products
-      console.log(`Fetched ${shopifyProducts.length} products from Shopify`);
+        console.log(`Fetching products from Shopify...`);
+        const shopifyProducts = await client.getProducts(250); // Get up to 250 products
+        console.log(`Fetched ${shopifyProducts.length} products from Shopify`);
 
       for (const shopifyProduct of shopifyProducts) {
         try {
@@ -137,6 +140,17 @@ export async function POST(
           console.error(`Error syncing Shopify product ${shopifyProduct.id}:`, error);
           results.errors.push(`Product ${shopifyProduct.id}: ${error.message}`);
         }
+      }
+      } catch (error: any) {
+        // Catch errors from ShopifyClient initialization or getProducts
+        console.error('Shopify client error:', error);
+        if (error.message.includes('decrypt') || error.message.includes('ENCRYPTION_KEY')) {
+          throw new Error('Access token decryption failed. Please disconnect and reconnect your Shopify store. The ENCRYPTION_KEY may have changed.');
+        }
+        if (error.message.includes('Invalid API key') || error.message.includes('unrecognized login')) {
+          throw new Error('Invalid access token. The token may have expired or been revoked. Please disconnect and reconnect your Shopify store.');
+        }
+        throw error;
       }
     } else if (connection.platform === "PRINTIFY") {
       const client = new PrintifyClient({

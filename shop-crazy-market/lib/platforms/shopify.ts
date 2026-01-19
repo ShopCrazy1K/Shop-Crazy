@@ -33,7 +33,29 @@ export class ShopifyClient {
 
   constructor(config: ShopifyConfig) {
     // Decrypt token if it's encrypted
-    this.accessToken = decrypt(config.accessToken);
+    try {
+      const decryptedToken = decrypt(config.accessToken);
+      
+      // Validate that decryption worked - encrypted tokens have format "iv:authTag:encrypted"
+      // If it still has colons and looks encrypted, decryption probably failed
+      if (decryptedToken === config.accessToken && config.accessToken.includes(':')) {
+        const parts = config.accessToken.split(':');
+        if (parts.length === 3 && parts[0].length === 32 && parts[1].length === 32) {
+          // This looks like an encrypted token that failed to decrypt
+          console.error('Token decryption may have failed - token still appears encrypted');
+          throw new Error('Failed to decrypt access token. The ENCRYPTION_KEY may have changed or the token is corrupted. Please reconnect your Shopify store.');
+        }
+      }
+      
+      this.accessToken = decryptedToken;
+    } catch (error: any) {
+      console.error('Error decrypting Shopify access token:', error);
+      if (error.message.includes('ENCRYPTION_KEY')) {
+        throw error;
+      }
+      throw new Error(`Failed to decrypt access token: ${error.message}. Please reconnect your Shopify store.`);
+    }
+    
     this.storeName = config.storeName.includes('.') 
       ? config.storeName.split('.')[0] 
       : config.storeName;
