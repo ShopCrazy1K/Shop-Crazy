@@ -86,6 +86,9 @@ export async function GET(req: Request) {
     // Get shop information
     const shopInfo = await getShopInfo(shop, accessToken);
 
+    // Extract shop domain name (e.g., "shopcrazymarket" from "shopcrazymarket.myshopify.com")
+    const shopDomain = normalizedShop || shop.split('.')[0];
+    
     // Encrypt access token
     const encryptedToken = encrypt(accessToken);
 
@@ -105,7 +108,7 @@ export async function GET(req: Request) {
         where: { id: existing.id },
         data: {
           accessToken: encryptedToken,
-          storeName: shopInfo.name,
+          storeName: shopDomain, // Use shop domain, not display name, for API calls
           storeUrl: `https://${shopInfo.domain}`,
           isActive: true,
         },
@@ -117,7 +120,7 @@ export async function GET(req: Request) {
           shopId,
           platform: "SHOPIFY",
           accessToken: encryptedToken,
-          storeName: shopInfo.name,
+          storeName: shopDomain, // Use shop domain, not display name, for API calls
           storeUrl: `https://${shopInfo.domain}`,
           isActive: true,
           syncEnabled: false,
