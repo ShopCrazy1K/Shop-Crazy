@@ -12,7 +12,27 @@ function getShopifyApiSecret(): string {
 }
 
 function getShopifyScopes(): string {
-  return process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,write_orders';
+  const envScopes = process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,write_orders';
+  
+  // Always ensure read_products is included (required for product sync)
+  const scopeList = envScopes.split(',').map(s => s.trim()).filter(Boolean);
+  
+  // Add read_products if not present
+  if (!scopeList.includes('read_products')) {
+    console.warn('[Shopify OAuth] read_products scope missing from SHOPIFY_SCOPES, adding it automatically');
+    scopeList.unshift('read_products'); // Add to beginning
+  }
+  
+  // Ensure other essential scopes are present
+  const essentialScopes = ['write_products', 'read_orders', 'write_orders'];
+  essentialScopes.forEach(scope => {
+    if (!scopeList.includes(scope)) {
+      console.warn(`[Shopify OAuth] ${scope} scope missing from SHOPIFY_SCOPES, adding it automatically`);
+      scopeList.push(scope);
+    }
+  });
+  
+  return scopeList.join(',');
 }
 
 /**

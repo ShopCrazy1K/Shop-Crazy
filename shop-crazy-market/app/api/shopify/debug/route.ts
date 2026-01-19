@@ -1,6 +1,7 @@
 import { createGetHandler } from "@/lib/api-wrapper";
 import { getAppUrl } from "@/lib/env";
 import { successResponse } from "@/lib/api-response";
+import { getShopifyAuthUrl } from "@/lib/platforms/shopify-oauth";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -55,6 +56,9 @@ export const GET = createGetHandler(
     }
     if (!redirectUri.startsWith('https') && APP_URL !== 'http://localhost:3000') {
       issues.push('Redirect URI should use HTTPS in production');
+    }
+    if (!hasReadProducts) {
+      issues.push('WARNING: read_products scope is missing! This will cause sync to fail. The code will auto-add it, but you should fix SHOPIFY_SCOPES in Vercel.');
     }
     
     if (issues.length > 0) {
