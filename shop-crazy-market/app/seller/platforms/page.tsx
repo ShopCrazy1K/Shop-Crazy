@@ -55,24 +55,33 @@ function PlatformsPageContent() {
       // Clear URL params
       router.replace("/seller/platforms");
     } else if (error) {
+      const description = searchParams?.get("description");
       let errorMessage = "Failed to connect platform";
+      
       if (error === "invalid_hmac") {
-        errorMessage = "Invalid security verification. Please try again.";
+        errorMessage = "Invalid security verification. Please check your SHOPIFY_API_SECRET in Vercel matches Shopify Partners Dashboard.";
       } else if (error === "missing_params") {
         errorMessage = "Missing required parameters. Please ensure all OAuth parameters are present.";
       } else if (error === "invalid_state") {
         errorMessage = "Invalid session. Please try again.";
-      } else if (error === "redirect_uri_mismatch") {
-        errorMessage = "Redirect URI mismatch. Please ensure the redirect URI in Shopify Partners Dashboard matches: https://shopcrazymarket.com/api/shopify/oauth/callback";
+      } else if (error === "redirect_uri_mismatch" || error.includes("redirect_uri")) {
+        errorMessage = "Redirect URI mismatch. Please verify in Shopify Partners Dashboard → App setup → Allowed redirection URL(s) includes: https://shopcrazymarket.com/api/shopify/oauth/callback";
       } else if (error === "invalid_request") {
-        errorMessage = "Invalid request. Please check your Shopify app configuration.";
+        errorMessage = "Invalid request. Please check your Shopify app configuration in Partners Dashboard.";
       } else if (error === "access_denied") {
-        errorMessage = "Access denied. You declined to authorize the app.";
+        errorMessage = "Access denied. You need to click 'Install' or 'Authorize' on the Shopify authorization page.";
+      } else if (error === "unauthorized_client" || error.includes("unauthorized")) {
+        errorMessage = "Unauthorized. Please verify your Shopify app API key and secret in Vercel match your Shopify Partners Dashboard. Also check that the redirect URI in Shopify matches exactly: https://shopcrazymarket.com/api/shopify/oauth/callback";
       } else if (error === "oauth_failed") {
         errorMessage = "OAuth authentication failed. Please try again.";
       } else {
         // Show the actual error message if available
-        errorMessage = decodeURIComponent(error) || "Failed to connect platform. Please check the console for details.";
+        const decodedError = decodeURIComponent(error);
+        const decodedDesc = description ? decodeURIComponent(description) : "";
+        errorMessage = decodedError || "Failed to connect platform. Please check your Shopify app configuration.";
+        if (decodedDesc) {
+          errorMessage += ` (${decodedDesc})`;
+        }
       }
       
       setMessage({ type: "error", text: errorMessage });

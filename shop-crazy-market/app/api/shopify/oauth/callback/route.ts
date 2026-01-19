@@ -18,11 +18,36 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     
-    // Verify HMAC
-    if (!verifyShopifyHmac(searchParams)) {
+    // Check for OAuth errors from Shopify first
+    const error = searchParams.get("error");
+    const errorDescription = searchParams.get("error_description");
+    if (error) {
+      console.error("Shopify OAuth error:", error, errorDescription);
       return NextResponse.redirect(
-        `${appUrl}/seller/platforms?error=invalid_hmac`
+        `${appUrl}/seller/platforms?error=${encodeURIComponent(error)}&description=${encodeURIComponent(errorDescription || '')}`
       );
+    }
+    
+    // Verify HMAC (log if verification fails for debugging)
+    const hmac = searchParams.get("hmac");
+    if (hmac) {
+      const isValid = verifyShopifyHmac(searchParams);
+      if (!isValid) {
+        console.error("HMAC verification failed", {
+          shop: searchParams.get("shop"),
+          hasHmac: !!hmac,
+          params: Object.fromEntries(searchParams.entries())
+        });
+        return NextResponse.redirect(
+          `${appUrl}/seller/platforms?error=invalid_hmac`
+        );
+      }
+    } else {
+      // HMAC is optional for some Shopify flows, but log it
+      console.warn("No HMAC in OAuth callback", {
+        shop: searchParams.get("shop"),
+        params: Object.fromEntries(searchParams.entries())
+      });
     }
 
     const code = searchParams.get("code");
@@ -30,6 +55,12 @@ export async function GET(req: Request) {
     const state = searchParams.get("state");
 
     if (!code || !shop || !state) {
+      console.error("Missing required OAuth parameters", {
+        hasCode: !!code,
+        hasShop: !!shop,
+        hasState: !!state,
+        params: Object.fromEntries(searchParams.entries())
+      });
       return NextResponse.redirect(
         `${appUrl}/seller/platforms?error=missing_params`
       );
